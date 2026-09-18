@@ -1,0 +1,166 @@
+"use client";
+
+import { useState } from "react";
+import { ChevronDown, Menu, X } from "lucide-react";
+
+function NavDropdownTrigger({ children, isOpen }: { children: React.ReactNode; isOpen: boolean }) {
+  return (
+    <button
+      type="button"
+      className="group inline-flex items-center gap-1 py-1 text-[14px] font-medium text-[#1a1a1a] hover:text-black transition-colors"
+    >
+      {children}
+      <ChevronDown
+        className={`h-3.5 w-3.5 text-[#1a1a1a]/70 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+      />
+    </button>
+  );
+}
+
+const productDropdown = [
+  { label: "Auto-Replies", href: "#features" },
+  { label: "Chat Flow Builder", href: "#features" },
+  { label: "Shared Inbox", href: "#features" },
+  { label: "Broadcasts", href: "#features" },
+  { label: "Integrations", href: "#integrations" },
+  { label: "Pricing", href: "#pricing" },
+];
+
+const solutionsDropdown = [
+  { label: "E-commerce", href: "#industries" },
+  { label: "Restaurants & Food", href: "#industries" },
+  { label: "Real Estate", href: "#industries" },
+  { label: "Healthcare", href: "#industries" },
+  { label: "Education", href: "#industries" },
+  { label: "Agencies", href: "#industries" },
+];
+
+function DropdownMenu({ items, isOpen }: { items: { label: string; href: string }[]; isOpen: boolean }) {
+  if (!isOpen) return null;
+  return (
+    <div className="absolute top-full left-0 pt-2 w-56 z-50">
+      <div className="rounded-xl border border-[#E2E8F0]/80 bg-white/95 backdrop-blur-md shadow-[0_8px_30px_rgba(15,23,42,0.1)] py-1.5 overflow-hidden">
+        {items.map((item) => (
+          <a
+            key={item.label}
+            href={item.href}
+            className="block px-4 py-2 text-sm font-medium text-[#374151] hover:text-[#111827] hover:bg-[#F8FAFC] transition-colors"
+          >
+            {item.label}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function LandingNavbar() {
+  const [openDropdown, setOpenDropdown] = useState<"product" | "solutions" | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const NavLink = ({ href, children }: { href: string; children: React.ReactNode }) => (
+    <a
+      href={href}
+      onClick={() => setIsMenuOpen(false)}
+      className="inline-flex items-center py-1 text-[14px] font-medium text-[#1a1a1a] hover:text-black transition-colors"
+    >
+      {children}
+    </a>
+  );
+
+  return (
+    <header className="fixed top-0 left-0 right-0 z-50 px-4 pt-5 sm:px-6">
+      <div className="mx-auto flex max-w-[1100px] items-center justify-between gap-4 rounded-xl border border-white/70 bg-white/55 px-4 py-2.5 shadow-[0_4px_24px_rgba(15,23,42,0.06)] backdrop-blur-xl sm:px-5 lg:px-6">
+        <a href="#top" className="shrink-0 ml-1">
+          <span className="landing-logo text-[17px] sm:text-[18px]">LeadForGrow</span>
+        </a>
+
+        <nav className="hidden lg:flex flex-1 items-center justify-center gap-7 xl:gap-9">
+          <NavLink href="#top">Home</NavLink>
+          <div
+            className="relative"
+            onMouseEnter={() => setOpenDropdown("product")}
+            onMouseLeave={() => setOpenDropdown(null)}
+          >
+            <NavDropdownTrigger isOpen={openDropdown === "product"}>Product</NavDropdownTrigger>
+            <DropdownMenu items={productDropdown} isOpen={openDropdown === "product"} />
+          </div>
+          <div
+            className="relative"
+            onMouseEnter={() => setOpenDropdown("solutions")}
+            onMouseLeave={() => setOpenDropdown(null)}
+          >
+            <NavDropdownTrigger isOpen={openDropdown === "solutions"}>Solutions</NavDropdownTrigger>
+            <DropdownMenu items={solutionsDropdown} isOpen={openDropdown === "solutions"} />
+          </div>
+          <NavLink href="#pricing">Pricing</NavLink>
+          <NavLink href="#faq">FAQ</NavLink>
+          <NavLink href="#contact">Contact</NavLink>
+        </nav>
+
+        <div className="hidden lg:flex items-center gap-2 shrink-0">
+          <a
+            href="/login"
+            className="inline-flex items-center justify-center rounded-lg bg-white px-5 py-2 text-[14px] font-medium text-[#1a1a1a] border border-[#E8E8E8] hover:bg-[#FAFAFA] transition-colors"
+          >
+            Log in
+          </a>
+          <a
+            href="/signup"
+            className="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-5 py-2 text-[14px] font-semibold text-white hover:bg-emerald-800 transition-colors"
+          >
+            Start free trial
+          </a>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="lg:hidden inline-flex items-center justify-center p-2 rounded-lg text-[#1a1a1a] hover:bg-white/60 transition-colors"
+          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+        >
+          {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+      </div>
+
+      {isMenuOpen && (
+        <div className="lg:hidden mx-auto mt-2 max-w-[1100px] rounded-xl border border-white/70 bg-white/90 backdrop-blur-xl shadow-lg p-4">
+          <div className="space-y-1">
+            <a href="#top" className="block px-3 py-2 text-sm font-medium text-[#1a1a1a] rounded-lg hover:bg-white/80" onClick={() => setIsMenuOpen(false)}>
+              Home
+            </a>
+            <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Product</p>
+            {productDropdown.map((item) => (
+              <a key={item.label} href={item.href} className="block px-3 py-2 text-sm text-[#374151] rounded-lg hover:bg-white/80" onClick={() => setIsMenuOpen(false)}>
+                {item.label}
+              </a>
+            ))}
+            <p className="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Solutions</p>
+            {solutionsDropdown.map((item) => (
+              <a key={item.label} href={item.href} className="block px-3 py-2 text-sm text-[#374151] rounded-lg hover:bg-white/80" onClick={() => setIsMenuOpen(false)}>
+                {item.label}
+              </a>
+            ))}
+            <a href="#pricing" className="block px-3 py-2 text-sm font-medium text-[#1a1a1a] rounded-lg hover:bg-white/80" onClick={() => setIsMenuOpen(false)}>
+              Pricing
+            </a>
+            <a href="#faq" className="block px-3 py-2 text-sm font-medium text-[#1a1a1a] rounded-lg hover:bg-white/80" onClick={() => setIsMenuOpen(false)}>
+              FAQ
+            </a>
+            <a href="#contact" className="block px-3 py-2 text-sm font-medium text-[#1a1a1a] rounded-lg hover:bg-white/80" onClick={() => setIsMenuOpen(false)}>
+              Contact
+            </a>
+            <div className="mt-3 flex gap-2 pt-3 border-t border-[#E8E8E8]">
+              <a href="/login" className="flex-1 text-center rounded-xl bg-white border border-[#E8E8E8] px-4 py-2.5 text-sm font-medium" onClick={() => setIsMenuOpen(false)}>
+                Log in
+              </a>
+              <a href="/signup" className="flex-1 text-center rounded-xl bg-emerald-700 text-white px-4 py-2.5 text-sm font-semibold" onClick={() => setIsMenuOpen(false)}>
+                Start trial
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+    </header>
+  );
+}

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { Mail, Lock, Check } from "lucide-react";
+import { useState } from "react";
+import { Mail, Lock } from "lucide-react";
 import FormField from "./FormField";
 import { getEmailError, getPasswordError } from "@/lib/validation";
 
@@ -12,14 +12,12 @@ export default function LoginForm() {
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [touched, setTouched] = useState<Touched>({});
-  const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
   const [notice, setNotice] = useState<string | null>(null);
 
   const errors = {
     email: getEmailError(email),
     password: getPasswordError(password),
   };
-  const isValid = !errors.email && !errors.password;
 
   const markTouched = (field: keyof Touched) => setTouched((t) => ({ ...t, [field]: true }));
 
@@ -28,31 +26,8 @@ export default function LoginForm() {
     window.setTimeout(() => setNotice(null), 4000);
   };
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    setTouched({ email: true, password: true });
-    if (!isValid) return;
-    setStatus("submitting");
-    window.setTimeout(() => setStatus("success"), 1000);
-  };
-
-  if (status === "success") {
-    return (
-      <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-6 text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-white">
-          <Check className="h-6 w-6" />
-        </div>
-        <h2 className="text-[17px] font-semibold text-[#111827]">Welcome back!</h2>
-        <p className="mt-1.5 text-[13.5px] text-[#4B5563]">
-          You&apos;re signed in as <span className="font-medium text-[#111827]">{email}</span>. This demo is
-          frontend-only — connect a backend to enable real authentication.
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-5">
+    <form onSubmit={(e) => e.preventDefault()} noValidate className="space-y-5">
       <div>
         <h1 className="text-[26px] font-bold tracking-tight text-[#111827] sm:text-[28px]">
           Welcome to <span className="text-emerald-700">LeadForGrow</span>
@@ -115,10 +90,10 @@ export default function LoginForm() {
 
       <button
         type="submit"
-        disabled={!isValid || status === "submitting"}
-        className="flex w-full items-center justify-center rounded-xl bg-emerald-700 px-4 py-3 text-[14.5px] font-semibold text-white transition-colors hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-[#D1D5DB] disabled:text-[#9CA3AF]"
+        disabled
+        className="flex w-full items-center justify-center rounded-xl bg-emerald-700 px-4 py-3 text-[14.5px] font-semibold text-white opacity-40 transition-opacity disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-emerald-700"
       >
-        {status === "submitting" ? "Logging in..." : "Log in"}
+        Log in
       </button>
     </form>
   );

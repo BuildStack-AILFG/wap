@@ -2,32 +2,103 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #111827;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-plus-jakarta);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-plus-jakarta), "Inter", system-ui, sans-serif;
 }
 
-@keyframes float-card {
+@layer components {
+  .landing-section {
+    @apply py-16 md:py-24 lg:py-28;
+  }
+
+  .enterprise-heading {
+    font-family: var(--font-plus-jakarta);
+    @apply text-[2rem] sm:text-[2.5rem] lg:text-[2.75rem] font-bold tracking-[-0.02em] text-[#111827] leading-[1.12];
+  }
+
+  .landing-logo {
+    font-family: var(--font-plus-jakarta);
+    font-weight: 660;
+    letter-spacing: -0.03em;
+    color: #1d4b3e;
+  }
+}
+
+/* Ported from the LeadForGrow marketing site's own animation utilities. */
+
+@keyframes lfg-card-float {
   0%,
   100% {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-10px);
+    transform: translateY(-3px);
   }
 }
 
-.float-card {
-  animation: float-card 6s ease-in-out infinite;
+.lfg-card-float {
+  animation: lfg-card-float 3.8s ease-in-out infinite;
+}
+
+@keyframes typing-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.typing-dot {
+  @apply inline-block h-1.5 w-1.5 rounded-full bg-current opacity-60;
+  animation: typing-bounce 1.2s ease-in-out infinite;
+}
+
+.typing-dot-delay-1 {
+  animation-delay: 0.15s;
+}
+
+.typing-dot-delay-2 {
+  animation-delay: 0.3s;
+}
+
+.phone-scroll {
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+}
+
+.phone-scroll::-webkit-scrollbar {
+  width: 3px;
+}
+
+.phone-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.phone-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lfg-card-float,
+  .typing-dot {
+    animation: none !important;
+  }
 }

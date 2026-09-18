@@ -91,7 +91,7 @@ export default function AuthIllustration() {
           className="font-sans font-extrabold leading-[0.95] tracking-tight text-[#163B2E]"
           style={{ fontSize: "clamp(2rem, 6.4vw, 3.75rem)", wordBreak: "break-word" }}
         >
-          leadforgrow
+          LeadForGrow
         </p>
       </div>
     </div>

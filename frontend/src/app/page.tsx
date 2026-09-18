@@ -1,29 +1,55 @@
-import Navbar from "@/components/Navbar";
-import Hero from "@/components/Hero";
-import Stats from "@/components/Stats";
-import Features from "@/components/Features";
-import HowItWorks from "@/components/HowItWorks";
-import Showcase from "@/components/Showcase";
-import Pricing from "@/components/Pricing";
-import FAQ from "@/components/FAQ";
-import CTA from "@/components/CTA";
-import Footer from "@/components/Footer";
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import SmoothScroll from "@/components/landing/SmoothScroll";
+import LandingNavbar from "@/components/landing/LandingNavbar";
+import PremiumHero from "@/components/landing/PremiumHero";
+import TrustedCompanies from "@/components/landing/TrustedCompanies";
+import ProductHubsSection from "@/components/landing/ProductHubsSection";
+import AutomationInActionSection from "@/components/landing/AutomationInActionSection";
+import CapabilitiesGridSection from "@/components/landing/CapabilitiesGridSection";
+import AICapabilitiesSection from "@/components/landing/AICapabilitiesSection";
+import StatsSection from "@/components/landing/StatsSection";
+import IntegrationsTeaser from "@/components/landing/IntegrationsTeaser";
+import IndustriesGridSection from "@/components/landing/IndustriesGridSection";
+import SuccessStoriesSection from "@/components/landing/SuccessStoriesSection";
+import LandingCTA from "@/components/landing/LandingCTA";
+import FAQSection from "@/components/landing/FAQSection";
+import ScrollToTopButton from "@/components/landing/ScrollToTopButton";
+import BookDemoModal from "@/components/landing/BookDemoModal";
+import Footer from "@/components/landing/Footer";
 
 export default function Home() {
+  const router = useRouter();
+  const [demoOpen, setDemoOpen] = useState(false);
+
+  const handleGetStarted = () => {
+    router.push("/login");
+  };
+
+  const handleBookDemo = () => setDemoOpen(true);
+
   return (
-    <div className="flex min-h-screen flex-col overflow-x-hidden bg-white">
-      <Navbar />
-      <main className="flex-1">
-        <Hero />
-        <Stats />
-        <Features />
-        <HowItWorks />
-        <Showcase />
-        <Pricing />
-        <FAQ />
-        <CTA />
-      </main>
-      <Footer />
-    </div>
+    <SmoothScroll>
+      <div id="top" className="min-h-screen overflow-x-hidden bg-white">
+        <LandingNavbar />
+        <PremiumHero onGetStarted={handleGetStarted} onBookDemo={handleBookDemo} />
+        <TrustedCompanies />
+        <ProductHubsSection />
+        <AutomationInActionSection />
+        <CapabilitiesGridSection />
+        <AICapabilitiesSection onGetStarted={handleGetStarted} onBookDemo={handleBookDemo} />
+        <StatsSection />
+        <IntegrationsTeaser />
+        <IndustriesGridSection />
+        <SuccessStoriesSection />
+        <FAQSection onBookDemo={handleBookDemo} />
+        <LandingCTA onGetStarted={handleGetStarted} onBookDemo={handleBookDemo} />
+        <Footer />
+        <ScrollToTopButton />
+        <BookDemoModal open={demoOpen} onClose={() => setDemoOpen(false)} />
+      </div>
+    </SmoothScroll>
   );
 }

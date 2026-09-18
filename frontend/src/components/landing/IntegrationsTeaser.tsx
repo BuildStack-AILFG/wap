@@ -1,0 +1,101 @@
+import Link from "next/link";
+import { ArrowRight, Webhook } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/BrandIcons";
+import {
+  MetaIcon,
+  ZapierIcon,
+  GoogleSheetsIcon,
+  ShopifyIcon,
+  SlackColorIcon,
+  StripeIcon,
+  CalendlyIcon,
+  HubSpotIcon,
+  SalesforceIcon,
+  RazorpayIcon,
+  ZohoIcon,
+  WooCommerceIcon,
+  MailchimpIcon,
+  GoogleCalendarIcon,
+  GoogleDriveIcon,
+  GmailIcon,
+  NotionIcon,
+  AirtableIcon,
+  ZendeskIcon,
+  MakeIcon,
+  IntercomIcon,
+  TypeformIcon,
+  WordPressIcon,
+  PayPalIcon,
+  TelegramIcon,
+  TwilioIcon,
+  QuickBooksIcon,
+  GoogleAnalyticsIcon,
+} from "@/components/icons/IntegrationBrandIcons";
+
+const INTEGRATIONS = [
+  { name: "WhatsApp Business API", icon: WhatsAppIcon, color: "#25D366" },
+  { name: "Meta", icon: MetaIcon, color: "#1877F2" },
+  { name: "Zapier", icon: ZapierIcon, color: "#FF4A00" },
+  { name: "Google Sheets", icon: GoogleSheetsIcon, color: "#0F9D58" },
+  { name: "Shopify", icon: ShopifyIcon, color: "#95BF47" },
+  { name: "Slack", icon: SlackColorIcon, color: undefined },
+  { name: "Stripe", icon: StripeIcon, color: "#635BFF" },
+  { name: "Calendly", icon: CalendlyIcon, color: "#006BFF" },
+  { name: "Webhooks", icon: Webhook, color: "#111827" },
+  { name: "HubSpot", icon: HubSpotIcon, color: "#FF7A59" },
+  { name: "Salesforce", icon: SalesforceIcon, color: "#00A1E0" },
+  { name: "Razorpay", icon: RazorpayIcon, color: "#0C2451" },
+  { name: "Zoho CRM", icon: ZohoIcon, color: "#E42527" },
+  { name: "WooCommerce", icon: WooCommerceIcon, color: "#96588A" },
+  { name: "Mailchimp", icon: MailchimpIcon, color: "#FFE01B" },
+  { name: "Google Calendar", icon: GoogleCalendarIcon, color: "#4285F4" },
+  { name: "Google Drive", icon: GoogleDriveIcon, color: "#4285F4" },
+  { name: "Gmail", icon: GmailIcon, color: "#EA4335" },
+  { name: "Notion", icon: NotionIcon, color: "#111827" },
+  { name: "Airtable", icon: AirtableIcon, color: "#18BFFF" },
+  { name: "Zendesk", icon: ZendeskIcon, color: "#03363D" },
+  { name: "Make", icon: MakeIcon, color: "#6D00CC" },
+  { name: "Intercom", icon: IntercomIcon, color: "#111827" },
+  { name: "Typeform", icon: TypeformIcon, color: "#262627" },
+  { name: "WordPress", icon: WordPressIcon, color: "#21759B" },
+  { name: "PayPal", icon: PayPalIcon, color: "#003087" },
+  { name: "Telegram", icon: TelegramIcon, color: "#26A5E4" },
+  { name: "Twilio", icon: TwilioIcon, color: "#F22F46" },
+  { name: "QuickBooks", icon: QuickBooksIcon, color: "#2CA01C" },
+  { name: "Google Analytics", icon: GoogleAnalyticsIcon, color: "#E37400" },
+];
+
+export default function IntegrationsTeaser() {
+  return (
+    <section id="integrations" style={{ backgroundColor: "#F5F5F7" }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14 sm:py-16">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] leading-tight">
+            Unifying Your Workflow with <span style={{ color: "#05A68B" }}>{INTEGRATIONS.length}+</span> Plug &amp;
+            Play Integrations
+          </h2>
+          <Link
+            href="#get-started"
+            className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white shrink-0 transition-opacity hover:opacity-90"
+            style={{ backgroundColor: "#05A68B" }}
+          >
+            Explore Integrations
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        <div className="mt-10 flex flex-wrap items-center gap-x-10 gap-y-6">
+          {INTEGRATIONS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <span key={item.name} className="inline-flex items-center gap-2 text-[#111827]">
+                <Icon size={22} style={{ color: item.color }} />
+                <span className="text-base font-bold">{item.name}</span>
+              </span>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
