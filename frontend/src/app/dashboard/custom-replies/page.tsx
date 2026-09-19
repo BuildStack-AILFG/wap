@@ -1,286 +1,68 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { MessageSquareReply, Plus, Pencil, Trash2, X } from "lucide-react";
-import {
-  listCustomReplies,
-  createCustomReply,
-  updateCustomReply,
-  deleteCustomReply,
-  getSettings,
-  patchSettings,
-  ApiError,
-  type ApiCustomReply,
-} from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { MessageSquareReply, Plus, Trash2, Workflow } from "lucide-react";
+import { Alert, Badge, Button, Card, EmptyState, Field, Input, Modal, Page, PageHeader, Select, Spinner, Textarea, Toggle, useUi } from "@/components/ui/kit";
+import { customReplies as api, errorMessage, flows as flowsApi, getSettings, patchSettings, type CustomReply, type FlowSummary } from "@/lib/api";
 
-const ACCENT = "#00926B";
-
-function emptyDraft() {
-  return { trigger: "", replyText: "" };
-}
+const MATCH = { exact: "Exact match", contains: "Contains", any: "Any message" } as const;
 
 export default function CustomRepliesPage() {
-  const [replies, setReplies] = useState<ApiCustomReply[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { toast, confirm } = useUi();
+  const [list, setList] = useState<CustomReply[] | null>(null);
+  const [flowList, setFlowList] = useState<FlowSummary[]>([]);
+  const [master, setMaster] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState(emptyDraft());
-  const [saving, setSaving] = useState(false);
-  const [masterEnabled, setMasterEnabled] = useState(true);
+  const [editing, setEditing] = useState<CustomReply | "new" | null>(null);
 
-  useEffect(() => {
-    listCustomReplies()
-      .then(setReplies)
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Couldn't load custom replies."))
-      .finally(() => setLoading(false));
-    getSettings()
-      .then(({ settings }) => setMasterEnabled((settings.custom_replies_enabled as boolean | undefined) ?? true))
-      .catch(() => {});
-  }, []);
-
-  const toggleMaster = async () => {
-    const next = !masterEnabled;
-    setMasterEnabled(next);
-    try {
-      await patchSettings({ custom_replies_enabled: next });
-    } catch {
-      setMasterEnabled(!next);
-      setError("Couldn't update that setting — reverted.");
-    }
-  };
-
-  const openCreate = () => {
-    setEditingId(null);
-    setDraft(emptyDraft());
-    setError(null);
-    setShowForm(true);
-  };
-
-  const openEdit = (reply: ApiCustomReply) => {
-    setEditingId(reply.id);
-    setDraft({ trigger: reply.trigger, replyText: reply.reply_text });
-    setError(null);
-    setShowForm(true);
-  };
-
-  const closeForm = () => {
-    setShowForm(false);
-    setEditingId(null);
-    setDraft(emptyDraft());
-  };
-
-  const handleSave = async () => {
-    if (!draft.trigger.trim() || !draft.replyText.trim()) return;
-    setSaving(true);
-    setError(null);
-    try {
-      if (editingId) {
-        const updated = await updateCustomReply(editingId, { trigger: draft.trigger, reply_text: draft.replyText });
-        setReplies((prev) => prev.map((r) => (r.id === editingId ? updated : r)));
-      } else {
-        const created = await createCustomReply({ trigger: draft.trigger, reply_text: draft.replyText });
-        setReplies((prev) => [created, ...prev]);
-      }
-      closeForm();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Couldn't save this reply.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    const prev = replies;
-    setReplies((cur) => cur.filter((r) => r.id !== id));
-    try {
-      await deleteCustomReply(id);
-    } catch {
-      setReplies(prev);
-      setError("Couldn't delete that reply.");
-    }
-  };
-
-  const handleToggleRow = async (reply: ApiCustomReply) => {
-    const next = !reply.enabled;
-    setReplies((prev) => prev.map((r) => (r.id === reply.id ? { ...r, enabled: next } : r)));
-    try {
-      await updateCustomReply(reply.id, { enabled: next });
-    } catch {
-      setReplies((prev) => prev.map((r) => (r.id === reply.id ? { ...r, enabled: !next } : r)));
-      setError("Couldn't update that reply — reverted.");
-    }
-  };
+  const load = useCallback(async () => { try { setList(await api.list()); } catch (e) { setError(errorMessage(e, "Couldn't load custom replies.")); } }, []);
+  useEffect(() => { void load(); flowsApi.list().then((f) => setFlowList(f.filter((x) => x.status === "published"))).catch(() => {}); getSettings().then((s) => setMaster((s.settings.custom_replies_enabled as boolean | undefined) ?? true)).catch(() => {}); }, [load]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${ACCENT}26` }}>
-            <MessageSquareReply className="h-5 w-5" style={{ color: ACCENT }} />
-          </span>
-          <div>
-            <h1 className="text-[20px] font-bold text-white">Custom Replies</h1>
-            <p className="text-[13.5px] text-white/50">
-              Match keywords or phrases in an incoming message and send an instant reply.
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-[13px] font-semibold text-white"
-          style={{ backgroundColor: ACCENT }}
-        >
-          <Plus className="h-4 w-4" />
-          Add New Reply
-        </button>
-      </div>
-
-      <div className="mt-5 flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 backdrop-blur-xl">
-        <div>
-          <p className="text-[13.5px] font-semibold text-white">
-            Custom Replies are {masterEnabled ? "switched on" : "switched off"}
-          </p>
-          <p className="text-[12.5px] text-white/50">
-            When off, none of the replies below will fire, even if individually enabled.
-          </p>
-        </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={masterEnabled}
-          onClick={toggleMaster}
-          className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
-          style={{ backgroundColor: masterEnabled ? ACCENT : "rgba(255,255,255,0.15)" }}
-        >
-          <span
-            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-              masterEnabled ? "translate-x-[22px]" : "translate-x-0.5"
-            }`}
-          />
-        </button>
-      </div>
-
-      {error && <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-[12.5px] text-red-400">{error}</p>}
-
-      {showForm && (
-        <div className="mt-4 rounded-2xl border p-4 backdrop-blur-xl" style={{ borderColor: `${ACCENT}4D`, backgroundColor: "rgba(255,255,255,0.03)" }}>
-          <div className="flex items-center justify-between">
-            <h2 className="text-[14px] font-bold text-white">
-              {editingId ? "Edit reply" : "New custom reply"}
-            </h2>
-            <button type="button" onClick={closeForm} className="text-white/50 hover:text-white">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="mt-3 space-y-3">
-            <div>
-              <label className="text-[12px] font-semibold text-white/50">Trigger keywords (comma separated)</label>
-              <input
-                value={draft.trigger}
-                onChange={(e) => setDraft((d) => ({ ...d, trigger: e.target.value }))}
-                placeholder="e.g. pricing, cost, how much"
-                className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[13.5px] text-white outline-none placeholder:text-white/30 focus:border-[#00926B]"
-              />
+    <Page>
+      <PageHeader icon={<MessageSquareReply size={20} />} title="Custom replies" subtitle="Answer common messages automatically. The first match wins, in this order: exact → contains → any message."
+        actions={<><label className="flex items-center gap-2 text-[13px] text-white/60">All custom replies <Toggle checked={master} label="Custom replies enabled" onChange={async (v) => { setMaster(v); try { await patchSettings({ custom_replies_enabled: v }); } catch (e) { setMaster(!v); toast(errorMessage(e), "error"); } }} /></label><Button onClick={() => setEditing("new")}><Plus size={15} /> New reply</Button></>} />
+      {error && <Alert onClose={() => setError(null)}>{error}</Alert>}
+      {!master && <Alert tone="yellow">Custom replies are switched off — nothing below will be sent.</Alert>}
+      {!list ? <Spinner /> : list.length === 0 ? <EmptyState icon={<MessageSquareReply size={22} />} title="No custom replies yet" body="Add one for “price”, “hours”, “location”… and stop typing the same answers." action={<Button onClick={() => setEditing("new")}><Plus size={15} /> Add your first reply</Button>} /> : (
+        <div className="space-y-3">{list.map((r) => (
+          <Card key={r.id} className="p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge tone={r.match_type === "exact" ? "blue" : r.match_type === "any" ? "yellow" : "gray"}>{MATCH[r.match_type]}</Badge>
+                {r.match_type !== "any" && r.trigger.split(/[,\n]/).map((t) => t.trim()).filter(Boolean).map((t) => <span key={t} className="rounded-md bg-white/10 px-2 py-0.5 text-[12.5px] text-white">{t}</span>)}
+                {r.flow_id && <Badge tone="green"><Workflow size={10} /> runs a flow</Badge>}</div>
+                {r.reply_text && <p className="mt-2 whitespace-pre-wrap text-[13.5px] text-white/70">{r.reply_text}</p>}
+                <div className="mt-1.5 text-[11.5px] text-white/35">Sent {r.conversations_sent.toLocaleString()} time{r.conversations_sent === 1 ? "" : "s"}</div></div>
+              <div className="flex items-center gap-2"><Toggle checked={r.enabled} label="Enabled" onChange={async (v) => { setList((l) => l!.map((x) => (x.id === r.id ? { ...x, enabled: v } : x))); try { await api.update(r.id, { enabled: v }); } catch (e) { toast(errorMessage(e), "error"); void load(); } }} />
+                <Button size="sm" variant="ghost" onClick={() => setEditing(r)}>Edit</Button>
+                <Button size="sm" variant="danger" aria-label="Delete" onClick={async () => { if (await confirm({ title: "Delete this reply?", confirmLabel: "Delete", danger: true })) { try { await api.remove(r.id); await load(); } catch (e) { toast(errorMessage(e), "error"); } } }}><Trash2 size={13} /></Button></div>
             </div>
-            <div>
-              <label className="text-[12px] font-semibold text-white/50">Reply message</label>
-              <textarea
-                value={draft.replyText}
-                onChange={(e) => setDraft((d) => ({ ...d, replyText: e.target.value }))}
-                rows={3}
-                placeholder="What should we send back?"
-                className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[13.5px] text-white outline-none placeholder:text-white/30 focus:border-[#00926B]"
-              />
-            </div>
-          </div>
-
-          <div className="mt-3 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={closeForm}
-              className="rounded-lg border border-white/15 px-4 py-2 text-[13px] font-semibold text-white hover:bg-white/5"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={!draft.trigger.trim() || !draft.replyText.trim() || saving}
-              className="rounded-lg px-4 py-2 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-              style={{ backgroundColor: ACCENT }}
-            >
-              {saving ? "Saving…" : "Save reply"}
-            </button>
-          </div>
-        </div>
+          </Card>))}</div>
       )}
+      {editing && <Editor reply={editing === "new" ? null : editing} flows={flowList} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); toast("Reply saved"); void load(); }} />}
+    </Page>
+  );
+}
 
-      <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl">
-        <table className="w-full text-left text-[13px]">
-          <thead>
-            <tr className="border-b border-white/10 text-[11.5px] font-semibold uppercase tracking-wide text-white/40">
-              <th className="px-4 py-3">Trigger</th>
-              <th className="px-4 py-3">Reply preview</th>
-              <th className="px-4 py-3">Sent</th>
-              <th className="px-4 py-3">Updated</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {replies.map((reply) => (
-              <tr key={reply.id} className="border-b border-white/5 last:border-0 hover:bg-white/5">
-                <td className="max-w-[200px] px-4 py-3 font-medium text-white">{reply.trigger}</td>
-                <td className="max-w-[320px] truncate px-4 py-3 text-white/50">{reply.reply_text}</td>
-                <td className="px-4 py-3 text-white/50">{reply.conversations_sent}</td>
-                <td className="px-4 py-3 text-white/50">{reply.updated_at.slice(0, 10)}</td>
-                <td className="px-4 py-3">
-                  <button
-                    type="button"
-                    onClick={() => handleToggleRow(reply)}
-                    className="rounded-full px-2.5 py-1 text-[11.5px] font-semibold"
-                    style={
-                      reply.enabled
-                        ? { backgroundColor: `${ACCENT}26`, color: ACCENT }
-                        : { backgroundColor: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)" }
-                    }
-                  >
-                    {reply.enabled ? "Enabled" : "Disabled"}
-                  </button>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center justify-end gap-1">
-                    <button
-                      type="button"
-                      onClick={() => openEdit(reply)}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(reply.id)}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:bg-red-500/10 hover:text-red-400"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {!loading && replies.length === 0 && (
-          <p className="px-4 py-10 text-center text-[13.5px] text-white/50">
-            No custom replies yet — add one to get started.
-          </p>
-        )}
-        {loading && <p className="px-4 py-10 text-center text-[13.5px] text-white/50">Loading custom replies…</p>}
+function Editor({ reply, flows, onClose, onSaved }: { reply: CustomReply | null; flows: FlowSummary[]; onClose: () => void; onSaved: () => void }) {
+  const [f, setF] = useState({ trigger: reply?.trigger ?? "", match_type: reply?.match_type ?? "contains", reply_text: reply?.reply_text ?? "", flow_id: reply?.flow_id ?? "" });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const valid = (f.match_type === "any" || f.trigger.trim()) && (f.reply_text.trim() || f.flow_id);
+  return (
+    <Modal open onClose={onClose} title={reply ? "Edit reply" : "New custom reply"} width={600}
+      footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button loading={busy} disabled={!valid} onClick={async () => {
+        setBusy(true); setErr(null);
+        const body = { trigger: f.trigger, match_type: f.match_type, reply_text: f.reply_text, flow_id: f.flow_id || null };
+        try { if (reply) await api.update(reply.id, body); else await api.create(body); onSaved(); } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
+      }}>Save</Button></>}>
+      {err && <Alert>{err}</Alert>}
+      <div className="space-y-4">
+        <Field label="When the message…"><Select value={f.match_type} onChange={(e) => setF({ ...f, match_type: e.target.value as CustomReply["match_type"] })}><option value="contains">contains a keyword</option><option value="exact">exactly equals a keyword</option><option value="any">is anything (catch-all)</option></Select></Field>
+        {f.match_type !== "any" && <Field label="Keywords" hint="Separate several with commas — any one triggers the reply. Not case-sensitive."><Input value={f.trigger} onChange={(e) => setF({ ...f, trigger: e.target.value })} placeholder="price, pricing, cost" autoFocus /></Field>}
+        <Field label="Reply" hint="Merge fields: {{first_name}}, {{name}}, {{trait.city}}"><Textarea value={f.reply_text} onChange={(e) => setF({ ...f, reply_text: e.target.value })} maxLength={4096} placeholder="Our plans start at $19/month — see https://…" /></Field>
+        <Field label="Then also run a flow (optional)" hint={flows.length ? undefined : "Publish a flow to use it here."}><Select value={f.flow_id} onChange={(e) => setF({ ...f, flow_id: e.target.value })}><option value="">No flow</option>{flows.map((fl) => <option key={fl.id} value={fl.id}>{fl.name}</option>)}</Select></Field>
       </div>
-    </div>
+    </Modal>
   );
 }

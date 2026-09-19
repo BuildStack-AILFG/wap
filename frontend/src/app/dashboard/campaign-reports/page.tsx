@@ -2,113 +2,42 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { BarChart3, Send, CheckCheck, XCircle, Megaphone } from "lucide-react";
-import { listBroadcasts, ApiError, type ApiBroadcast } from "@/lib/api";
-
-const ACCENT = "#00926B";
-
-function rate(part: number, whole: number) {
-  return whole > 0 ? Math.round((part / whole) * 1000) / 10 : 0;
-}
+import { BarChart3, Download } from "lucide-react";
+import { Alert, Badge, Button, Card, EmptyState, fmtDateTime, Page, PageHeader, Select, Spinner, Stat, statusTone } from "@/components/ui/kit";
+import { Funnel } from "@/components/ui/charts";
+import { broadcasts, errorMessage, type Broadcast } from "@/lib/api";
 
 export default function CampaignReportsPage() {
-  const [broadcasts, setBroadcasts] = useState<ApiBroadcast[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [list, setList] = useState<Broadcast[] | null>(null);
+  const [range, setRange] = useState(30);
+  const [now] = useState(() => Date.now());
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => { broadcasts.list().then(setList).catch((e) => setErr(errorMessage(e, "Couldn't load campaign reports."))); }, []);
 
-  useEffect(() => {
-    listBroadcasts()
-      .then(setBroadcasts)
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Couldn't load campaign data."))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const totals = useMemo(() => {
-    const sent = broadcasts.reduce((n, b) => n + b.sent, 0);
-    const delivered = broadcasts.reduce((n, b) => n + b.delivered, 0);
-    const failed = broadcasts.reduce((n, b) => n + b.failed, 0);
-    return { campaigns: broadcasts.length, sent, delivered, failed, deliveryRate: rate(delivered, sent) };
-  }, [broadcasts]);
-
-  const cards = [
-    { label: "Campaigns", value: totals.campaigns.toLocaleString(), icon: Megaphone, color: ACCENT },
-    { label: "Messages sent", value: totals.sent.toLocaleString(), icon: Send, color: "#60A5FA" },
-    { label: "Delivery rate", value: `${totals.deliveryRate}%`, icon: CheckCheck, color: ACCENT },
-    { label: "Failed", value: totals.failed.toLocaleString(), icon: XCircle, color: "#F87171" },
-  ];
+  const rows = useMemo(() => (list ?? []).filter((b) => b.status !== "draft" && now - new Date(b.created_at).getTime() < range * 86400000), [list, range, now]);
+  const t = useMemo(() => rows.reduce((a, b) => ({ recipients: a.recipients + b.total_recipients, sent: a.sent + b.sent, delivered: a.delivered + b.delivered, read: a.read + b.read, replied: a.replied + b.replied, failed: a.failed + b.failed }), { recipients: 0, sent: 0, delivered: 0, read: 0, replied: 0, failed: 0 }), [rows]);
+  const pct = (n: number) => (t.sent ? `${((n / t.sent) * 100).toFixed(1)}%` : "—");
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="flex items-center gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${ACCENT}26` }}>
-          <BarChart3 className="h-5 w-5" style={{ color: ACCENT }} />
-        </span>
-        <div>
-          <h1 className="text-[20px] font-bold text-white">Campaign Reports</h1>
-          <p className="text-[13.5px] text-white/50">How your broadcasts performed — sent, delivered, and failed.</p>
+    <Page>
+      <PageHeader icon={<BarChart3 size={20} />} title="Campaign reports" subtitle="Delivery, reads and replies across your broadcasts. Numbers update live as WhatsApp reports back."
+        actions={<><Select value={range} onChange={(e) => setRange(Number(e.target.value))} className="!w-40" aria-label="Date range"><option value={7}>Last 7 days</option><option value={30}>Last 30 days</option><option value={90}>Last 90 days</option><option value={3650}>All time</option></Select><Link href="/dashboard/broadcasts"><Button variant="ghost">Open campaigns</Button></Link></>} />
+      {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
+      {!list ? <Spinner /> : rows.length === 0 ? <EmptyState icon={<BarChart3 size={22} />} title="No campaigns in this period" body="Send a broadcast and its results appear here." action={<Link href="/dashboard/broadcasts?new=1"><Button>New campaign</Button></Link>} /> : (
+        <div className="space-y-5">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><Stat label="Campaigns" value={rows.length} /><Stat label="Messages sent" value={t.sent.toLocaleString()} sub={`${t.recipients.toLocaleString()} recipients`} /><Stat label="Delivered" value={pct(t.delivered)} /><Stat label="Read" value={pct(t.read)} /><Stat label="Replied" value={pct(t.replied)} sub={t.failed ? `${t.failed} failed` : undefined} tone={undefined} /></div>
+          <Card className="p-5"><h3 className="mb-4 text-[14.5px] font-semibold text-white">Overall funnel</h3><Funnel steps={[{ label: "Sent", value: t.sent }, { label: "Delivered", value: t.delivered }, { label: "Read", value: t.read, color: "#38bdf8" }, { label: "Replied", value: t.replied, color: "#a78bfa" }]} /></Card>
+          <Card className="overflow-hidden">
+            <table className="w-full text-left text-[13px]"><thead className="border-b border-white/10 text-[11.5px] uppercase tracking-wide text-white/40"><tr><th className="px-5 py-3">Campaign</th><th className="px-2 py-3">Status</th><th className="px-2 py-3">Sent</th><th className="px-2 py-3">Delivered</th><th className="px-2 py-3">Read</th><th className="px-2 py-3">Replied</th><th className="px-2 py-3">Failed</th><th className="px-5 py-3">Date</th></tr></thead>
+              <tbody>{rows.map((b) => (
+                <tr key={b.id} className="border-b border-white/5 hover:bg-white/[0.03]"><td className="px-5 py-3"><div className="font-medium text-white">{b.name}</div><div className="text-[11.5px] text-white/40">{b.template_name}</div></td>
+                  <td className="px-2 py-3"><Badge tone={statusTone(b.status)}>{b.status}</Badge></td><td className="px-2 py-3 text-white/80">{b.sent.toLocaleString()}</td>
+                  <td className="px-2 py-3 text-white/70">{b.delivered_pct}%</td><td className="px-2 py-3 text-white/70">{b.read_pct}%</td><td className="px-2 py-3 text-white/70">{b.replied_pct}%</td>
+                  <td className="px-2 py-3">{b.failed ? <span className="text-red-300">{b.failed}</span> : <span className="text-white/35">0</span>}</td><td className="px-5 py-3 text-white/45">{fmtDateTime(b.started_at ?? b.created_at)}</td></tr>))}</tbody></table>
+          </Card>
+          <div className="flex justify-end"><Button variant="ghost" onClick={() => rows.forEach((b, i) => setTimeout(() => void broadcasts.exportCsv(b.id), i * 400))}><Download size={14} /> Export all recipient reports</Button></div>
         </div>
-      </div>
-
-      {error && <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-[12.5px] text-red-400">{error}</p>}
-
-      <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {cards.map((c) => (
-          <div key={c.label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${c.color}26` }}>
-              <c.icon className="h-4 w-4" style={{ color: c.color }} />
-            </span>
-            <p className="mt-2 text-[22px] font-bold text-white">{loading ? "—" : c.value}</p>
-            <p className="text-[12px] text-white/50">{c.label}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl">
-        <table className="w-full text-left text-[13px]">
-          <thead>
-            <tr className="border-b border-white/10 text-[11.5px] font-semibold uppercase tracking-wide text-white/40">
-              <th className="px-4 py-3">Campaign</th>
-              <th className="px-4 py-3">Audience</th>
-              <th className="px-4 py-3">Sent</th>
-              <th className="px-4 py-3">Delivery</th>
-              <th className="px-4 py-3">Failed</th>
-              <th className="px-4 py-3">Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {broadcasts.map((b) => {
-              const deliveryRate = rate(b.delivered, b.sent);
-              return (
-                <tr key={b.id} className="border-b border-white/5 last:border-0 hover:bg-white/5">
-                  <td className="px-4 py-3 font-medium text-white">{b.name}</td>
-                  <td className="px-4 py-3 text-white/50">{b.audience.type === "all_contacts" ? "All contacts" : `Tag: ${b.audience.tag}`}</td>
-                  <td className="px-4 py-3 text-white/50">{b.sent.toLocaleString()}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-white/10">
-                        <div className="h-full rounded-full" style={{ width: `${deliveryRate}%`, backgroundColor: ACCENT }} />
-                      </div>
-                      <span className="text-white/70">{deliveryRate}%</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-white/50">{b.failed.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-white/50">{b.created_at.slice(0, 10)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-
-        {!loading && broadcasts.length === 0 && (
-          <div className="px-4 py-10 text-center">
-            <p className="text-[13.5px] text-white/50">No campaigns yet — reports appear here after your first broadcast.</p>
-            <Link href="/dashboard/broadcasts" className="mt-3 inline-block text-[13px] font-semibold" style={{ color: ACCENT }}>
-              Create a broadcast →
-            </Link>
-          </div>
-        )}
-        {loading && <p className="px-4 py-10 text-center text-[13.5px] text-white/50">Loading campaign data…</p>}
-      </div>
-    </div>
+      )}
+    </Page>
   );
 }

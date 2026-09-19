@@ -1,357 +1,255 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Building2, CreditCard, Users, ShieldCheck, Lock, Check } from "lucide-react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Copy, KeyRound, Mail, Plus, Settings2, Trash2, Webhook } from "lucide-react";
+import { Alert, Badge, Button, Card, CopyField, cx, EmptyState, Field, fmtDateTime, Input, Modal, Page, PageHeader, Select, Spinner, statusTone, Tabs, Textarea, timeAgo, useUi } from "@/components/ui/kit";
 import {
-  getWorkspaceDetail,
-  updateWorkspaceName,
-  listPlans,
-  rotatePassword,
-  ApiError,
-  type ApiPlan,
-  type ApiWorkspaceDetail,
+  API_ORIGIN, developer, errorMessage, getSettings, getWorkspaceDetail, listPlans, patchSettings, rotatePassword, team, updateWorkspaceName,
+  type ApiKeyRow, type ApiPlan, type ApiWorkspaceDetail, type Invite, type Member, type WebhookRow,
 } from "@/lib/api";
-import { getSignupPasswordError, getConfirmPasswordError } from "@/lib/validation";
-import FormField from "@/components/auth/FormField";
 import { useWorkspace } from "@/components/dashboard/WorkspaceContext";
+import AssignmentRules from "@/components/dashboard/AssignmentRules";
 
-const ACCENT = "#00926B";
+type TabId = "workspace" | "team" | "assignment" | "quick" | "developer" | "account";
 
-const QUOTA_LABELS: Record<string, [string, string]> = {
-  max_whatsapp_numbers: ["WhatsApp number", "WhatsApp numbers"],
-  max_team_members: ["Team member", "Team members"],
-  max_automation_flows: ["Automation flow", "Automation flows"],
-  max_contacts: ["Contact", "Contacts"],
-  max_broadcast_recipients_per_month: ["Broadcast recipient / month", "Broadcast recipients / month"],
-  ai_replies_included_per_month: ["AI reply / month", "AI replies / month"],
-  max_knowledge_sources: ["Knowledge source", "Knowledge sources"],
-};
-
-/** Seeded plans use 999,999 as "no limit" (Enterprise). */
-const UNLIMITED_THRESHOLD = 999_999;
-
-function formatQuota(key: string, value: number) {
-  const [singular, plural] = QUOTA_LABELS[key] ?? [key, key];
-  if (value >= UNLIMITED_THRESHOLD) return `Unlimited ${plural.toLowerCase()}`;
-  return `${value.toLocaleString()} ${value === 1 ? singular : plural}`;
+export default function SettingsPage() {
+  return <Suspense fallback={<Spinner />}><Settings /></Suspense>;
 }
 
-const USAGE_ROWS: { usageKey: keyof ApiWorkspaceDetail["usage"]; quotaKey: string; label: string }[] = [
-  { usageKey: "contacts", quotaKey: "max_contacts", label: "Contacts" },
-  { usageKey: "automation_flows", quotaKey: "max_automation_flows", label: "Automation flows" },
-  { usageKey: "team_members", quotaKey: "max_team_members", label: "Team members" },
-];
+function Settings() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const { role } = useWorkspace();
+  const manager = role === "owner" || role === "admin";
+  const initial = (params.get("tab") as TabId) || "workspace";
+  const [tab, setTabState] = useState<TabId>(initial);
+  const setTab = (t: TabId) => { setTabState(t); router.replace(`/dashboard/settings?tab=${t}`, { scroll: false }); };
+  const tabs: { id: TabId; label: string }[] = [{ id: "workspace", label: "Workspace" }, { id: "team", label: "Team" }, ...(manager ? [{ id: "assignment" as const, label: "Assignment" }] : []), { id: "quick", label: "Quick replies" }, ...(manager ? [{ id: "developer" as const, label: "Developer" }] : []), { id: "account", label: "Account" }];
 
-function formatPrice(cents: number | null) {
-  return cents === null ? "Custom" : `$${cents / 100}`;
-}
-
-function Section({ icon: Icon, title, description, children }: { icon: typeof Building2; title: string; description: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl">
-      <div className="flex items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${ACCENT}26` }}>
-          <Icon className="h-4 w-4" style={{ color: ACCENT }} />
-        </span>
-        <div>
-          <h2 className="text-[15px] font-bold text-white">{title}</h2>
-          <p className="mt-0.5 text-[12.5px] text-white/50">{description}</p>
-        </div>
-      </div>
-      <div className="mt-5">{children}</div>
-    </section>
+    <Page>
+      <PageHeader icon={<Settings2 size={20} />} title="Settings" subtitle="Your workspace, team and developer tools." />
+      <Tabs tabs={tabs} value={tab} onChange={setTab} />
+      {tab === "workspace" && <WorkspaceTab manager={manager} />}
+      {tab === "team" && <TeamTab manager={manager} isOwner={role === "owner"} />}
+      {tab === "assignment" && manager && <AssignmentRules />}
+      {tab === "quick" && <QuickReplies />}
+      {tab === "developer" && manager && <DeveloperTab />}
+      {tab === "account" && <AccountTab />}
+    </Page>
   );
 }
 
-export default function SettingsPage() {
+// ---- workspace ---------------------------------------------------------------------------------------------------------------------------------------------
+
+function Usage({ label, used, limit }: { label: string; used: number; limit: number | undefined }) {
+  const unlimited = limit == null || limit < 0;
+  const pct = unlimited ? 0 : Math.min(100, (used / Math.max(limit, 1)) * 100);
+  return (
+    <div><div className="mb-1 flex justify-between text-[12.5px]"><span className="text-white/70">{label}</span><span className="text-white/50">{used.toLocaleString()} / {unlimited ? "unlimited" : limit.toLocaleString()}</span></div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct > 90 ? "#ef4444" : "#00926B" }} /></div></div>
+  );
+}
+
+function WorkspaceTab({ manager }: { manager: boolean }) {
+  const { toast } = useUi();
   const { refresh } = useWorkspace();
-  const [detail, setDetail] = useState<ApiWorkspaceDetail | null>(null);
+  const [d, setD] = useState<ApiWorkspaceDetail | null>(null);
   const [plans, setPlans] = useState<ApiPlan[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-
   const [name, setName] = useState("");
-  const [savingName, setSavingName] = useState(false);
-
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [changingPassword, setChangingPassword] = useState(false);
-
+  const [cc, setCc] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   useEffect(() => {
-    Promise.all([getWorkspaceDetail(), listPlans()])
-      .then(([d, p]) => {
-        setDetail(d);
-        setName(d.name);
-        setPlans(p);
-      })
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Couldn't load settings."));
+    getWorkspaceDetail().then((x) => { setD(x); setName(x.name); }).catch((e) => setErr(errorMessage(e)));
+    listPlans().then(setPlans).catch(() => {});
+    getSettings().then((s) => setCc(String(s.settings.default_country_code ?? ""))).catch(() => {});
   }, []);
-
-  const canManage = detail?.my_role === "owner" || detail?.my_role === "admin";
-  const paidPlans = useMemo(() => plans.filter((p) => !p.is_default_trial && p.id !== "free"), [plans]);
-
-  const trialDaysLeft = useMemo(() => {
-    if (!detail?.trial_ends_at || detail.plan.id !== "trial") return null;
-    return Math.ceil((new Date(detail.trial_ends_at).getTime() - Date.now()) / 86_400_000);
-  }, [detail]);
-
-  const flash = (message: string) => {
-    setNotice(message);
-    window.setTimeout(() => setNotice(null), 3500);
-  };
-
-  const handleRename = async () => {
-    if (!name.trim() || name.trim() === detail?.name) return;
-    setSavingName(true);
-    setError(null);
-    try {
-      const updated = await updateWorkspaceName(name.trim());
-      setDetail(updated);
-      setName(updated.name);
-      await refresh();
-      flash("Workspace name updated.");
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Couldn't rename the workspace.");
-    } finally {
-      setSavingName(false);
-    }
-  };
-
-  const passwordErrors = {
-    current: currentPassword ? undefined : "Enter your current password",
-    next: getSignupPasswordError(newPassword),
-    confirm: getConfirmPasswordError(newPassword, confirm),
-  };
-
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setTouched({ current: true, next: true, confirm: true });
-    if (Object.values(passwordErrors).some(Boolean)) return;
-    setChangingPassword(true);
-    setError(null);
-    try {
-      await rotatePassword({ currentPassword, newPassword });
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirm("");
-      setTouched({});
-      flash("Password updated.");
-    } catch (err) {
-      setError(err instanceof ApiError ? (err.passwordFailures?.[0]?.message ?? err.message) : "Couldn't update your password.");
-    } finally {
-      setChangingPassword(false);
-    }
-  };
-
-  if (!detail) {
-    return (
-      <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
-        {error ? (
-          <p className="rounded-lg bg-red-500/10 px-3 py-2 text-[12.5px] text-red-400">{error}</p>
-        ) : (
-          <p className="text-[13.5px] text-white/50">Loading settings…</p>
-        )}
-      </div>
-    );
-  }
+  if (!d) return err ? <Alert>{err}</Alert> : <Spinner />;
+  const money = (n: number | null) => (n == null ? "Free" : `$${(n / 100).toFixed(0)}/mo`);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
-      <h1 className="text-[20px] font-bold text-white">Settings</h1>
-      <p className="mt-1 text-[13.5px] text-white/50">Manage your workspace, plan, team, and account security.</p>
-
-      {error && <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-[12.5px] text-red-400">{error}</p>}
-      {notice && (
-        <p className="mt-4 rounded-lg px-3 py-2 text-[12.5px]" style={{ backgroundColor: `${ACCENT}26`, color: ACCENT }}>
-          {notice}
-        </p>
-      )}
-
-      <div className="mt-5 space-y-5">
-        <Section icon={Building2} title="Workspace" description="The name your team sees across the dashboard.">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex-1">
-              <label htmlFor="workspace-name" className="text-[12px] font-semibold uppercase tracking-wide text-white/50">
-                Workspace name
-              </label>
-              <input
-                id="workspace-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={!canManage}
-                className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-[14px] text-white outline-none placeholder:text-white/30 focus:border-[#00926B] disabled:opacity-60"
-              />
-              <p className="mt-1.5 text-[11.5px] text-white/40">
-                Workspace ID: <span className="font-mono">{detail.slug}</span>
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleRename}
-              disabled={!canManage || savingName || !name.trim() || name.trim() === detail.name}
-              className="rounded-xl px-5 py-2.5 text-[13.5px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-              style={{ backgroundColor: ACCENT }}
-            >
-              {savingName ? "Saving…" : "Save"}
-            </button>
-          </div>
-          {!canManage && <p className="mt-3 text-[12px] text-white/40">Only an owner or admin can rename the workspace.</p>}
-        </Section>
-
-        <Section icon={CreditCard} title="Plan & usage" description="What you're on today and how much of it you've used.">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full px-3 py-1 text-[12.5px] font-semibold text-white" style={{ backgroundColor: ACCENT }}>
-              {detail.plan.name} plan
-            </span>
-            {trialDaysLeft !== null && (
-              <span className="text-[12.5px] text-white/50">
-                {trialDaysLeft > 0 ? `${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} left in your trial` : "Your trial has ended"}
-              </span>
-            )}
-          </div>
-
-          <div className="mt-5 space-y-4">
-            {USAGE_ROWS.map(({ usageKey, quotaKey, label }) => {
-              const used = detail.usage[usageKey];
-              const limit = detail.quotas[quotaKey];
-              const pct = limit && limit < UNLIMITED_THRESHOLD ? Math.min(100, Math.round((used / limit) * 100)) : 0;
-              return (
-                <div key={usageKey}>
-                  <div className="flex items-center justify-between text-[12.5px]">
-                    <span className="font-medium text-white/80">{label}</span>
-                    <span className="text-white/50">
-                      {used.toLocaleString()} / {limit && limit < UNLIMITED_THRESHOLD ? limit.toLocaleString() : "∞"}
-                    </span>
-                  </div>
-                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: pct >= 90 ? "#EF4444" : ACCENT }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {paidPlans.map((plan) => {
-              const current = plan.id === detail.plan.id;
-              return (
-                <div
-                  key={plan.id}
-                  className="flex flex-col rounded-xl border bg-white/[0.03] p-4"
-                  style={{ borderColor: current ? ACCENT : "rgba(255,255,255,0.1)" }}
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-[14px] font-bold text-white">{plan.name}</h3>
-                    {current && <span className="text-[10.5px] font-semibold uppercase" style={{ color: ACCENT }}>Current</span>}
-                  </div>
-                  <p className="mt-1 text-[22px] font-bold text-white">
-                    {formatPrice(plan.price_monthly)}
-                    {plan.price_monthly !== null && <span className="text-[12px] font-medium text-white/40"> /mo</span>}
-                  </p>
-                  <ul className="mt-3 flex-1 space-y-1.5">
-                    {Object.entries(plan.quotas)
-                      .filter(([, v]) => v > 0)
-                      .slice(0, 4)
-                      .map(([k, v]) => (
-                        <li key={k} className="flex items-center gap-1.5 text-[12px] text-white/60">
-                          <Check className="h-3 w-3 shrink-0" style={{ color: ACCENT }} />
-                          {formatQuota(k, v)}
-                        </li>
-                      ))}
-                  </ul>
-                  <button
-                    type="button"
-                    disabled={current}
-                    onClick={() => flash("Online billing isn't connected yet — contact us to switch plans.")}
-                    className="mt-4 rounded-lg border border-white/15 px-3 py-2 text-[12.5px] font-semibold text-white hover:bg-white/5 disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent"
-                  >
-                    {current ? "Your plan" : "Choose plan"}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </Section>
-
-        <Section icon={Users} title="Team" description="People with access to this workspace.">
-          <div className="overflow-hidden rounded-xl border border-white/10">
-            <table className="w-full text-left text-[13px]">
-              <thead>
-                <tr className="border-b border-white/10 text-[11.5px] font-semibold uppercase tracking-wide text-white/40">
-                  <th className="px-4 py-2.5">Name</th>
-                  <th className="px-4 py-2.5">Email</th>
-                  <th className="px-4 py-2.5">Role</th>
-                </tr>
-              </thead>
-              <tbody>
-                {detail.members.map((m) => (
-                  <tr key={m.user_id} className="border-b border-white/5 last:border-0">
-                    <td className="px-4 py-2.5 font-medium text-white">{m.full_name || "—"}</td>
-                    <td className="px-4 py-2.5 text-white/60">{m.email}</td>
-                    <td className="px-4 py-2.5">
-                      <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[11.5px] font-semibold capitalize text-white/70">{m.role}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="mt-3 text-[12px] text-white/40">
-            {detail.usage.team_members} of {detail.quotas.max_team_members ?? "∞"} seats used on the {detail.plan.name} plan.
-          </p>
-        </Section>
-
-        <Section icon={ShieldCheck} title="Security" description="Change the password you use to sign in.">
-          <form onSubmit={handlePasswordChange} noValidate className="max-w-md space-y-4">
-            <FormField
-              id="current-password"
-              label="Current password"
-              value={currentPassword}
-              onChange={setCurrentPassword}
-              onBlur={() => setTouched((t) => ({ ...t, current: true }))}
-              error={passwordErrors.current}
-              touched={touched.current}
-              autoComplete="current-password"
-              icon={<Lock className="h-4 w-4" />}
-              showPasswordToggle
-            />
-            <FormField
-              id="new-password"
-              label="New password"
-              value={newPassword}
-              onChange={setNewPassword}
-              onBlur={() => setTouched((t) => ({ ...t, next: true }))}
-              error={passwordErrors.next}
-              touched={touched.next}
-              autoComplete="new-password"
-              icon={<Lock className="h-4 w-4" />}
-              showPasswordToggle
-            />
-            <FormField
-              id="confirm-password"
-              label="Confirm new password"
-              value={confirm}
-              onChange={setConfirm}
-              onBlur={() => setTouched((t) => ({ ...t, confirm: true }))}
-              error={passwordErrors.confirm}
-              touched={touched.confirm}
-              autoComplete="new-password"
-              icon={<Lock className="h-4 w-4" />}
-              showPasswordToggle
-            />
-            <button
-              type="submit"
-              disabled={changingPassword}
-              className="rounded-xl px-5 py-2.5 text-[13.5px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-              style={{ backgroundColor: ACCENT }}
-            >
-              {changingPassword ? "Updating…" : "Update password"}
-            </button>
-          </form>
-        </Section>
-      </div>
+    <div className="space-y-5">
+      {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
+      <Card className="space-y-4 p-5">
+        <h3 className="text-[15px] font-semibold text-white">Workspace</h3>
+        <Field label="Workspace name"><Input value={name} onChange={(e) => setName(e.target.value)} disabled={!manager} /></Field>
+        <Field label="Default country code" hint="Used when you enter phone numbers without +country (contacts, imports, API). E.g. 91 for India."><Input value={cc} onChange={(e) => setCc(e.target.value.replace(/\D/g, ""))} placeholder="91" disabled={!manager} className="!w-32" /></Field>
+        {manager && <div className="flex justify-end"><Button loading={busy} onClick={async () => { setBusy(true); setErr(null); try { if (name.trim() !== d.name) { setD(await updateWorkspaceName(name.trim())); await refresh(); } await patchSettings({ default_country_code: cc }); toast("Workspace saved"); } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); } }}>Save</Button></div>}
+      </Card>
+      <Card className="p-5">
+        <div className="mb-4 flex items-center justify-between"><h3 className="text-[15px] font-semibold text-white">Plan & usage</h3><Badge tone="green">{d.plan.name}</Badge></div>
+        {d.trial_ends_at && d.plan.id === "trial" && <p className="mb-4 text-[12.5px] text-white/50">Trial ends {fmtDateTime(d.trial_ends_at)}.</p>}
+        <div className="grid gap-4 sm:grid-cols-2"><Usage label="Contacts" used={d.usage.contacts} limit={d.quotas.max_contacts} /><Usage label="Team members" used={d.usage.team_members} limit={d.quotas.max_team_members} /><Usage label="Automation flows" used={d.usage.automation_flows} limit={d.quotas.max_automation_flows} />
+          <div className="text-[12.5px] text-white/50">Per month: {d.quotas.max_broadcast_recipients_per_month?.toLocaleString() ?? "∞"} campaign recipients · {d.quotas.ai_replies_included_per_month?.toLocaleString() ?? "∞"} AI replies</div></div>
+      </Card>
+      <Card className="p-5">
+        <h3 className="mb-1 text-[15px] font-semibold text-white">Plans</h3>
+        <p className="mb-4 text-[12.5px] text-white/50">Online checkout isn&apos;t switched on yet — <a className="text-sky-300 underline" href="https://wa.me/918810873052?text=I%27d%20like%20to%20upgrade%20my%20plan" target="_blank" rel="noreferrer">message us on WhatsApp</a> and we&apos;ll upgrade your workspace right away.</p>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{plans.filter((p) => p.id !== "trial").map((p) => (
+          <div key={p.id} className={cx("rounded-xl border p-4", p.id === d.plan.id ? "border-[#00926B] bg-[#00926B]/10" : "border-white/10")}><div className="flex items-baseline justify-between"><span className="text-[14px] font-semibold text-white">{p.name}</span><span className="text-[13px] text-white/60">{money(p.price_monthly)}</span></div>
+            <ul className="mt-2 space-y-0.5 text-[12px] text-white/50"><li>{p.quotas.max_contacts?.toLocaleString()} contacts</li><li>{p.quotas.max_team_members} team member{p.quotas.max_team_members === 1 ? "" : "s"}</li><li>{p.quotas.max_automation_flows} flows</li><li>{p.quotas.ai_replies_included_per_month?.toLocaleString()} AI replies / mo</li></ul></div>))}</div>
+      </Card>
     </div>
+  );
+}
+
+// ---- team ---------------------------------------------------------------------------------------------------------------------------------------------------
+
+function TeamTab({ manager, isOwner }: { manager: boolean; isOwner: boolean }) {
+  const { toast, confirm } = useUi();
+  const [members, setMembers] = useState<Member[] | null>(null);
+  const [invites, setInvites] = useState<Invite[]>([]);
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("agent");
+  const [link, setLink] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(async () => { try { setMembers(await team.members()); if (manager) setInvites(await team.invites()); } catch (e) { setErr(errorMessage(e)); } }, [manager]);
+  useEffect(() => { void load(); }, [load]);
+
+  const invite = async () => {
+    setBusy(true); setErr(null); setLink(null);
+    try { const i = await team.invite(email.trim(), role); setEmail(""); if (i.email_sent) toast(`Invitation emailed to ${i.email}`); else setLink(i.invite_link ?? null); await load(); } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
+  };
+  return (
+    <div className="space-y-5">
+      {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
+      {manager && (
+        <Card className="p-5"><h3 className="mb-3 text-[15px] font-semibold text-white">Invite a teammate</h3>
+          <div className="flex flex-wrap items-end gap-3"><Field label="Email" className="min-w-[240px] flex-1"><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="teammate@company.com" /></Field>
+            <Field label="Role"><Select value={role} onChange={(e) => setRole(e.target.value)} className="!w-40"><option value="agent">Agent</option><option value="viewer">Viewer</option>{isOwner && <option value="admin">Admin</option>}</Select></Field>
+            <Button loading={busy} disabled={!/^\S+@\S+\.\S+$/.test(email)} onClick={invite}><Mail size={14} /> Send invite</Button></div>
+          <p className="mt-3 text-[12px] text-white/40"><b>Admin</b>: everything except ownership. <b>Agent</b>: inbox, contacts, campaigns, flows. <b>Viewer</b>: read-only.</p>
+          {link && <div className="mt-4"><Alert tone="blue">Email delivery isn&apos;t configured on this server, so share this link with them yourself (valid 7 days):</Alert><CopyField value={link} /></div>}
+        </Card>
+      )}
+      <Card className="overflow-hidden">
+        <div className="border-b border-white/10 px-5 py-3 text-[15px] font-semibold text-white">Members</div>
+        {!members ? <Spinner /> : members.map((m) => (
+          <div key={m.user_id} className="flex flex-wrap items-center gap-3 border-b border-white/5 px-5 py-3 last:border-0">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-[13px] font-semibold">{(m.full_name || m.email)[0].toUpperCase()}</div>
+            <div className="min-w-0 flex-1"><div className="truncate text-[13.5px] text-white">{m.full_name || m.email}{m.is_you && <span className="ml-2 text-[11px] text-white/35">you</span>}</div><div className="truncate text-[12px] text-white/40">{m.email} · last active {timeAgo(m.last_login_at)}</div></div>
+            {manager && !m.is_you && (isOwner || !["owner", "admin"].includes(m.role)) ? (
+              <><Select value={m.role} className="!w-32 !py-1.5 text-[12.5px]" aria-label={`Role for ${m.email}`} onChange={async (e) => { try { await team.setRole(m.user_id, e.target.value); toast("Role updated"); await load(); } catch (er) { setErr(errorMessage(er)); } }}>
+                {isOwner && <option value="owner">Owner</option>}{isOwner && <option value="admin">Admin</option>}<option value="agent">Agent</option><option value="viewer">Viewer</option></Select>
+                <Button size="sm" variant="danger" aria-label={`Remove ${m.email}`} onClick={async () => { if (await confirm({ title: `Remove ${m.full_name || m.email}?`, body: "They lose access immediately; their chats become unassigned.", confirmLabel: "Remove", danger: true })) { try { await team.remove(m.user_id); await load(); toast("Member removed"); } catch (er) { setErr(errorMessage(er)); } } }}><Trash2 size={13} /></Button></>
+            ) : <Badge tone={m.role === "owner" ? "green" : "gray"}>{m.role}</Badge>}
+          </div>))}
+      </Card>
+      {manager && invites.length > 0 && (
+        <Card className="overflow-hidden"><div className="border-b border-white/10 px-5 py-3 text-[15px] font-semibold text-white">Pending invitations</div>
+          {invites.map((i) => <div key={i.id} className="flex items-center gap-3 border-b border-white/5 px-5 py-3 last:border-0"><div className="min-w-0 flex-1 text-[13.5px] text-white">{i.email}<span className="ml-2 text-[12px] text-white/40">{i.role} · {i.expired ? "expired" : `expires ${fmtDateTime(i.expires_at)}`}</span></div>
+            <Badge tone={i.expired ? "red" : "yellow"}>{i.expired ? "expired" : "pending"}</Badge><Button size="sm" variant="ghost" onClick={async () => { try { await team.revoke(i.id); await load(); } catch (e) { setErr(errorMessage(e)); } }}>Revoke</Button></div>)}</Card>
+      )}
+    </div>
+  );
+}
+
+// ---- quick replies -----------------------------------------------------------------------------------------------------------------------------------------
+
+function QuickReplies() {
+  const { toast } = useUi();
+  const [items, setItems] = useState<{ id?: string; shortcut: string; text: string }[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { getSettings().then((s) => setItems((s.settings.quick_replies as typeof items) ?? [])).catch((e) => setErr(errorMessage(e))); }, []);
+  if (!items) return err ? <Alert>{err}</Alert> : <Spinner />;
+  return (
+    <div className="space-y-4">
+      {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
+      <p className="text-[13px] text-white/55">Canned answers your team can insert in the inbox by typing <code>/</code> and the shortcut.</p>
+      {items.length === 0 && <EmptyState title="No quick replies yet" body="Add the answers you type most often." />}
+      {items.map((q, i) => (
+        <Card key={i} className="grid gap-3 p-4 md:grid-cols-[180px_1fr_auto]"><Input value={q.shortcut} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, shortcut: e.target.value.replace(/\s/g, "") } : x)))} placeholder="shortcut, e.g. thanks" aria-label="Shortcut" />
+          <Textarea value={q.text} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))} className="!min-h-[56px]" placeholder="Message text" aria-label="Text" />
+          <Button variant="danger" size="sm" aria-label="Remove" onClick={() => setItems(items.filter((_, j) => j !== i))}><Trash2 size={13} /></Button></Card>))}
+      <div className="flex justify-between"><Button variant="ghost" onClick={() => setItems([...items, { shortcut: "", text: "" }])}><Plus size={14} /> Add quick reply</Button>
+        <Button loading={busy} onClick={async () => { setBusy(true); setErr(null); try { const r = await patchSettings({ quick_replies: items.filter((q) => q.shortcut.trim() && q.text.trim()) }); setItems((r.settings.quick_replies as typeof items) ?? []); toast("Quick replies saved"); } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); } }}>Save</Button></div>
+    </div>
+  );
+}
+
+// ---- developer ---------------------------------------------------------------------------------------------------------------------------------------------
+
+function DeveloperTab() {
+  const { toast, confirm } = useUi();
+  const [keys, setKeys] = useState<ApiKeyRow[] | null>(null);
+  const [hooks, setHooks] = useState<WebhookRow[] | null>(null);
+  const [events, setEvents] = useState<string[]>([]);
+  const [newKey, setNewKey] = useState<ApiKeyRow | null>(null);
+  const [keyName, setKeyName] = useState("");
+  const [hookForm, setHookForm] = useState<{ url: string; events: string[] } | null>(null);
+  const [newSecret, setNewSecret] = useState<{ url: string; secret: string } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const load = useCallback(async () => { try { const [k, h] = await Promise.all([developer.keys(), developer.webhooks()]); setKeys(k); setHooks(h); } catch (e) { setErr(errorMessage(e)); } }, []);
+  useEffect(() => { void load(); developer.events().then(setEvents).catch(() => {}); }, [load]);
+
+  return (
+    <div className="space-y-6">
+      {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
+      <Card className="p-5">
+        <div className="mb-3 flex items-center gap-2"><KeyRound size={17} className="text-white/60" /><h3 className="text-[15px] font-semibold text-white">API keys</h3></div>
+        <p className="mb-4 text-[12.5px] text-white/50">Send messages, upsert contacts and track events from your own systems. Base URL <code className="text-white/80">{API_ORIGIN}/api/v1</code> · 300 requests/minute per key.</p>
+        <div className="mb-4 flex gap-2"><Input value={keyName} onChange={(e) => setKeyName(e.target.value)} placeholder="Key name, e.g. Zapier or Backend" className="max-w-xs" aria-label="API key name" /><Button disabled={!keyName.trim()} onClick={async () => { try { setNewKey(await developer.createKey(keyName.trim())); setKeyName(""); await load(); } catch (e) { setErr(errorMessage(e)); } }}><Plus size={14} /> Create key</Button></div>
+        {!keys ? <Spinner /> : keys.length === 0 ? <div className="text-[13px] text-white/40">No keys yet.</div> : keys.map((k) => (
+          <div key={k.id} className="flex items-center gap-3 border-b border-white/5 py-2.5 last:border-0"><div className="min-w-0 flex-1"><span className="text-[13.5px] text-white">{k.name}</span><span className="ml-2 font-mono text-[12px] text-white/40">{k.prefix}…</span><div className="text-[11.5px] text-white/35">Created {timeAgo(k.created_at)} · last used {timeAgo(k.last_used_at)}</div></div>
+            {k.revoked ? <Badge tone="red">revoked</Badge> : <Button size="sm" variant="danger" onClick={async () => { if (await confirm({ title: `Revoke “${k.name}”?`, body: "Anything using this key stops working immediately.", confirmLabel: "Revoke", danger: true })) { try { await developer.revokeKey(k.id); await load(); } catch (e) { setErr(errorMessage(e)); } } }}>Revoke</Button>}</div>))}
+        <pre className="mt-4 overflow-x-auto rounded-xl bg-black/40 p-4 text-[11.5px] leading-relaxed text-white/70">{`curl -X POST ${API_ORIGIN}/api/v1/messages \\
+  -H "Authorization: Bearer lfg_live_…" -H "Content-Type: application/json" \\
+  -d '{"to":"919876543210","type":"template",
+       "template":{"name":"order_update","language":"en","body":["Asha","#1042"]}}'`}</pre>
+        <p className="mt-2 text-[12px] text-white/40">Also: <code>POST /v1/contacts</code> (upsert), <code>POST /v1/events</code> (track + trigger flows), <code>GET /v1/templates</code>, <code>GET /v1/contacts</code>.</p>
+      </Card>
+
+      <Card className="p-5">
+        <div className="mb-3 flex items-center justify-between"><div className="flex items-center gap-2"><Webhook size={17} className="text-white/60" /><h3 className="text-[15px] font-semibold text-white">Outbound webhooks</h3></div><Button size="sm" onClick={() => setHookForm({ url: "", events: [] })}><Plus size={13} /> Add endpoint</Button></div>
+        <p className="mb-4 text-[12.5px] text-white/50">We POST signed JSON events to your URL. Verify the <code>X-LFG-Signature</code> header (HMAC-SHA256 of the raw body with your secret). Endpoints failing 5 times in a row are disabled automatically.</p>
+        {!hooks ? <Spinner /> : hooks.length === 0 ? <div className="text-[13px] text-white/40">No webhooks yet.</div> : hooks.map((h) => (
+          <div key={h.id} className="border-b border-white/5 py-3 last:border-0"><div className="flex flex-wrap items-center gap-2"><span className="min-w-0 flex-1 truncate font-mono text-[12.5px] text-white">{h.url}</span><Badge tone={h.enabled ? statusTone("connected") : "red"}>{h.enabled ? "active" : "disabled"}</Badge>
+            <Button size="sm" variant="ghost" onClick={async () => { try { const r = await developer.testWebhook(h.id); toast(r.ok ? "Test delivered ✓" : `Test failed: ${r.detail}`, r.ok ? "success" : "error"); await load(); } catch (e) { setErr(errorMessage(e)); } }}>Test</Button>
+            <Button size="sm" variant="ghost" onClick={async () => { try { const s = await developer.secret(h.id); setNewSecret({ url: h.url, secret: s.secret }); } catch (e) { setErr(errorMessage(e)); } }}>Secret</Button>
+            {!h.enabled && <Button size="sm" variant="soft" onClick={async () => { try { await developer.updateWebhook(h.id, { url: h.url, events: h.events, enabled: true }); await load(); toast("Re-enabled"); } catch (e) { setErr(errorMessage(e)); } }}>Re-enable</Button>}
+            <Button size="sm" variant="danger" aria-label="Delete webhook" onClick={async () => { if (await confirm({ title: "Delete this endpoint?", confirmLabel: "Delete", danger: true })) { try { await developer.removeWebhook(h.id); await load(); } catch (e) { setErr(errorMessage(e)); } } }}><Trash2 size={13} /></Button></div>
+            <div className="mt-1 text-[11.5px] text-white/35">{h.events.length ? h.events.join(", ") : "all events"}{h.last_status && ` · last: ${h.last_status} ${timeAgo(h.last_delivery_at)}`}</div></div>))}
+      </Card>
+
+      <Modal open={!!newKey} onClose={() => setNewKey(null)} title="Your new API key" width={520} footer={<Button onClick={() => setNewKey(null)}>I&apos;ve saved it</Button>}>
+        <Alert tone="yellow">Copy it now — for security it won&apos;t be shown again.</Alert>{newKey?.key && <CopyField value={newKey.key} />}</Modal>
+      <Modal open={!!newSecret} onClose={() => setNewSecret(null)} title="Signing secret" width={520} footer={<Button onClick={() => setNewSecret(null)}>Done</Button>}><p className="mb-3 truncate text-[12.5px] text-white/50">{newSecret?.url}</p>{newSecret && <CopyField value={newSecret.secret} />}</Modal>
+      <Modal open={!!hookForm} onClose={() => setHookForm(null)} title="Add webhook endpoint" width={560}
+        footer={<><Button variant="ghost" onClick={() => setHookForm(null)}>Cancel</Button><Button disabled={!/^https?:\/\//.test(hookForm?.url ?? "")} onClick={async () => { try { const h = await developer.createWebhook(hookForm!); setHookForm(null); await load(); if (h.secret) setNewSecret({ url: h.url, secret: h.secret }); } catch (e) { setErr(errorMessage(e)); setHookForm(null); } }}>Add endpoint</Button></>}>
+        <Field label="Endpoint URL" hint="Must be a public https address"><Input value={hookForm?.url ?? ""} onChange={(e) => setHookForm({ ...hookForm!, url: e.target.value })} placeholder="https://api.example.com/webhooks/whatsapp" autoFocus /></Field>
+        <div className="mt-4"><div className="mb-2 text-[12.5px] font-medium text-white/70">Events {hookForm?.events.length ? "" : "(none selected = all)"}</div>
+          <div className="grid grid-cols-2 gap-1.5">{events.map((e) => <label key={e} className="flex items-center gap-2 text-[12.5px] text-white/70"><input type="checkbox" className="accent-[#00926B]" checked={hookForm?.events.includes(e) ?? false} onChange={(ev) => setHookForm({ ...hookForm!, events: ev.target.checked ? [...hookForm!.events, e] : hookForm!.events.filter((x) => x !== e) })} />{e}</label>)}</div></div>
+      </Modal>
+    </div>
+  );
+}
+
+// ---- account ---------------------------------------------------------------------------------------------------------------------------------------------------
+
+function AccountTab() {
+  const { toast } = useUi();
+  const { email, full_name, role } = useWorkspace();
+  const [cur, setCur] = useState("");
+  const [next, setNext] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const [rules, setRules] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  return (
+    <Card className="max-w-xl space-y-4 p-5">
+      <div><div className="text-[15px] font-semibold text-white">{full_name || email}</div><div className="text-[12.5px] text-white/45">{email} · {role}</div></div>
+      <h3 className="pt-2 text-[14px] font-semibold text-white">Change password</h3>
+      {err && <Alert>{err}{rules.length > 0 && <ul className="mt-1 list-disc pl-5">{rules.map((r) => <li key={r}>{r}</li>)}</ul>}</Alert>}
+      <Field label="Current password"><Input type="password" value={cur} onChange={(e) => setCur(e.target.value)} autoComplete="current-password" /></Field>
+      <Field label="New password" hint="12+ characters with a mix of letters, numbers and symbols"><Input type="password" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" /></Field>
+      <div className="flex justify-end"><Button loading={busy} disabled={!cur || !next} onClick={async () => {
+        setBusy(true); setErr(null); setRules([]);
+        try { await rotatePassword({ currentPassword: cur, newPassword: next }); setCur(""); setNext(""); toast("Password changed — other devices were signed out"); }
+        catch (e) { setErr(errorMessage(e)); setRules((e as { passwordFailures?: { message: string }[] }).passwordFailures?.map((f) => f.message) ?? []); } finally { setBusy(false); }
+      }}><Copy size={0} className="hidden" />Update password</Button></div>
+    </Card>
   );
 }

@@ -57,19 +57,43 @@ Health check: `GET http://localhost:8000/api/health` → `{"status": "ok"}`
 | POST | `/login` | `email, password` | Returns `must_rotate_password` if the stored password no longer meets the current policy |
 | POST | `/refresh` | `refresh_token` | Rotates the refresh token |
 | POST | `/logout` | `refresh_token` | Revokes it |
-| POST | `/forgot-password` | `email` | Always returns success (doesn't leak account existence); logs the reset token server-side for now — wire up real email sending in Phase 1+ |
+| POST | `/forgot-password` | `email` | Always returns success (doesn't leak account existence); emails a reset link when `RESEND_API_KEY` is set |
 | POST | `/reset-password` | `token, new_password` | |
 | GET | `/me` | — (Bearer token or `access_token` cookie) | |
 
-## What's deliberately NOT here yet (see `lib/PHASES.md`)
+## What's in the platform
 
-- No Redis/Celery — everything runs inline in the request handler, which is
-  correct for zero traffic.
-- No email sending for password reset — the raw token isn't emailed anywhere
-  yet; wire up a provider (Resend/SendGrid) when this is actually needed.
-- No Google OAuth, no real Stripe/Razorpay billing — `plan_id` just defaults
-  to `'trial'` on signup.
-- No account lockout after failed attempts.
+| Area | What it does |
+|---|---|
+| **WhatsApp** (`/api/whatsapp`) | Connect a number manually (WABA ID, phone number ID, token, app secret) or via Meta Embedded Signup; tokens are encrypted at rest; quality rating, tier, webhook health, test send, template sync |
+| **Webhooks** (`/api/webhooks/whatsapp[/{key}]`) | Signature-verified (`X-Hub-Signature-256`), idempotent inbound messages, delivery/read/failed statuses, template status, quality updates, opt-out/opt-in keywords, click-to-WhatsApp ad attribution |
+| **Inbox** (`/api/inbox`) | Conversations, live message polling, replies, media, private notes, assign / resolve / labels, human takeover (pauses automation), 24-hour window enforcement |
+| **Templates** (`/api/templates`) | Validated builder (header/body/footer/buttons/variables), submit to Meta, sync, status webhooks, delete on Meta, starter library, AI drafting |
+| **Broadcasts** (`/api/broadcasts`) | Audience from all/tag/segment/CSV, variable mapping, send-now/schedule, pacing, rate-limit pause + resume, retry failed, delivery/read/reply funnel, CSV export |
+| **Automation** | Welcome / away (business hours) / delayed replies, custom replies (exact/contains/any), flow engine (questions with validation, buttons, lists, conditions, delays, webhooks, AI, handoff), event triggers |
+| **AI agent** (`/api/ai`) | Knowledge base (text, FAQ, website crawl) with Postgres full-text retrieval, grounded replies via the Anthropic API, confidence-based human handoff, lead qualification, usage metering |
+| **Widget** (`/api/widgets`, `/api/public/*`) | Embeddable website chat button + lead capture, click-to-chat links, QR codes |
+| **Developer** | API keys + public REST API (`/api/v1`), signed outbound webhooks, Shopify / WooCommerce / Razorpay / Stripe / generic inbound hooks (`/api/hooks/{token}`), Slack notifications |
+| **Team** | Roles (owner/admin/agent/viewer), invitations, auto-assignment (round robin / least busy), analytics, notifications |
+
+Design notes: single process by design (see `lib/PHASES.md`). Background work (scheduled broadcasts, flow waits, delayed replies) runs in-process and elects one
+leader with a Postgres advisory lock, so two replicas never double-send. Move to Celery/Redis when a trigger in `PHASES.md` fires.
+
+## Testing
+
+```bash
+docker run -d --name wa-test-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=wa_test -p 55432:5432 postgres:16-alpine
+pip install -r requirements-dev.txt
+pytest            # runs migrations on a fresh schema, then ~70 integration tests against a fake Meta Graph API
+```
+
+For a manual end-to-end run without a Meta account, start `uvicorn tests.fake_meta_server:app --port 9100` and set `GRAPH_API_BASE=http://127.0.0.1:9100`.
+
+## Not built yet
+
+- WhatsApp Commerce (catalog, checkout bot, orders), WhatsApp Forms (Meta Flows), Voice AI and CRM pipeline — these depend on Meta Commerce / Flows APIs or voice providers and are not part of this build.
+- Online payments / subscriptions — plans are enforced (quotas) but upgrades are handled manually.
+- Google OAuth sign-in, account lockout beyond IP/account rate limits, multi-workspace switching for one login.
 
 ## Deploying (Railway)
 
@@ -86,6 +110,8 @@ The repo ships a production `Dockerfile` and `railway.toml`. On every boot the c
    | `ENVIRONMENT` | `production` |
    | `CORS_ORIGINS` | your production frontend origin(s), comma-separated |
    | `CORS_ORIGIN_REGEX` | optional, e.g. `https://.*\.vercel\.app` to allow Vercel preview deploys |
+   | `ENCRYPTION_KEY` | a long random string — **required** to store WhatsApp tokens, AI keys and integration secrets; don't rotate it casually |
+   | `ANTHROPIC_API_KEY`, `RESEND_API_KEY` | optional platform-level AI key / transactional email (see `.env.example` for the rest) |
 
 3. Generate a public domain, then set `NEXT_PUBLIC_API_URL=https://<domain>/api` on the frontend host and redeploy it.
 

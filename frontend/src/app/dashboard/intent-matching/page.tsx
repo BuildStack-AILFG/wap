@@ -2,126 +2,35 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Target, Sparkles, Workflow, Zap, MessageSquareReply } from "lucide-react";
-import { getSettings, patchSettings, ApiError } from "@/lib/api";
-
-const ACCENT = "#00926B";
-
-const FEATURES = [
-  {
-    icon: Sparkles,
-    title: "Understands messages",
-    description: "Reads what a customer means even when their words don't match any exact keyword.",
-  },
-  {
-    icon: Zap,
-    title: "Triggers the right automation",
-    description: "Routes the message to the correct existing custom reply or flow — never a new one.",
-  },
-  {
-    icon: Workflow,
-    title: "Zero setup required",
-    description: "Works instantly on top of whatever custom replies and flows you've already built.",
-  },
-];
+import { Target } from "lucide-react";
+import { Alert, Card, Page, PageHeader, Spinner, Toggle, useUi } from "@/components/ui/kit";
+import { ai, errorMessage, getSettings, patchSettings, type AiConfig } from "@/lib/api";
 
 export default function IntentMatchingPage() {
-  const [enabled, setEnabled] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
+  const { toast } = useUi();
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [cfg, setCfg] = useState<AiConfig | null>(null);
+  const [err, setErr] = useState<string | null>(null);
   useEffect(() => {
-    getSettings()
-      .then(({ settings }) => setEnabled((settings.intent_matching_enabled as boolean | undefined) ?? false))
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Couldn't load this setting."));
+    getSettings().then((s) => setEnabled((s.settings.intent_matching_enabled as boolean | undefined) ?? false)).catch((e) => setErr(errorMessage(e)));
+    ai.config().then(setCfg).catch(() => {});
   }, []);
-
-  const toggle = async () => {
-    const next = !enabled;
-    setEnabled(next);
-    try {
-      await patchSettings({ intent_matching_enabled: next });
-    } catch {
-      setEnabled(!next);
-      setError("Couldn't update this setting — reverted.");
-    }
-  };
+  const usable = !!cfg && (cfg.has_own_key || cfg.platform_key_available);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="flex items-center gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${ACCENT}26` }}>
-          <Target className="h-5 w-5" style={{ color: ACCENT }} />
-        </span>
-        <div>
-          <h1 className="text-[20px] font-bold text-white">Intent Matching</h1>
-          <p className="text-[13.5px] text-white/50">Let AI pick the right existing reply, instead of relying on exact keyword matches.</p>
-        </div>
-      </div>
-
-      {error && <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-[12.5px] text-red-400">{error}</p>}
-
-      <div className="mt-5 flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 backdrop-blur-xl">
-        <div>
-          <p className="text-[14px] font-semibold text-white">
-            Intent Matching is {enabled ? "on" : "off"}
-          </p>
-          <p className="mt-0.5 text-[12.5px] text-white/50">
-            {enabled
-              ? "Incoming messages are now matched by intent, not just exact keywords."
-              : "Turn this on to route messages by meaning instead of exact keyword matches."}
-          </p>
-        </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={enabled}
-          onClick={toggle}
-          className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
-          style={{ backgroundColor: enabled ? ACCENT : "rgba(255,255,255,0.15)" }}
-        >
-          <span
-            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-              enabled ? "translate-x-[22px]" : "translate-x-0.5"
-            }`}
-          />
-        </button>
-      </div>
-
-      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {FEATURES.map((f) => (
-          <div key={f.title} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: `${ACCENT}26` }}>
-              <f.icon className="h-4 w-4" style={{ color: ACCENT }} />
-            </span>
-            <h3 className="mt-3 text-[13.5px] font-bold text-white">{f.title}</h3>
-            <p className="mt-1 text-[12.5px] leading-relaxed text-white/50">{f.description}</p>
+    <Page>
+      <PageHeader icon={<Target size={20} />} title="Intent matching" subtitle="When a message doesn't match any keyword, AI works out which of your custom replies the customer meant — “how much is it?” triggers your “price” reply." />
+      {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
+      {enabled === null ? <Spinner /> : (
+        <Card className="p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div><div className="text-[15px] font-semibold text-white">Match by meaning</div><p className="mt-1 max-w-xl text-[13px] text-white/55">Only used after exact and keyword matching fail, and only against replies you&apos;ve already written — it never invents answers. Uses one AI reply from your allowance per attempt.</p></div>
+            <Toggle checked={enabled} disabled={!usable && !enabled} label="Intent matching" onChange={async (v) => { setEnabled(v); try { await patchSettings({ intent_matching_enabled: v }); toast(v ? "Intent matching is on" : "Intent matching is off"); } catch (e) { setEnabled(!v); setErr(errorMessage(e)); } }} />
           </div>
-        ))}
-      </div>
-
-      <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
-        <p className="text-[13px] font-semibold text-amber-200">Before you turn this on</p>
-        <p className="mt-1 text-[12.5px] leading-relaxed text-amber-300/80">
-          Intent Matching only routes to automations that already exist — it doesn't write new replies on its own.
-          Set up a few Custom Replies and Flow Builder flows first so there's something for it to route to.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Link
-            href="/dashboard/custom-replies"
-            className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-[12.5px] font-semibold text-amber-100 hover:bg-white/15"
-          >
-            <MessageSquareReply className="h-3.5 w-3.5" />
-            Set up Custom Replies
-          </Link>
-          <Link
-            href="/dashboard/flow-builder"
-            className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-[12.5px] font-semibold text-amber-100 hover:bg-white/15"
-          >
-            <Workflow className="h-3.5 w-3.5" />
-            Build a Flow
-          </Link>
-        </div>
-      </div>
-    </div>
+          {!usable && <div className="mt-4"><Alert tone="yellow">Needs an AI key. <Link href="/dashboard/ai-agent" className="underline">Add your Anthropic key in AI agent → Configuration</Link>.</Alert></div>}
+          <div className="mt-2 text-[12.5px] text-white/40">Manage the replies it can choose from in <Link href="/dashboard/custom-replies" className="text-sky-300 underline">Custom replies</Link>.</div>
+        </Card>
+      )}
+    </Page>
   );
 }

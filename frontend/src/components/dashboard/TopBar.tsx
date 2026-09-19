@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, LogOut, Settings } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
+import NotificationBell from "./NotificationBell";
 import { WhatsAppIcon } from "@/components/icons/BrandIcons";
 import { clearSession, getRefreshToken, logout } from "@/lib/api";
 import { useWorkspace } from "./WorkspaceContext";
@@ -13,9 +14,10 @@ const GLASS_BORDER = "rgba(255,255,255,0.08)";
 
 function useTrialBanner() {
   const { workspace } = useWorkspace();
+  const [now] = useState(() => Date.now());
   if (workspace.plan_id !== "trial" || !workspace.trial_ends_at) return null;
 
-  const daysLeft = Math.ceil((new Date(workspace.trial_ends_at).getTime() - Date.now()) / 86_400_000);
+  const daysLeft = Math.ceil((new Date(workspace.trial_ends_at).getTime() - now) / 86_400_000);
 
   if (daysLeft <= 0) {
     return { expired: true as const, daysLeft: 0 };
@@ -72,9 +74,7 @@ export default function TopBar() {
         </Link>
 
         <div className="flex items-center gap-1">
-          <button type="button" className="flex h-9 w-9 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white">
-            <Bell className="h-[18px] w-[18px]" strokeWidth={1.75} />
-          </button>
+          <NotificationBell />
           <Link
             href="/dashboard/settings"
             className="flex h-9 w-9 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white"

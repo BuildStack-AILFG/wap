@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, Lock } from "lucide-react";
 import FormField from "./FormField";
@@ -19,6 +20,10 @@ export default function LoginForm() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("reset") === "1") setNotice("Password updated — sign in with your new password.");
+  }, []);
+
   const errors = {
     email: getEmailError(email),
     password: getPasswordError(password),
@@ -26,11 +31,6 @@ export default function LoginForm() {
   const hasErrors = Boolean(errors.email || errors.password);
 
   const markTouched = (field: keyof Touched) => setTouched((t) => ({ ...t, [field]: true }));
-
-  const handleForgotPassword = () => {
-    setNotice("Password reset isn't wired to email yet — contact support for now.");
-    window.setTimeout(() => setNotice(null), 4000);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,18 +96,14 @@ export default function LoginForm() {
         icon={<Lock className="h-4 w-4" />}
         showPasswordToggle
         rightSlot={
-          <button
-            type="button"
-            onClick={handleForgotPassword}
-            className="text-[12.5px] font-medium text-[#00926B] hover:text-[#00b384]"
-          >
+          <Link href="/forgot-password" className="text-[12.5px] font-medium text-[#00926B] hover:text-[#00b384]">
             Forgot password?
-          </button>
+          </Link>
         }
       />
 
       {notice && (
-        <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-[12.5px] text-amber-300">{notice}</p>
+        <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-[12.5px] text-emerald-300">{notice}</p>
       )}
       {submitError && <p className="rounded-lg bg-red-500/10 px-3 py-2 text-[12.5px] text-red-400">{submitError}</p>}
 

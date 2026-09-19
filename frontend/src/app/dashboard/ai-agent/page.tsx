@@ -1,173 +1,175 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Bot, Sparkles, Workflow, Globe, FileText, ListChecks, ShoppingBag } from "lucide-react";
-import { AI_AGENT_PERSONAS, type AiAgentPersona, type TrainingResourceKind } from "@/components/dashboard/aiAgentConfig";
-import { getSettings, patchSettings, ApiError } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { BookOpen, Bot, Globe, Headphones, MessageSquare, Plus, ShoppingBag, Sparkles, Target, Trash2, X } from "lucide-react";
+import { Alert, Badge, Button, Card, cx, EmptyState, Field, Input, Modal, Page, PageHeader, Spinner, statusTone, Tabs, Textarea, Toggle, useUi } from "@/components/ui/kit";
+import { ai as api, errorMessage, type AiConfig, type KnowledgeSource } from "@/lib/api";
 
-const ACCENT = "#00926B";
+const AGENTS = [
+  { id: "support", name: "Support agent", icon: Headphones, color: "#0F9D58", desc: "Answers customer questions from your knowledge base, day and night." },
+  { id: "leads", name: "Leads agent", icon: Target, color: "#2563EB", desc: "Qualifies inbound leads by asking your questions one at a time and saving the answers." },
+  { id: "sales", name: "Sales agent", icon: ShoppingBag, color: "#D97706", desc: "Recommends from your product info and guides people to a decision." },
+] as const;
 
-const RESOURCE_ICON: Record<TrainingResourceKind, typeof Globe> = {
-  website: Globe,
-  documents: FileText,
-  qualification_fields: ListChecks,
-  catalog: ShoppingBag,
-};
-
-function PersonaCard({
-  persona,
-  enabled,
-  onToggle,
-  onConfigure,
-}: {
-  persona: AiAgentPersona;
-  enabled: boolean;
-  onToggle: (id: string) => void;
-  onConfigure: (id: string) => void;
-}) {
-  const Icon = persona.icon;
+export default function AiAgentPage() {
+  const [tab, setTab] = useState<"config" | "knowledge" | "test">("config");
+  const [cfg, setCfg] = useState<AiConfig | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const load = useCallback(async () => { try { setCfg(await api.config()); } catch (e) { setError(errorMessage(e, "Couldn't load AI settings.")); } }, []);
+  useEffect(() => { void load(); }, [load]);
 
   return (
-    <div className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl transition-shadow hover:bg-white/[0.05]">
-      <div className="flex items-start justify-between">
-        <span
-          className="flex h-11 w-11 items-center justify-center rounded-xl"
-          style={{ backgroundColor: `${persona.accentColor}26` }}
-        >
-          <Icon className="h-5 w-5" style={{ color: persona.accentColor }} />
-        </span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={enabled}
-          onClick={() => onToggle(persona.id)}
-          className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
-          style={{ backgroundColor: enabled ? ACCENT : "rgba(255,255,255,0.15)" }}
-        >
-          <span
-            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-              enabled ? "translate-x-[22px]" : "translate-x-0.5"
-            }`}
-          />
-        </button>
-      </div>
+    <Page>
+      <PageHeader icon={<Bot size={20} />} title="AI agent" subtitle="An assistant that replies to customers on WhatsApp using only what you teach it, and hands over to your team when it isn't sure."
+        actions={cfg && <Badge tone={cfg.enabled ? "green" : "gray"}>{cfg.enabled ? "Live" : "Off"}</Badge>} />
+      {error && <Alert onClose={() => setError(null)}>{error}</Alert>}
+      <Tabs tabs={[{ id: "config", label: "Configuration" }, { id: "knowledge", label: "Knowledge base" }, { id: "test", label: "Test" }]} value={tab} onChange={setTab} />
+      {!cfg ? <Spinner /> : tab === "config" ? <Config cfg={cfg} onSaved={setCfg} /> : tab === "knowledge" ? <Knowledge /> : <Playground cfg={cfg} />}
+    </Page>
+  );
+}
 
-      <h3 className="mt-3 text-[14.5px] font-bold text-white">{persona.name}</h3>
-      <p className="mt-0.5 text-[12.5px] font-semibold text-white/50">{persona.tagline}</p>
-      <p className="mt-2 flex-1 text-[13px] leading-relaxed text-white/50">{persona.description}</p>
+function Config({ cfg, onSaved }: { cfg: AiConfig; onSaved: (c: AiConfig) => void }) {
+  const { toast } = useUi();
+  const [f, setF] = useState({ ...cfg, keywords: cfg.handoff_keywords.join(", "), fields: cfg.qualification_fields.join(", "), api_key: "" });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
+  const save = async (enabled = f.enabled) => {
+    setBusy(true); setErr(null);
+    try {
+      const saved = await api.saveConfig({ enabled, agent_type: f.agent_type, business_name: f.business_name, persona_name: f.persona_name, tone: f.tone, language: f.language, instructions: f.instructions,
+        handoff_keywords: f.keywords.split(",").map((k) => k.trim()).filter(Boolean), handoff_message: f.handoff_message, fallback_message: f.fallback_message, qualification_fields: f.fields.split(",").map((k) => k.trim()).filter(Boolean),
+        min_confidence: f.min_confidence, model: f.model, ...(f.api_key ? { api_key: f.api_key } : {}) });
+      onSaved(saved); setF((p) => ({ ...p, enabled: saved.enabled, api_key: "" })); toast(saved.enabled ? "AI agent is live" : "Settings saved");
+    } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
+  };
+  const usage = cfg.included_replies != null && !cfg.has_own_key ? `${cfg.usage_this_month} of ${cfg.included_replies} included replies used this month` : `${cfg.usage_this_month} AI replies this month`;
 
-      <p className="mt-4 text-[11px] font-semibold uppercase tracking-wide text-white/30">Training resources</p>
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {persona.trainingResources.map((resource) => {
-          const ResourceIcon = RESOURCE_ICON[resource.kind];
-          return (
-            <span
-              key={resource.kind}
-              className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[11.5px] font-medium text-white/70"
-            >
-              <ResourceIcon className="h-3 w-3" />
-              {resource.label}
-            </span>
-          );
-        })}
-      </div>
+  return (
+    <div className="space-y-5">
+      {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
+      <Card className="flex flex-wrap items-center justify-between gap-4 p-5">
+        <div><div className="text-[15px] font-semibold text-white">Turn on the AI agent</div><div className="mt-0.5 text-[12.5px] text-white/50">It answers incoming messages when no flow or custom reply matches, and never talks over a human. {usage}.</div></div>
+        <Toggle checked={f.enabled} disabled={busy} onChange={(v) => { set("enabled", v); void save(v); }} label="AI agent enabled" />
+      </Card>
 
-      <button
-        type="button"
-        onClick={() => onConfigure(persona.id)}
-        className="mt-4 rounded-lg border border-white/15 px-4 py-2 text-[13px] font-semibold text-white hover:bg-white/5"
-      >
-        Configure
-      </button>
+      <div className="grid gap-3 md:grid-cols-3">{AGENTS.map((a) => (
+        <button key={a.id} onClick={() => set("agent_type", a.id)} className={cx("rounded-2xl border p-4 text-left transition", f.agent_type === a.id ? "border-[#00926B] bg-[#00926B]/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]")}>
+          <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: `${a.color}25`, color: a.color }}><a.icon size={18} /></div>
+          <div className="text-[14px] font-semibold text-white">{a.name}</div><p className="mt-1 text-[12.5px] text-white/50">{a.desc}</p></button>))}</div>
+
+      <Card className="space-y-4 p-5">
+        <h3 className="text-[14px] font-semibold text-white">Personality</h3>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Business name"><Input value={f.business_name} onChange={(e) => set("business_name", e.target.value)} /></Field>
+          <Field label="Assistant name"><Input value={f.persona_name} onChange={(e) => set("persona_name", e.target.value)} placeholder="Aria" /></Field>
+          <Field label="Tone"><Input value={f.tone} onChange={(e) => set("tone", e.target.value)} placeholder="friendly and professional" /></Field>
+          <Field label="Language" hint="Leave as-is to reply in the customer's language"><Input value={f.language} onChange={(e) => set("language", e.target.value)} /></Field>
+        </div>
+        <Field label="Extra instructions" hint="Rules the assistant must follow, e.g. “Never quote prices; send people to the pricing page.”"><Textarea value={f.instructions} onChange={(e) => set("instructions", e.target.value)} maxLength={3000} /></Field>
+        {f.agent_type === "leads" && <Field label="Details to collect" hint="Comma separated. Answers are saved on the contact."><Input value={f.fields} onChange={(e) => set("fields", e.target.value)} placeholder="budget, timeline, company_size" /></Field>}
+      </Card>
+
+      <Card className="space-y-4 p-5">
+        <h3 className="text-[14px] font-semibold text-white">Handing over to your team</h3>
+        <Field label="Hand over when the customer says (any of)" hint="Comma separated"><Input value={f.keywords} onChange={(e) => set("keywords", e.target.value)} placeholder="human, agent, complaint" /></Field>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Message when handing over"><Textarea value={f.handoff_message} onChange={(e) => set("handoff_message", e.target.value)} className="!min-h-[72px]" /></Field>
+          <Field label="Message when unsure (optional)" hint="Used when confidence is low; falls back to the hand-over message"><Textarea value={f.fallback_message} onChange={(e) => set("fallback_message", e.target.value)} className="!min-h-[72px]" /></Field>
+        </div>
+        <Field label={`Minimum confidence: ${Math.round(f.min_confidence * 100)}%`} hint="Below this the agent hands over instead of guessing. Higher = safer, more hand-overs."><input type="range" min={0} max={90} step={5} value={Math.round(f.min_confidence * 100)} onChange={(e) => set("min_confidence", Number(e.target.value) / 100)} className="w-full accent-[#00926B]" /></Field>
+      </Card>
+
+      <Card className="space-y-3 p-5">
+        <h3 className="text-[14px] font-semibold text-white">AI provider</h3>
+        <p className="text-[12.5px] text-white/50">{cfg.platform_key_available ? "Your plan includes AI replies on our shared key. To go beyond the included amount, add your own Anthropic API key — usage then bills to your Anthropic account, not ours." : "Add your Anthropic API key to power the agent. Get one at console.anthropic.com."}</p>
+        <Field label="Anthropic API key" hint={cfg.has_own_key ? `A key ending ${cfg.api_key_hint.slice(-4)} is saved (encrypted). Paste a new one to replace it.` : "Stored encrypted; never shown again."}>
+          <Input type="password" value={f.api_key} onChange={(e) => set("api_key", e.target.value)} placeholder={cfg.has_own_key ? "••••••••••••" : "sk-ant-…"} autoComplete="off" /></Field>
+        {cfg.has_own_key && <Button size="sm" variant="danger" onClick={async () => { try { onSaved(await api.saveConfig({ enabled: false, api_key: "" })); setF((p) => ({ ...p, enabled: false })); toast("Key removed and the agent was turned off"); } catch (e) { setErr(errorMessage(e)); } }}>Remove saved key</Button>}
+      </Card>
+      <div className="flex justify-end"><Button loading={busy} onClick={() => save()}>Save changes</Button></div>
     </div>
   );
 }
 
-export default function AiAgentPage() {
-  const [enabledIds, setEnabledIds] = useState<Set<string>>(new Set());
-  const [notice, setNotice] = useState<string | null>(null);
+function Knowledge() {
+  const { toast, confirm } = useUi();
+  const [list, setList] = useState<KnowledgeSource[] | null>(null);
+  const [adding, setAdding] = useState<"text" | "faq" | "url" | null>(null);
+  const [view, setView] = useState<{ s: KnowledgeSource; chunks: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    getSettings()
-      .then(({ settings }) => {
-        const stored = (settings.ai_agents as Record<string, boolean>) ?? {};
-        setEnabledIds(new Set(Object.entries(stored).filter(([, v]) => v).map(([k]) => k)));
-      })
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Couldn't load AI Agent settings."));
-  }, []);
-
-  const activeCount = useMemo(() => enabledIds.size, [enabledIds]);
-
-  const handleToggle = async (id: string) => {
-    const wasEnabled = enabledIds.has(id);
-    const next = new Set(enabledIds);
-    if (wasEnabled) next.delete(id); else next.add(id);
-    setEnabledIds(next);
-
-    const ai_agents = Object.fromEntries(AI_AGENT_PERSONAS.map((p) => [p.id, next.has(p.id)]));
-    try {
-      await patchSettings({ ai_agents });
-    } catch {
-      setEnabledIds(enabledIds);
-      setError("Couldn't update that agent — reverted.");
-    }
-  };
-
-  const handleConfigure = (id: string) => {
-    const persona = AI_AGENT_PERSONAS.find((p) => p.id === id);
-    setNotice(`Configuring the ${persona?.name} isn't wired up yet — training resources and prompts will live here.`);
-    window.setTimeout(() => setNotice(null), 4000);
-  };
+  const load = useCallback(async () => { try { setList(await api.sources()); } catch (e) { setError(errorMessage(e)); } }, []);
+  useEffect(() => { void load(); }, [load]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="flex items-center gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${ACCENT}26` }}>
-          <Bot className="h-5 w-5" style={{ color: ACCENT }} />
-        </span>
-        <div>
-          <h1 className="text-[20px] font-bold text-white">AI Agent</h1>
-          <p className="text-[13.5px] text-white/50">
-            Let AI qualify leads, answer support questions, and guide sales — as a backstop behind your own automations.
-          </p>
-        </div>
+    <div>
+      {error && <Alert onClose={() => setError(null)}>{error}</Alert>}
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Button onClick={() => setAdding("url")}><Globe size={14} /> Add website</Button>
+        <Button variant="ghost" onClick={() => setAdding("faq")}><MessageSquare size={14} /> Add FAQs</Button>
+        <Button variant="ghost" onClick={() => setAdding("text")}><BookOpen size={14} /> Paste text</Button>
       </div>
-
-      <div className="mt-5 flex items-start gap-3 rounded-2xl border border-blue-500/20 bg-blue-500/10 px-4 py-3.5">
-        <Workflow className="mt-0.5 h-4 w-4 shrink-0 text-blue-300" />
-        <p className="text-[13px] leading-relaxed text-blue-200">
-          <span className="font-semibold">Works alongside your existing automations.</span> Auto-Replies and Flow Builder
-          always take priority — an AI agent only responds when nothing else matches, and never while a conversation is
-          marked as taken over by a teammate.
-        </p>
-      </div>
-
-      <div className="mt-4 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 backdrop-blur-xl">
-        <Sparkles className="h-4 w-4 text-white/40" />
-        <p className="text-[13px] text-white/50">
-          {activeCount === 0
-            ? "No AI agents are enabled yet."
-            : `${activeCount} of ${AI_AGENT_PERSONAS.length} agents enabled.`}{" "}
-          Each agent trains on its own set of resources, so a Support Agent won't try to sell and a Sales Agent won't
-          answer unrelated tickets.
-        </p>
-      </div>
-
-      {error && <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-[12.5px] text-red-400">{error}</p>}
-      {notice && <p className="mt-4 rounded-lg bg-amber-500/10 px-3 py-2 text-[12.5px] text-amber-300">{notice}</p>}
-
-      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {AI_AGENT_PERSONAS.map((persona) => (
-          <PersonaCard
-            key={persona.id}
-            persona={persona}
-            enabled={enabledIds.has(persona.id)}
-            onToggle={handleToggle}
-            onConfigure={handleConfigure}
-          />
-        ))}
-      </div>
+      {!list ? <Spinner /> : list.length === 0 ? <EmptyState icon={<BookOpen size={22} />} title="Teach your agent" body="Add your website, FAQs or any text about your products, prices, policies and hours. The agent only answers from what you add here." /> : (
+        <div className="space-y-2">{list.map((s) => (
+          <Card key={s.id} className="flex items-center gap-4 p-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-white/60">{s.kind === "url" ? <Globe size={18} /> : s.kind === "faq" ? <MessageSquare size={18} /> : <BookOpen size={18} />}</div>
+            <div className="min-w-0 flex-1"><div className="truncate text-[14px] font-medium text-white">{s.title}</div><div className="text-[12px] text-white/40">{s.kind} · {s.chunk_count} passage{s.chunk_count === 1 ? "" : "s"}{s.source_url && ` · ${s.source_url}`}</div>{s.error && <div className="text-[12px] text-red-300">{s.error}</div>}</div>
+            <Badge tone={statusTone(s.status)}>{s.status}</Badge>
+            <Button size="sm" variant="ghost" onClick={async () => { try { setView({ s, chunks: await api.chunks(s.id) }); } catch (e) { toast(errorMessage(e), "error"); } }}>Preview</Button>
+            <Button size="sm" variant="danger" aria-label="Delete" onClick={async () => { if (await confirm({ title: "Remove this source?", body: "The agent will stop using it immediately.", confirmLabel: "Remove", danger: true })) { try { await api.removeSource(s.id); await load(); toast("Source removed"); } catch (e) { toast(errorMessage(e), "error"); } } }}><Trash2 size={13} /></Button>
+          </Card>))}</div>
+      )}
+      {adding && <AddSource kind={adding} onClose={() => setAdding(null)} onDone={(s) => { setAdding(null); toast(s.status === "failed" ? `Couldn't read that source: ${s.error}` : `Added ${s.chunk_count} passages`, s.status === "failed" ? "error" : "success"); void load(); }} />}
+      <Modal open={!!view} onClose={() => setView(null)} title={view?.s.title ?? ""} width={640}>{view?.chunks.map((c, i) => <p key={i} className="mb-3 whitespace-pre-wrap rounded-lg bg-white/[0.04] p-3 text-[12.5px] text-white/75">{c}</p>)}</Modal>
     </div>
+  );
+}
+
+function AddSource({ kind, onClose, onDone }: { kind: "text" | "faq" | "url"; onClose: () => void; onDone: (s: KnowledgeSource) => void }) {
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [url, setUrl] = useState("");
+  const [crawl, setCrawl] = useState(true);
+  const [faqs, setFaqs] = useState([{ question: "", answer: "" }]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const ready = kind === "text" ? title.trim() && content.trim().length >= 10 : kind === "url" ? url.trim().length > 7 : faqs.some((f) => f.question.trim() && f.answer.trim());
+  const submit = async () => {
+    setBusy(true); setErr(null);
+    try { onDone(kind === "text" ? await api.addText(title, content) : kind === "url" ? await api.addUrl(url.trim(), crawl) : await api.addFaq(faqs.filter((f) => f.question.trim() && f.answer.trim()))); } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
+  };
+  return (
+    <Modal open onClose={onClose} title={kind === "url" ? "Add a website" : kind === "faq" ? "Add FAQs" : "Paste text"} width={640} footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button loading={busy} disabled={!ready} onClick={submit}>{kind === "url" ? "Read website" : "Add"}</Button></>}>
+      {err && <Alert>{err}</Alert>}
+      {kind === "url" && <div className="space-y-3"><Field label="Page address" hint="Public pages only"><Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://yourbusiness.com/about" autoFocus /></Field>
+        <label className="flex items-center gap-3 text-[13px] text-white/70"><Toggle checked={crawl} onChange={setCrawl} label="Follow links" /> Also read up to 7 linked pages on the same site</label></div>}
+      {kind === "text" && <div className="space-y-3"><Field label="Title"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Return policy" autoFocus /></Field><Field label="Content"><Textarea value={content} onChange={(e) => setContent(e.target.value)} className="!min-h-[200px]" placeholder="Paste anything the agent should know…" /></Field></div>}
+      {kind === "faq" && <div className="space-y-3">{faqs.map((f, i) => <div key={i} className="space-y-2 rounded-xl border border-white/10 p-3"><div className="flex gap-2"><Input value={f.question} onChange={(e) => setFaqs(faqs.map((x, j) => (j === i ? { ...x, question: e.target.value } : x)))} placeholder="Question" />{faqs.length > 1 && <button onClick={() => setFaqs(faqs.filter((_, j) => j !== i))} className="px-1 text-white/40 hover:text-red-300" aria-label="Remove"><X size={15} /></button>}</div>
+        <Textarea value={f.answer} onChange={(e) => setFaqs(faqs.map((x, j) => (j === i ? { ...x, answer: e.target.value } : x)))} placeholder="Answer" className="!min-h-[64px]" /></div>)}
+        <Button size="sm" variant="ghost" onClick={() => setFaqs([...faqs, { question: "", answer: "" }])}><Plus size={13} /> Add another</Button></div>}
+    </Modal>
+  );
+}
+
+function Playground({ cfg }: { cfg: AiConfig }) {
+  const [q, setQ] = useState("");
+  const [log, setLog] = useState<{ q: string; r: Awaited<ReturnType<typeof api.test>> | { error: string } }[]>([]);
+  const [busy, setBusy] = useState(false);
+  const ask = async () => {
+    const question = q.trim(); if (!question) return;
+    setBusy(true); setQ("");
+    try { const r = await api.test(question); setLog((l) => [...l, { q: question, r }]); } catch (e) { setLog((l) => [...l, { q: question, r: { error: errorMessage(e) } }]); } finally { setBusy(false); }
+  };
+  return (
+    <Card className="p-5">
+      <p className="mb-4 text-[13px] text-white/55">Ask the agent a question exactly as a customer would. Nothing is sent on WhatsApp{cfg.has_own_key || cfg.platform_key_available ? "" : " — add an API key in Configuration first"}.</p>
+      <div className="mb-4 max-h-[420px] space-y-4 overflow-y-auto">{log.map((m, i) => (
+        <div key={i}><div className="ml-auto w-fit max-w-[80%] rounded-2xl rounded-br-md bg-[#005c4b] px-3.5 py-2 text-[13.5px] text-white">{m.q}</div>
+          {"error" in m.r ? <div className="mt-2"><Alert>{m.r.error}</Alert></div> : <div className="mt-2 max-w-[85%]"><div className="w-fit rounded-2xl rounded-bl-md bg-white/[0.08] px-3.5 py-2 text-[13.5px] whitespace-pre-wrap text-white">{m.r.reply}</div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11.5px] text-white/40"><Badge tone={m.r.confidence >= 0.6 ? "green" : "yellow"}>confidence {Math.round(m.r.confidence * 100)}%</Badge>{m.r.handoff && <Badge tone="blue">would hand over to a human</Badge>}{m.r.sources.length > 0 ? `${m.r.sources.length} knowledge passage(s) used` : "no knowledge matched"}</div></div>}</div>))}
+        {log.length === 0 && <div className="py-10 text-center text-[13px] text-white/35"><Sparkles size={20} className="mx-auto mb-2" />Try “What are your opening hours?”</div>}</div>
+      <div className="flex gap-2"><Input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ask()} placeholder="Type a customer question…" disabled={busy} aria-label="Test question" /><Button loading={busy} onClick={ask} disabled={!q.trim()}>Ask</Button></div>
+    </Card>
   );
 }

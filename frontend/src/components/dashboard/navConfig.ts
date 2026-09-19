@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
+  Smartphone,
   Inbox,
   ClipboardCheck,
   Megaphone,
@@ -13,17 +14,6 @@ import {
   Workflow,
   Target,
   Bot,
-  Phone,
-  FormInput,
-  ListChecks,
-  TrendingUp,
-  KanbanSquare,
-  FileBarChart,
-  ShoppingBag,
-  Settings2,
-  BookOpen,
-  ShoppingCart,
-  PackageCheck,
   Plug,
   LayoutGrid,
   FileText,
@@ -53,6 +43,7 @@ export type NavGroup = {
 /** Flat, always-visible rail icons — no flyout panel, click navigates directly. */
 export const QUICK_LINKS: NavItem[] = [
   { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { id: "whatsapp", label: "WhatsApp number", href: "/dashboard/whatsapp", icon: Smartphone },
   { id: "inbox", label: "Inbox", href: "/dashboard/inbox", icon: Inbox },
   { id: "contacts", label: "Contacts", href: "/dashboard/contacts", icon: ClipboardCheck },
 ];
@@ -100,42 +91,6 @@ export const NAV_GROUPS: NavGroup[] = [
           { id: "flow-builder", label: "Flow Builder", href: "/dashboard/flow-builder", icon: Workflow },
           { id: "intent-matching", label: "Intent Matching", href: "/dashboard/intent-matching", icon: Target },
           { id: "ai-agent", label: "AI Agent", href: "/dashboard/ai-agent", icon: Bot },
-          { id: "voice-ai", label: "Voice AI", href: "/dashboard/voice-ai", icon: Phone },
-        ],
-      },
-      {
-        label: "Utilities",
-        items: [
-          { id: "forms", label: "Forms", href: "/dashboard/forms", icon: FormInput },
-          { id: "interactive-lists", label: "Interactive Lists", href: "/dashboard/interactive-lists", icon: ListChecks },
-        ],
-      },
-    ],
-  },
-  {
-    id: "sales",
-    label: "Sales",
-    icon: TrendingUp,
-    sections: [
-      {
-        items: [
-          { id: "pipeline", label: "Pipeline", href: "/dashboard/pipeline", icon: KanbanSquare },
-          { id: "sales-reports", label: "Reports", href: "/dashboard/sales-reports", icon: FileBarChart },
-        ],
-      },
-    ],
-  },
-  {
-    id: "commerce",
-    label: "WhatsApp Commerce",
-    icon: ShoppingBag,
-    sections: [
-      {
-        items: [
-          { id: "commerce-settings", label: "Commerce Settings", href: "/dashboard/commerce-settings", icon: Settings2 },
-          { id: "catalog", label: "Catalog", href: "/dashboard/catalog", icon: BookOpen },
-          { id: "checkout-bot", label: "Checkout Bot", href: "/dashboard/checkout-bot", icon: ShoppingCart },
-          { id: "order-panel", label: "Order Panel", href: "/dashboard/order-panel", icon: PackageCheck },
         ],
       },
     ],

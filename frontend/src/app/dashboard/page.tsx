@@ -1,147 +1,87 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Rocket, SlidersHorizontal, Link2, Crown, Phone, Info, ArrowRight } from "lucide-react";
-import { WhatsAppIcon } from "@/components/icons/BrandIcons";
-import { listContacts, listFlows } from "@/lib/api";
+import Link from "next/link";
+import { ArrowRight, BarChart3, Bot, CheckCircle2, Circle, ClipboardCheck, FileText, Inbox, LayoutGrid, Megaphone, Smartphone, Workflow } from "lucide-react";
+import { ACCENT, Card, cx, fmtDuration, Page, Spinner, Stat } from "@/components/ui/kit";
+import { BarChart } from "@/components/ui/charts";
 import { useWorkspace } from "@/components/dashboard/WorkspaceContext";
+import { ai, analytics, broadcasts, contacts, flows, inbox, templates, whatsapp, widgets, type Analytics } from "@/lib/api";
 
-const ACCENT = "#00926B";
+type Setup = { number: boolean; contact: boolean; template: boolean; campaign: boolean; flow: boolean; ai: boolean; widget: boolean; unread: number };
 
 export default function DashboardHome() {
   const me = useWorkspace();
-  const [showConnectNotice, setShowConnectNotice] = useState(false);
-  const [contactCount, setContactCount] = useState<number | null>(null);
-  const [flowCount, setFlowCount] = useState<number | null>(null);
+  const [s, setS] = useState<Setup | null>(null);
+  const [a, setA] = useState<Analytics | null>(null);
 
   useEffect(() => {
-    listContacts().then((c) => setContactCount(c.length)).catch(() => setContactCount(0));
-    listFlows().then((f) => setFlowCount(f.length)).catch(() => setFlowCount(0));
+    const safe = <T,>(p: Promise<T>, d: T) => p.catch(() => d);
+    Promise.all([
+      safe(whatsapp.list(), []), safe(contacts.list({ limit: 1 }), { total: 0, items: [] }), safe(templates.list({ status: "approved" }), []), safe(broadcasts.list(), []),
+      safe(flows.list(), []), safe(ai.config(), null), safe(widgets.list(), []), safe(inbox.summary(), null),
+    ]).then(([acc, c, t, b, f, aiCfg, w, sum]) => setS({
+      number: acc.some((x) => x.status === "connected"), contact: c.total > 0, template: t.length > 0, campaign: b.some((x) => x.status !== "draft"),
+      flow: f.some((x) => x.status === "published"), ai: !!aiCfg?.enabled, widget: w.some((x) => x.enabled), unread: sum?.unread_conversations ?? 0,
+    }));
+    analytics.overview(7).then(setA).catch(() => {});
   }, []);
 
-  const hasBasicSetup = (contactCount ?? 0) > 0;
-  const isPaidPlan = !["trial", "free"].includes(me.workspace.plan_id);
-
-  const steps = [
-    { icon: Rocket, label: "Start Onboarding", done: true },
-    { icon: SlidersHorizontal, label: "Add Your First Contact", done: hasBasicSetup },
-    { icon: Link2, label: "Connect Number", done: false },
-    { icon: Crown, label: "Start Subscription", done: isPaidPlan },
-  ];
-
-  const displayName = me.full_name?.trim().split(" ")[0] || me.workspace.name;
+  const name = me.full_name?.trim().split(" ")[0] || me.workspace.name;
+  const steps = s ? [
+    { done: s.number, title: "Connect your WhatsApp number", body: "Link your WhatsApp Business number to start sending and receiving.", href: "/dashboard/whatsapp", icon: Smartphone },
+    { done: s.contact, title: "Add contacts", body: "Import a CSV or add people — anyone who messages you is added automatically.", href: "/dashboard/contacts", icon: ClipboardCheck },
+    { done: s.template, title: "Get a template approved", body: "Templates let you start conversations and run campaigns.", href: "/dashboard/templates", icon: FileText },
+    { done: s.campaign, title: "Send your first campaign", body: "Reach a group of contacts with an approved template.", href: "/dashboard/broadcasts?new=1", icon: Megaphone },
+    { done: s.flow, title: "Publish an automation flow", body: "Qualify leads and answer questions automatically.", href: "/dashboard/flow-builder", icon: Workflow },
+    { done: s.ai, title: "Turn on the AI agent", body: "Let AI answer from your knowledge base.", href: "/dashboard/ai-agent", icon: Bot },
+    { done: s.widget, title: "Add the website chat widget", body: "Turn website visitors into WhatsApp conversations.", href: "/dashboard/widget", icon: LayoutGrid },
+  ] : [];
+  const doneCount = steps.filter((x) => x.done).length;
+  const next = steps.find((x) => !x.done);
+  const week = (k: "inbound" | "outbound") => (a?.messages ?? []).reduce((t, d) => t + d[k], 0);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-      <h1 className="text-[22px] font-bold text-white">Hello 👋 Welcome, {displayName}!</h1>
-      <p className="mt-1 text-[14px] text-white/50">Let&apos;s get your WhatsApp Business number automated.</p>
+    <Page>
+      <h1 className="text-[22px] font-bold text-white">Hello 👋 Welcome, {name}!</h1>
+      <p className="mt-1 text-[14px] text-white/50">{s && doneCount === steps.length ? "You're all set up. Here's how things are going." : "Let's get your WhatsApp Business number automated."}</p>
 
-      {/* Onboarding progress banner */}
-      <div
-        className="relative mt-5 overflow-hidden rounded-2xl border border-white/10 px-6 py-6 text-white sm:px-8"
-        style={{ backgroundImage: `linear-gradient(90deg, #000000, ${ACCENT}33)` }}
-      >
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-[15px] font-bold sm:text-[16px]">Complete onboarding to unlock your automation credits</p>
-            <p className="mt-1 flex items-center gap-1.5 text-[13px] text-white/50">
-              <Info className="h-3.5 w-3.5" /> Connect your number and set up your first flow
-            </p>
-          </div>
-        </div>
+      {s?.unread ? (
+        <Link href="/dashboard/inbox" className="mt-5 flex items-center justify-between rounded-2xl border border-sky-500/30 bg-sky-500/10 px-5 py-4 hover:bg-sky-500/15">
+          <span className="flex items-center gap-3 text-[14px] font-medium text-white"><Inbox size={18} className="text-sky-300" /> {s.unread} conversation{s.unread === 1 ? "" : "s"} waiting for a reply</span><ArrowRight size={16} className="text-sky-300" /></Link>
+      ) : null}
 
-        <div className="mt-6 flex items-center gap-2 overflow-x-auto">
-          {steps.map((step, i) => {
-            const Icon = step.icon;
-            return (
-              <div key={step.label} className="flex flex-1 items-center gap-2 last:flex-none">
-                <div className="flex flex-col items-center gap-1.5 text-center">
-                  <span
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-                    style={{ backgroundColor: step.done ? ACCENT : "rgba(255,255,255,0.1)" }}
-                  >
-                    <Icon className="h-4 w-4" style={{ color: step.done ? "#FFFFFF" : "rgba(255,255,255,0.6)" }} />
-                  </span>
-                  <span className="max-w-[110px] text-[11px] font-semibold leading-tight">{step.label}</span>
-                </div>
-                {i < steps.length - 1 && (
-                  <span className="h-px flex-1" style={{ backgroundColor: step.done ? ACCENT : "rgba(255,255,255,0.15)" }} />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Status cards */}
-      <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: `${ACCENT}26`, color: ACCENT }}>
-              <Phone className="h-[18px] w-[18px]" />
-            </span>
-            <div>
-              <p className="text-[14px] font-semibold text-white">WhatsApp number not connected</p>
-              <p className="text-[12px] text-white/40">Connect via the official WhatsApp Business API</p>
-            </div>
+      {!s ? <Spinner /> : doneCount < steps.length && (
+        <div className="relative mt-5 overflow-hidden rounded-2xl border border-white/10 p-6" style={{ backgroundImage: `linear-gradient(90deg, #000000, ${ACCENT}33)` }}>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div><p className="text-[16px] font-bold text-white">Setup progress · {doneCount} of {steps.length}</p><p className="mt-1 text-[13px] text-white/50">{next ? `Next: ${next.title}` : ""}</p></div>
+            {next && <Link href={next.href} className="flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold text-white" style={{ background: ACCENT }}>{next.title} <ArrowRight size={14} /></Link>}
           </div>
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => setShowConnectNotice((v) => !v)}
-              className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-[13px] font-semibold text-white transition-colors"
-              style={{ backgroundColor: ACCENT }}
-            >
-              <WhatsAppIcon className="h-3.5 w-3.5" />
-              Connect WhatsApp
-            </button>
-            {showConnectNotice && (
-              <div className="absolute right-0 top-full mt-2 w-64 rounded-lg border border-white/10 bg-[#0F0F0F] p-3 text-[12px] text-white/60 shadow-lg backdrop-blur-xl">
-                WhatsApp connection isn&apos;t wired up yet — this will walk you through linking
-                your Meta WhatsApp Business number soon.
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/60">
-              <SlidersHorizontal className="h-[18px] w-[18px]" />
-            </span>
-            <div>
-              <p className="text-[14px] font-semibold text-white">
-                {flowCount === null ? "Loading flows…" : flowCount === 0 ? "No automation flows yet" : `${flowCount} automation flow${flowCount === 1 ? "" : "s"}`}
-              </p>
-              <p className="text-[12px] text-white/40">Build your first auto-reply or flow</p>
-            </div>
-          </div>
-          <a
-            href="/dashboard/flow-builder"
-            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-white/15 px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-white/5"
-          >
-            {flowCount ? "View flows" : "Create flow"}
-            <ArrowRight className="h-3.5 w-3.5" />
-          </a>
-        </div>
-      </div>
-
-      {/* Plan upsell */}
-      {!isPaidPlan && (
-        <div className="mt-5 flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-10 rounded-lg" style={{ backgroundColor: ACCENT }} />
-            <p className="text-[14px] font-semibold text-white">Unlock more with a paid plan</p>
-          </div>
-          <a
-            href="/dashboard/settings"
-            className="shrink-0 rounded-lg px-4 py-2 text-[13px] font-semibold text-white transition-colors"
-            style={{ backgroundColor: ACCENT }}
-          >
-            Subscribe to a plan
-          </a>
+          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full transition-all" style={{ width: `${(doneCount / steps.length) * 100}%`, background: ACCENT }} /></div>
         </div>
       )}
-    </div>
+
+      {s && (
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {steps.map((st) => (
+            <Link key={st.title} href={st.href} className={cx("flex items-start gap-3 rounded-2xl border p-4 transition hover:bg-white/[0.05]", st.done ? "border-white/5 bg-white/[0.015] opacity-70" : "border-white/10 bg-white/[0.03]")}>
+              {st.done ? <CheckCircle2 size={20} className="mt-0.5 shrink-0" style={{ color: ACCENT }} /> : <Circle size={20} className="mt-0.5 shrink-0 text-white/25" />}
+              <div className="min-w-0 flex-1"><div className={cx("text-[14px] font-semibold", st.done ? "text-white/60 line-through decoration-white/20" : "text-white")}>{st.title}</div><div className="text-[12.5px] text-white/45">{st.body}</div></div>
+              <st.icon size={18} className="mt-0.5 shrink-0 text-white/30" />
+            </Link>))}
+        </div>
+      )}
+
+      {a && (
+        <div className="mt-8">
+          <div className="mb-3 flex items-center justify-between"><h2 className="text-[15px] font-semibold text-white">Last 7 days</h2><Link href="/dashboard/conversation-analytics" className="flex items-center gap-1 text-[12.5px] text-sky-300 hover:underline"><BarChart3 size={13} /> Full analytics</Link></div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Stat label="Messages received" value={week("inbound").toLocaleString()} /><Stat label="Messages sent" value={week("outbound").toLocaleString()} sub={`${a.delivery.delivered_pct}% delivered`} />
+            <Stat label="Avg. first response" value={fmtDuration(a.first_response.avg_seconds)} /><Stat label="Contacts" value={a.contacts.total.toLocaleString()} sub={`${a.contacts.opted_out} opted out`} />
+          </div>
+          <Card className="mt-4 p-5"><BarChart height={150} data={a.messages} series={[{ key: "inbound", label: "Received", color: "#38bdf8" }, { key: "outbound", label: "Sent", color: "#00926B" }]} /></Card>
+        </div>
+      )}
+    </Page>
   );
 }

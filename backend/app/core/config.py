@@ -55,7 +55,8 @@ class Settings(BaseSettings):
     # Transactional email (invites, password reset). Optional — without it, invite/reset links are returned to the caller.
     resend_api_key: str = ""
     email_from: str = "LeadForGrow <no-reply@leadforgrow.com>"
-    frontend_url: str = "http://localhost:3000"
+    # Base URL of the web app, used in emailed links. Defaults to the first non-localhost CORS origin, so production needs no extra setting.
+    frontend_url: str = ""
 
     # In-process scheduler (scheduled broadcasts, flow waits). See lib/PHASES.md — single instance only.
     scheduler_enabled: bool = True
@@ -76,6 +77,9 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _derive_urls(self):
+        if not self.frontend_url:
+            public = [o for o in self.cors_origins if "localhost" not in o and "127.0.0.1" not in o]
+            self.frontend_url = (public or self.cors_origins or ["http://localhost:3000"])[0]
         if not self.database_url_sync:
             self.database_url_sync = _rewrite_driver(self.database_url, "psycopg")
         return self
