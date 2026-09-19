@@ -37,7 +37,7 @@ export default function BookDemoModal({ open, onClose }: BookDemoModalProps) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
       <button
         type="button"
-        className="absolute inset-0 bg-[#111827]/55 backdrop-blur-sm"
+        className="absolute inset-0 bg-[#00926B]/55 backdrop-blur-sm"
         onClick={onClose}
         aria-label="Close"
       />
@@ -46,33 +46,33 @@ export default function BookDemoModal({ open, onClose }: BookDemoModalProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="book-demo-title"
-        className="relative w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-2xl sm:p-8"
+        className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0A0A0A] p-6 shadow-2xl sm:p-8"
       >
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-lg text-[#64748B] transition-colors hover:bg-[#F1F5F9] hover:text-[#111827]"
+          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-lg text-white/60 transition-colors hover:bg-white/5 hover:text-white"
           aria-label="Close"
         >
           <X className="h-5 w-5" />
         </button>
 
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-700">Book a demo</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#00926B]">Book a demo</p>
         <h3
           id="book-demo-title"
-          className="mt-2 pr-8 text-xl font-extrabold tracking-tight text-[#111827]"
+          className="mt-2 pr-8 text-xl font-extrabold tracking-tight text-white"
           style={{ fontFamily: "var(--font-plus-jakarta)" }}
         >
           See it on your own WhatsApp number
         </h3>
-        <p className="mt-3 text-[15px] leading-relaxed text-[#64748B]">
+        <p className="mt-3 text-[15px] leading-relaxed text-white/60">
           Tell us a bit about your business and we&apos;ll set up a live walkthrough on your own WhatsApp Business number.
         </p>
 
         <button
           type="button"
           onClick={goToContact}
-          className="group mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#111827] px-6 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-black"
+          className="group mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#00926B] px-6 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#007A59]"
         >
           Contact us
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

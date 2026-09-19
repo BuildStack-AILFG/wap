@@ -155,7 +155,7 @@ export default function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={s.label}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white transition-transform hover:scale-105"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition-transform hover:scale-105 hover:bg-[#00926B]"
                 >
                   <Icon className="h-4 w-4" style={{ color: s.color }} />
                 </a>

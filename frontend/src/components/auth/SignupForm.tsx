@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { User, Mail, Lock } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { User, Mail, Lock, Building2 } from "lucide-react";
 import FormField from "./FormField";
+import { ApiError, register, storeSession } from "@/lib/api";
 import {
   getNameError,
   getEmailError,
@@ -11,37 +13,65 @@ import {
   getPasswordStrength,
 } from "@/lib/validation";
 
-type Touched = { name?: boolean; email?: boolean; password?: boolean; confirm?: boolean; agreed?: boolean };
+type Touched = { name?: boolean; companyName?: boolean; email?: boolean; password?: boolean; confirm?: boolean; agreed?: boolean };
 
 const strengthLabels = ["Weak", "Weak", "Fair", "Good", "Strong"];
-const strengthColors = ["bg-red-400", "bg-red-400", "bg-amber-400", "bg-emerald-400", "bg-emerald-600"];
+const strengthColors = ["bg-red-500", "bg-red-500", "bg-amber-400", "bg-[#00b384]", "bg-[#00926B]"];
 
 export default function SignupForm() {
+  const router = useRouter();
   const [name, setName] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [touched, setTouched] = useState<Touched>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const errors = {
     name: getNameError(name),
+    companyName: companyName.trim() ? undefined : "Company name is required",
     email: getEmailError(email),
     password: getSignupPasswordError(password),
     confirm: getConfirmPasswordError(password, confirm),
     agreed: agreed ? undefined : "You must accept the Terms to continue",
   };
   const strength = getPasswordStrength(password);
+  const hasErrors = Object.values(errors).some(Boolean);
 
   const markTouched = (field: keyof Touched) => setTouched((t) => ({ ...t, [field]: true }));
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTouched({ name: true, companyName: true, email: true, password: true, confirm: true, agreed: true });
+    if (hasErrors) return;
+
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const auth = await register({ companyName, fullName: name, email, password });
+      storeSession(auth);
+      router.push("/dashboard");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setSubmitError(err.passwordFailures?.[0]?.message ?? err.message);
+      } else {
+        setSubmitError("Something went wrong. Please try again.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <form onSubmit={(e) => e.preventDefault()} noValidate className="space-y-5">
+    <form onSubmit={handleSubmit} noValidate className="space-y-5">
       <div>
-        <h1 className="text-[26px] font-bold tracking-tight text-[#111827] sm:text-[28px]">
-          Create your <span className="text-emerald-700">LeadForGrow</span> account
+        <h1 className="text-[26px] font-bold tracking-tight text-white sm:text-[28px]">
+          Create your <span className="text-[#00926B]">LeadForGrow</span> account
         </h1>
-        <p className="mt-2 text-[14px] text-[#6B7280]">
+        <p className="mt-2 text-[14px] text-white/50">
           Start automating WhatsApp conversations in minutes. No credit card required.
         </p>
       </div>
@@ -57,6 +87,19 @@ export default function SignupForm() {
         placeholder="Jane Cooper"
         autoComplete="name"
         icon={<User className="h-4 w-4" />}
+      />
+
+      <FormField
+        id="companyName"
+        label="Company name"
+        value={companyName}
+        onChange={setCompanyName}
+        onBlur={() => markTouched("companyName")}
+        error={errors.companyName}
+        touched={touched.companyName}
+        placeholder="Acme Inc."
+        autoComplete="organization"
+        icon={<Building2 className="h-4 w-4" />}
       />
 
       <FormField
@@ -93,11 +136,11 @@ export default function SignupForm() {
               {[0, 1, 2, 3].map((i) => (
                 <span
                   key={i}
-                  className={`h-1.5 flex-1 rounded-full ${i < strength ? strengthColors[strength] : "bg-[#E5E7EB]"}`}
+                  className={`h-1.5 flex-1 rounded-full ${i < strength ? strengthColors[strength] : "bg-white/10"}`}
                 />
               ))}
             </div>
-            <span className="text-[11.5px] font-medium text-[#6B7280]">{strengthLabels[strength]}</span>
+            <span className="text-[11.5px] font-medium text-white/50">{strengthLabels[strength]}</span>
           </div>
         )}
       </div>
@@ -117,7 +160,7 @@ export default function SignupForm() {
       />
 
       <div>
-        <label className="flex items-start gap-2.5 text-[13.5px] text-[#4B5563]">
+        <label className="flex items-start gap-2.5 text-[13.5px] text-white/60">
           <input
             type="checkbox"
             checked={agreed}
@@ -125,28 +168,30 @@ export default function SignupForm() {
               setAgreed(e.target.checked);
               markTouched("agreed");
             }}
-            className="mt-0.5 h-4 w-4 rounded border-[#D1D5DB] text-emerald-700 focus:ring-emerald-600"
+            className="mt-0.5 h-4 w-4 rounded border-white/20 bg-white/5 text-[#00926B] focus:ring-[#00926B]"
           />
           <span>
             I agree to the{" "}
-            <a href="#" className="font-medium text-emerald-700 hover:text-emerald-800">
+            <a href="#" className="font-medium text-[#00926B] hover:text-[#00b384]">
               Terms of Service
             </a>{" "}
             and{" "}
-            <a href="#" className="font-medium text-emerald-700 hover:text-emerald-800">
+            <a href="#" className="font-medium text-[#00926B] hover:text-[#00b384]">
               Privacy Policy
             </a>
           </span>
         </label>
-        {touched.agreed && errors.agreed && <p className="mt-1.5 text-[12.5px] text-red-600">{errors.agreed}</p>}
+        {touched.agreed && errors.agreed && <p className="mt-1.5 text-[12.5px] text-red-400">{errors.agreed}</p>}
       </div>
+
+      {submitError && <p className="rounded-lg bg-red-500/10 px-3 py-2 text-[12.5px] text-red-400">{submitError}</p>}
 
       <button
         type="submit"
-        disabled
-        className="flex w-full items-center justify-center rounded-xl bg-emerald-700 px-4 py-3 text-[14.5px] font-semibold text-white opacity-40 transition-opacity disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-emerald-700"
+        disabled={submitting}
+        className="flex w-full items-center justify-center rounded-xl bg-[#00926B] px-4 py-3 text-[14.5px] font-semibold text-white transition-opacity hover:bg-[#007A59] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        Register
+        {submitting ? "Creating account…" : "Register"}
       </button>
     </form>
   );

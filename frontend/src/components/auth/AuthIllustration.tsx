@@ -54,16 +54,16 @@ const accents = [
 export default function AuthIllustration() {
   return (
     <div className="relative mx-auto aspect-square w-full max-w-[540px] select-none">
-      <div className="absolute inset-[8%] rounded-full border-2 border-dashed border-[#1D4B3E]/15" />
-      <div className="absolute inset-[20%] rounded-full border-2 border-dashed border-[#1D4B3E]/10" />
+      <div className="absolute inset-[8%] rounded-full border-2 border-dashed border-white/10" />
+      <div className="absolute inset-[20%] rounded-full border-2 border-dashed border-white/[0.06]" />
 
       {badges.map(({ Icon, top, left, size, rotate, variant }, i) => (
         <div
           key={i}
-          className={`absolute grid place-items-center rounded-2xl shadow-[0_6px_20px_rgba(15,23,42,0.08)] ${
+          className={`absolute grid place-items-center rounded-2xl shadow-[0_6px_20px_rgba(0,0,0,0.4)] ${
             variant === "solid"
-              ? "bg-emerald-700 text-white"
-              : "border-2 border-[#1D4B3E]/15 bg-white text-[#1D4B3E]"
+              ? "bg-[#00926B] text-white"
+              : "border-2 border-white/10 bg-white/[0.04] text-[#00926B] backdrop-blur-xl"
           }`}
           style={{
             top,
@@ -80,7 +80,7 @@ export default function AuthIllustration() {
       {accents.map(({ Icon, top, left, size }, i) => (
         <Icon
           key={i}
-          className="absolute text-emerald-500"
+          className="absolute text-[#00926B]"
           style={{ top, left, width: size, height: size, transform: "translate(-50%, -50%)" }}
           strokeWidth={2.5}
         />
@@ -88,7 +88,7 @@ export default function AuthIllustration() {
 
       <div className="absolute left-1/2 top-1/2 w-[94%] -translate-x-1/2 -translate-y-1/2 text-center">
         <p
-          className="font-sans font-extrabold leading-[0.95] tracking-tight text-[#163B2E]"
+          className="font-sans font-extrabold leading-[0.95] tracking-tight text-white"
           style={{ fontSize: "clamp(2rem, 6.4vw, 3.75rem)", wordBreak: "break-word" }}
         >
           LeadForGrow

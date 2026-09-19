@@ -107,8 +107,8 @@ function DesktopHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; 
   return (
     <div
       onClick={() => setIsDark((v) => !v)}
-      className={`relative mx-auto hidden max-w-[1200px] cursor-pointer overflow-hidden rounded-[32px] border-[6px] border-black transition-colors duration-500 md:block sm:border-[8px] ${
-        isDark ? "bg-[#0B1712]" : "bg-[#F2F1EC]"
+      className={`relative mx-auto hidden max-w-[1200px] cursor-pointer overflow-hidden rounded-[32px] border-[6px] border-white/10 transition-colors duration-500 md:block sm:border-[8px] ${
+        isDark ? "bg-black" : "bg-[#00926B]"
       }`}
       style={{ containerType: "inline-size" }}
     >
@@ -117,7 +117,7 @@ function DesktopHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; 
 
         <h1
           className={`${anton.className} absolute leading-[0.85] tracking-tight transition-colors duration-500 ${
-            isDark ? "text-[#F5F6F2]" : "text-[#111111]"
+            isDark ? "text-[#F5F6F2]" : "text-white"
           }`}
           style={{ left: "40%", top: "14.6%", width: "46%", fontSize: "8.1cqw" }}
         >
@@ -125,7 +125,7 @@ function DesktopHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; 
         </h1>
         <h1
           className={`${anton.className} absolute leading-[0.85] tracking-[-0.01em] transition-colors duration-500 ${
-            isDark ? "text-[#F5F6F2]" : "text-[#111111]"
+            isDark ? "text-[#F5F6F2]" : "text-white"
           }`}
           style={{ left: "50.7%", top: "33.8%", width: "46%", fontSize: "6.3cqw" }}
         >
@@ -138,10 +138,10 @@ function DesktopHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; 
             top: "48.4%",
             width: "56%",
             fontSize: "6.2cqw",
-            color: isDark ? "#34D399" : "#1D4B3E",
+            color: isDark ? "#00C48F" : "#FFFFFF",
             textShadow: isDark
               ? "0 0 18px #0B1712, 0 0 18px #0B1712, 0 0 30px #0B1712"
-              : "0 0 18px #F2F1EC, 0 0 18px #F2F1EC, 0 0 30px #F2F1EC",
+              : "0 0 18px #00926B, 0 0 18px #00926B, 0 0 30px #00926B",
           }}
         >
           Go Unanswered
@@ -153,7 +153,7 @@ function DesktopHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; 
           }`}
           style={{ left: "15.5%", top: "42.9%", transform: "rotate(-2deg)" }}
         />
-        <Spark left="12.8%" top="39.5%" size="3cqw" rotate={240} color={isDark ? "#34D399" : "#1D4B3E"} />
+        <Spark left="12.8%" top="39.5%" size="3cqw" rotate={240} color={isDark ? "#00C48F" : "#000000"} />
 
         <button
           type="button"
@@ -171,16 +171,16 @@ function DesktopHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; 
             style={{ transform: isDark ? "translateX(0)" : "translateX(4.2cqw)" }}
           />
         </button>
-        <Spark left="72.6%" top="13.2%" size="3cqw" color={isDark ? "#34D399" : "#1D4B3E"} />
+        <Spark left="72.6%" top="13.2%" size="3cqw" color={isDark ? "#00C48F" : "#000000"} />
 
         <div className="absolute" style={{ left: "78%", top: "50%", width: "21%", height: "25%" }}>
           <RightCardStack />
         </div>
-        <Spark left="96.9%" top="53.5%" size="2.6cqw" rotate={-30} color={isDark ? "#34D399" : "#1D4B3E"} />
+        <Spark left="96.9%" top="53.5%" size="2.6cqw" rotate={-30} color={isDark ? "#00C48F" : "#000000"} />
 
         <p
           className={`absolute text-center leading-snug transition-colors duration-500 ${
-            isDark ? "text-[#9CA3A0]" : "text-[#57594F]"
+            isDark ? "text-white/40" : "text-white/60"
           }`}
           style={{ left: "50%", top: "67.5%", width: "min(40cqw, 560px)", transform: "translateX(-50%)", fontSize: "1.5cqw" }}
         >
@@ -198,14 +198,14 @@ function DesktopHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; 
               onGetStarted?.();
             }}
             className={`flex items-center justify-between gap-6 rounded-full pl-8 pr-2 font-bold transition-colors duration-300 hover:-translate-y-0.5 ${
-              isDark ? "bg-white text-[#0B1712]" : "bg-black text-white"
+              isDark ? "bg-[#00926B] text-white" : "bg-black text-white"
             }`}
             style={{ width: "clamp(300px, 27.4cqw, 400px)", height: "clamp(58px, 5.4cqw, 72px)", fontSize: "clamp(16px, 1.7cqw, 18px)" }}
           >
             Get started
             <span
               className="flex shrink-0 items-center justify-center rounded-full transition-colors duration-300"
-              style={{ width: "clamp(44px, 5.2cqw, 52px)", height: "clamp(44px, 5.2cqw, 52px)", backgroundColor: isDark ? "#34D399" : "#1D4B3E" }}
+              style={{ width: "clamp(44px, 5.2cqw, 52px)", height: "clamp(44px, 5.2cqw, 52px)", backgroundColor: isDark ? "#00C48F" : "#000000" }}
             >
               <ArrowUpRight className={`-mt-1 h-1/2 w-1/2 transition-colors duration-300 ${isDark ? "text-[#0B1712]" : "text-white"}`} />
             </span>
@@ -217,7 +217,7 @@ function DesktopHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; 
               onBookDemo?.();
             }}
             className={`text-[13px] font-semibold underline underline-offset-4 transition-colors duration-300 ${
-              isDark ? "text-[#9CA3A0] hover:text-white" : "text-[#57594F] hover:text-[#111111]"
+              isDark ? "text-white/40 hover:text-white" : "text-white/60 hover:text-white"
             }`}
           >
             or book a live demo
@@ -242,8 +242,8 @@ function MobileHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; o
   return (
     <div
       onClick={() => setIsDark((v) => !v)}
-      className={`relative mx-auto cursor-pointer overflow-hidden rounded-[28px] border-[5px] border-black px-6 py-10 transition-colors duration-500 md:hidden ${
-        isDark ? "bg-[#0B1712]" : "bg-[#F2F1EC]"
+      className={`relative mx-auto cursor-pointer overflow-hidden rounded-[28px] border-[5px] border-white/10 px-6 py-10 transition-colors duration-500 md:hidden ${
+        isDark ? "bg-black" : "bg-[#00926B]"
       }`}
     >
       <button
@@ -263,20 +263,20 @@ function MobileHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; o
       </button>
 
       <h1
-        className={`${anton.className} text-center leading-[0.85] tracking-tight transition-colors duration-500 ${isDark ? "text-[#F5F6F2]" : "text-[#111111]"}`}
+        className={`${anton.className} text-center leading-[0.85] tracking-tight transition-colors duration-500 ${isDark ? "text-[#F5F6F2]" : "text-white"}`}
         style={{ fontSize: "15vw" }}
       >
         Chats
       </h1>
       <h1
-        className={`${anton.className} mt-1 text-center leading-[0.85] tracking-tight transition-colors duration-500 ${isDark ? "text-[#F5F6F2]" : "text-[#111111]"}`}
+        className={`${anton.className} mt-1 text-center leading-[0.85] tracking-tight transition-colors duration-500 ${isDark ? "text-[#F5F6F2]" : "text-white"}`}
         style={{ fontSize: "8vw" }}
       >
         That never
       </h1>
       <h1
         className={`${anton.className} text-center leading-[0.85] tracking-tight transition-colors duration-500`}
-        style={{ fontSize: "13vw", color: isDark ? "#34D399" : "#1D4B3E" }}
+        style={{ fontSize: "13vw", color: isDark ? "#00C48F" : "#FFFFFF" }}
       >
         Go Unanswered
       </h1>
@@ -301,7 +301,7 @@ function MobileHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; o
 
       <p
         className={`mx-auto mt-8 max-w-[320px] text-center text-[15px] leading-snug transition-colors duration-500 ${
-          isDark ? "text-[#9CA3A0]" : "text-[#57594F]"
+          isDark ? "text-white/40" : "text-white/60"
         }`}
       >
         The first reply wins the customer. LeadForGrow makes sure it&apos;s always instant.
@@ -315,13 +315,13 @@ function MobileHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; o
             onGetStarted?.();
           }}
           className={`flex w-full max-w-[320px] items-center justify-between gap-4 rounded-full py-4 pl-7 pr-2 text-base font-bold transition-colors duration-300 ${
-            isDark ? "bg-white text-[#0B1712]" : "bg-black text-white"
+            isDark ? "bg-[#00926B] text-white" : "bg-black text-white"
           }`}
         >
           Get started
           <span
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors duration-300"
-            style={{ backgroundColor: isDark ? "#34D399" : "#1D4B3E" }}
+            style={{ backgroundColor: isDark ? "#00C48F" : "#000000" }}
           >
             <ArrowUpRight className={`-mt-0.5 h-5 w-5 transition-colors duration-300 ${isDark ? "text-[#0B1712]" : "text-white"}`} />
           </span>
@@ -333,7 +333,7 @@ function MobileHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; o
             onBookDemo?.();
           }}
           className={`text-[13px] font-semibold underline underline-offset-4 transition-colors duration-300 ${
-            isDark ? "text-[#9CA3A0] hover:text-white" : "text-[#57594F] hover:text-[#111111]"
+            isDark ? "text-white/40 hover:text-white" : "text-white/60 hover:text-white"
           }`}
         >
           or book a live demo
@@ -345,7 +345,7 @@ function MobileHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; o
 
 export default function PremiumHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; onBookDemo?: () => void }) {
   return (
-    <section className="bg-white px-3 pt-24 sm:px-4 sm:pt-28">
+    <section className="bg-black px-3 pt-24 sm:px-4 sm:pt-28">
       <DesktopHero onGetStarted={onGetStarted} onBookDemo={onBookDemo} />
       <MobileHero onGetStarted={onGetStarted} onBookDemo={onBookDemo} />
     </section>

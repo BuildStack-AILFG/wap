@@ -41,24 +41,24 @@ const INTEGRATIONS = [
   { name: "Slack", icon: SlackColorIcon, color: undefined },
   { name: "Stripe", icon: StripeIcon, color: "#635BFF" },
   { name: "Calendly", icon: CalendlyIcon, color: "#006BFF" },
-  { name: "Webhooks", icon: Webhook, color: "#111827" },
+  { name: "Webhooks", icon: Webhook, color: "#E5E7EB" },
   { name: "HubSpot", icon: HubSpotIcon, color: "#FF7A59" },
   { name: "Salesforce", icon: SalesforceIcon, color: "#00A1E0" },
-  { name: "Razorpay", icon: RazorpayIcon, color: "#0C2451" },
+  { name: "Razorpay", icon: RazorpayIcon, color: "#5B8DEF" },
   { name: "Zoho CRM", icon: ZohoIcon, color: "#E42527" },
   { name: "WooCommerce", icon: WooCommerceIcon, color: "#96588A" },
   { name: "Mailchimp", icon: MailchimpIcon, color: "#FFE01B" },
   { name: "Google Calendar", icon: GoogleCalendarIcon, color: "#4285F4" },
   { name: "Google Drive", icon: GoogleDriveIcon, color: "#4285F4" },
   { name: "Gmail", icon: GmailIcon, color: "#EA4335" },
-  { name: "Notion", icon: NotionIcon, color: "#111827" },
+  { name: "Notion", icon: NotionIcon, color: "#E5E7EB" },
   { name: "Airtable", icon: AirtableIcon, color: "#18BFFF" },
-  { name: "Zendesk", icon: ZendeskIcon, color: "#03363D" },
-  { name: "Make", icon: MakeIcon, color: "#6D00CC" },
-  { name: "Intercom", icon: IntercomIcon, color: "#111827" },
-  { name: "Typeform", icon: TypeformIcon, color: "#262627" },
+  { name: "Zendesk", icon: ZendeskIcon, color: "#17C3B2" },
+  { name: "Make", icon: MakeIcon, color: "#A855F7" },
+  { name: "Intercom", icon: IntercomIcon, color: "#E5E7EB" },
+  { name: "Typeform", icon: TypeformIcon, color: "#D1D5DB" },
   { name: "WordPress", icon: WordPressIcon, color: "#21759B" },
-  { name: "PayPal", icon: PayPalIcon, color: "#003087" },
+  { name: "PayPal", icon: PayPalIcon, color: "#2E6BD6" },
   { name: "Telegram", icon: TelegramIcon, color: "#26A5E4" },
   { name: "Twilio", icon: TwilioIcon, color: "#F22F46" },
   { name: "QuickBooks", icon: QuickBooksIcon, color: "#2CA01C" },
@@ -67,10 +67,10 @@ const INTEGRATIONS = [
 
 export default function IntegrationsTeaser() {
   return (
-    <section id="integrations" style={{ backgroundColor: "#F5F5F7" }}>
+    <section id="integrations" style={{ backgroundColor: "#000000" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14 sm:py-16">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] leading-tight">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
             Unifying Your Workflow with <span style={{ color: "#05A68B" }}>{INTEGRATIONS.length}+</span> Plug &amp;
             Play Integrations
           </h2>
@@ -88,7 +88,7 @@ export default function IntegrationsTeaser() {
           {INTEGRATIONS.map((item) => {
             const Icon = item.icon;
             return (
-              <span key={item.name} className="inline-flex items-center gap-2 text-[#111827]">
+              <span key={item.name} className="inline-flex items-center gap-2 text-white">
                 <Icon size={22} style={{ color: item.color }} />
                 <span className="text-base font-bold">{item.name}</span>
               </span>

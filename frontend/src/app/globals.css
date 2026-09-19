@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #111827;
+  --background: #000000;
+  --foreground: #ffffff;
 }
 
 @theme inline {
@@ -24,14 +24,14 @@ body {
 
   .enterprise-heading {
     font-family: var(--font-plus-jakarta);
-    @apply text-[2rem] sm:text-[2.5rem] lg:text-[2.75rem] font-bold tracking-[-0.02em] text-[#111827] leading-[1.12];
+    @apply text-[2rem] sm:text-[2.5rem] lg:text-[2.75rem] font-bold tracking-[-0.02em] text-white leading-[1.12];
   }
 
   .landing-logo {
     font-family: var(--font-plus-jakarta);
     font-weight: 660;
     letter-spacing: -0.03em;
-    color: #1d4b3e;
+    color: #ffffff;
   }
 }
 
@@ -80,7 +80,7 @@ body {
 .phone-scroll {
   overflow-y: hidden;
   scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
 }
 
 .phone-scroll::-webkit-scrollbar {
@@ -92,7 +92,7 @@ body {
 }
 
 .phone-scroll::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.45);
+  background: rgba(255, 255, 255, 0.25);
   border-radius: 999px;
 }
 
@@ -100,5 +100,40 @@ body {
   .lfg-card-float,
   .typing-dot {
     animation: none !important;
+  }
+}
+/* ------------------------------------------------------------------------------------------------
+   App surfaces (dashboard + auth + marketing) — one shared black/glass palette. Brand green #00926B, hover #007A59.
+------------------------------------------------------------------------------------------------ */
+@layer components {
+  /* Black card with a hairline edge — hierarchy comes from the border, never from a lighter fill. */
+  .app-card {
+    @apply rounded-2xl border border-white/10 bg-black;
+  }
+
+  /* Slightly lifted black card, for form/dialog panels that sit on top of a page of .app-card rows. */
+  .app-panel {
+    @apply rounded-2xl border border-white/10 bg-white/[0.03];
+  }
+
+  .app-input {
+    @apply rounded-lg border border-white/10 bg-white/[0.04] text-white outline-none placeholder:text-white/30 focus:border-[#00926B];
+  }
+
+  .app-btn-primary {
+    @apply rounded-lg bg-[#00926B] font-semibold text-white transition-colors hover:bg-[#007A59] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .app-btn-ghost {
+    @apply rounded-lg border border-white/10 font-semibold text-white transition-colors hover:bg-white/[0.06];
+  }
+
+  /* Green filled pill/badge — the "used to be green" surfaces, now brand green with white text. */
+  .app-badge-green {
+    @apply rounded-full bg-[#00926B] font-semibold text-white;
+  }
+
+  .app-badge-neutral {
+    @apply rounded-full bg-white/10 font-semibold text-white/70;
   }
 }

@@ -20,9 +20,10 @@ export function getPasswordError(value: string, minLength = 6): string | undefin
 
 export function getSignupPasswordError(value: string): string | undefined {
   if (!value) return "Password is required";
-  if (value.length < 8) return "Use at least 8 characters";
-  if (!/[a-zA-Z]/.test(value) || !/[0-9]/.test(value)) {
-    return "Include at least one letter and one number";
+  if (value.length < 12) return "Use at least 12 characters";
+  const classes = [/[A-Z]/, /[a-z]/, /[0-9]/, /[^A-Za-z0-9]/].filter((rx) => rx.test(value)).length;
+  if (classes < 3) {
+    return "Include at least 3 of: uppercase, lowercase, number, symbol";
   }
   return undefined;
 }
@@ -35,7 +36,7 @@ export function getConfirmPasswordError(password: string, confirm: string): stri
 
 export function getPasswordStrength(value: string): number {
   let score = 0;
-  if (value.length >= 8) score++;
+  if (value.length >= 12) score++;
   if (/[A-Z]/.test(value) && /[a-z]/.test(value)) score++;
   if (/[0-9]/.test(value)) score++;
   if (/[^A-Za-z0-9]/.test(value)) score++;

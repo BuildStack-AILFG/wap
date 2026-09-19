@@ -32,7 +32,7 @@ export default function Home() {
 
   return (
     <SmoothScroll>
-      <div id="top" className="min-h-screen overflow-x-hidden bg-white">
+      <div id="top" className="min-h-screen overflow-x-hidden bg-black text-white">
         <LandingNavbar />
         <PremiumHero onGetStarted={handleGetStarted} onBookDemo={handleBookDemo} />
         <TrustedCompanies />

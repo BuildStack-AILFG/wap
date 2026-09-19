@@ -20,17 +20,17 @@ export default function StatsSection() {
           {STATS.map((stat) => (
             <div key={stat.label} className="text-center">
               <p
-                className="text-[2.25rem] font-extrabold tracking-[-0.03em] text-emerald-700 sm:text-[2.75rem]"
+                className="text-[2.25rem] font-extrabold tracking-[-0.03em] text-[#00926B] sm:text-[2.75rem]"
                 style={{ fontFamily: "var(--font-plus-jakarta)" }}
               >
                 {stat.value}
               </p>
-              <p className="mt-1 text-[13px] font-semibold leading-snug text-[#64748B] sm:text-[14px]">{stat.label}</p>
+              <p className="mt-1 text-[13px] font-semibold leading-snug text-white/60 sm:text-[14px]">{stat.label}</p>
             </div>
           ))}
         </div>
 
-        <p className="mx-auto mt-8 max-w-2xl text-center text-[12px] leading-relaxed text-[#94A3B8]">
+        <p className="mx-auto mt-8 max-w-2xl text-center text-[12px] leading-relaxed text-white/40">
           *Typical results reported by businesses running WhatsApp-first conversational automation — shared here as
           an industry benchmark, not an audited LeadForGrow customer result.
         </p>

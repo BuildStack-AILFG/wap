@@ -42,12 +42,12 @@ export default function SuccessStoriesSection() {
         <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2">
           {STORIES.map((story) => (
             <div key={story.role} className={`${MARKETING.card} p-6 flex gap-4`}>
-              <Quote className="h-6 w-6 shrink-0 text-emerald-200" fill="currentColor" />
+              <Quote className="h-6 w-6 shrink-0 text-[#00926B]/40" fill="currentColor" />
               <div className="min-w-0">
-                <p className="text-[15px] leading-relaxed text-[#111827]">&ldquo;{story.quote}&rdquo;</p>
+                <p className="text-[15px] leading-relaxed text-white">&ldquo;{story.quote}&rdquo;</p>
                 <div className="mt-4 flex items-center gap-3">
                   <img src={story.image} alt="" aria-hidden="true" className="h-9 w-9 rounded-full object-cover" loading="lazy" />
-                  <p className="text-[13px] font-semibold text-[#64748B]">{story.role}</p>
+                  <p className="text-[13px] font-semibold text-white/60">{story.role}</p>
                 </div>
               </div>
             </div>
@@ -55,7 +55,7 @@ export default function SuccessStoriesSection() {
         </div>
 
         <div className="mt-10 text-center">
-          <Link href="#contact" className="group inline-flex items-center gap-2 text-[14px] font-semibold text-emerald-700 hover:text-emerald-800">
+          <Link href="#contact" className="group inline-flex items-center gap-2 text-[14px] font-semibold text-[#00926B] hover:text-[#00b384]">
             Share your own success story
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>

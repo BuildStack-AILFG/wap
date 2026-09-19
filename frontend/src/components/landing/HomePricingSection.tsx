@@ -36,16 +36,16 @@ const PLANS = [
 
 export default function HomePricingSection() {
   return (
-    <section id="pricing" className="relative bg-white py-14 sm:py-16 lg:py-20">
+    <section id="pricing" className="relative bg-black py-14 sm:py-16 lg:py-20">
       <div className="mx-auto max-w-2xl px-4 sm:px-6 text-center">
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-700">Pricing</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#00926B]">Pricing</p>
         <h2
-          className="mt-3 text-[1.75rem] font-extrabold leading-[1.12] tracking-[-0.03em] text-[#111827] sm:text-[2.15rem]"
+          className="mt-3 text-[1.75rem] font-extrabold leading-[1.12] tracking-[-0.03em] text-white sm:text-[2.15rem]"
           style={{ fontFamily: "var(--font-plus-jakarta)" }}
         >
           Simple, Transparent Pricing
         </h2>
-        <p className="mt-3 text-[15px] leading-relaxed text-[#64748B]">
+        <p className="mt-3 text-[15px] leading-relaxed text-white/60">
           Every plan runs on the official WhatsApp Business API — even your free trial.
         </p>
       </div>
@@ -55,31 +55,31 @@ export default function HomePricingSection() {
           <div
             key={plan.name}
             className={`relative flex flex-col rounded-2xl border p-7 ${
-              plan.highlighted ? "border-emerald-700 bg-[#0B1712] text-white shadow-xl" : "border-emerald-100/80 bg-white"
+              plan.highlighted ? "border-[#00926B] bg-[#00926B]/10 text-white shadow-xl" : "border-white/10 bg-white/[0.03] backdrop-blur-xl"
             }`}
           >
             {plan.highlighted && (
-              <span className="absolute -top-3 left-7 rounded-full bg-emerald-400 px-3 py-1 text-[11px] font-bold text-[#0B1712]">
+              <span className="absolute -top-3 left-7 rounded-full bg-[#00926B] px-3 py-1 text-[11px] font-bold text-white">
                 Most popular
               </span>
             )}
-            <h3 className={`text-[15px] font-bold ${plan.highlighted ? "text-white" : "text-[#111827]"}`}>{plan.name}</h3>
-            <p className={`mt-3 flex items-end gap-1 ${plan.highlighted ? "text-white" : "text-[#111827]"}`}>
+            <h3 className={`text-[15px] font-bold ${plan.highlighted ? "text-white" : "text-white"}`}>{plan.name}</h3>
+            <p className={`mt-3 flex items-end gap-1 ${plan.highlighted ? "text-white" : "text-white"}`}>
               <span className="text-[2.4rem] font-extrabold leading-none tracking-tight">{plan.price}</span>
-              <span className={`text-sm font-semibold ${plan.highlighted ? "text-[#9CA3A0]" : "text-[#94A3B8]"}`}>
+              <span className={`text-sm font-semibold ${plan.highlighted ? "text-white/40" : "text-white/40"}`}>
                 {plan.period}
               </span>
             </p>
-            <p className={`mt-2 text-[13.5px] leading-relaxed ${plan.highlighted ? "text-[#9CA3A0]" : "text-[#64748B]"}`}>
+            <p className={`mt-2 text-[13.5px] leading-relaxed ${plan.highlighted ? "text-white/40" : "text-white/60"}`}>
               {plan.desc}
             </p>
 
             <ul className="mt-6 flex-1 space-y-3">
               {plan.features.map((f) => (
-                <li key={f} className={`flex items-center gap-2.5 text-[13.5px] ${plan.highlighted ? "text-[#D1D5D2]" : "text-[#374151]"}`}>
+                <li key={f} className={`flex items-center gap-2.5 text-[13.5px] ${plan.highlighted ? "text-white/70" : "text-white/70"}`}>
                   <span
                     className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-                      plan.highlighted ? "bg-white/10 text-emerald-400" : "bg-emerald-50 text-emerald-700"
+                      plan.highlighted ? "bg-white/10 text-[#00C48F]" : "bg-[#00926B]/15 text-[#00926B]"
                     }`}
                   >
                     <Check className="h-3 w-3" strokeWidth={3} />
@@ -92,7 +92,7 @@ export default function HomePricingSection() {
             <Link
               href="#get-started"
               className={`mt-8 flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[14px] font-bold transition-transform hover:-translate-y-0.5 ${
-                plan.highlighted ? "bg-emerald-500 text-[#0B1712]" : "bg-[#111827] text-white"
+                plan.highlighted ? "bg-[#00926B]/150 text-[#0B1712]" : "bg-[#00926B] text-white"
               }`}
             >
               Choose {plan.name}

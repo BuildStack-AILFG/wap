@@ -22,7 +22,7 @@ const INDUSTRIES = [
 
 export default function IndustriesGridSection() {
   return (
-    <section id="industries" className={`${MARKETING.section} bg-[#FAFDFA]`}>
+    <section id="industries" className={`${MARKETING.section} bg-black`}>
       <div className={MARKETING.container}>
         <div className="mx-auto max-w-2xl text-center">
           <p className={MARKETING.overline}>Industries</p>
@@ -36,13 +36,13 @@ export default function IndustriesGridSection() {
               href="#contact"
               className={`group ${MARKETING.card} ${MARKETING.cardHover} overflow-hidden flex flex-col`}
             >
-              <div className="w-full overflow-hidden bg-[#FAFDFA]" style={{ aspectRatio: "1024 / 507" }}>
+              <div className="w-full overflow-hidden bg-black" style={{ aspectRatio: "1024 / 507" }}>
                 <img src={image} alt={title} className="h-full w-full object-cover" loading="lazy" />
               </div>
               <div className="min-w-0 flex-1 p-5">
-                <h3 className="text-[15px] font-bold text-[#111827]">{title}</h3>
-                <p className="mt-1 text-[13px] leading-snug text-[#64748B]">{description}</p>
-                <span className="mt-2 inline-flex items-center gap-1 text-[13px] font-semibold text-emerald-700">
+                <h3 className="text-[15px] font-bold text-white">{title}</h3>
+                <p className="mt-1 text-[13px] leading-snug text-white/60">{description}</p>
+                <span className="mt-2 inline-flex items-center gap-1 text-[13px] font-semibold text-[#00926B]">
                   Learn More
                   <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                 </span>

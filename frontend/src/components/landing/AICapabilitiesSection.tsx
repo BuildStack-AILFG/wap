@@ -22,7 +22,7 @@ export default function AICapabilitiesSection({
   const [active, setActive] = useState(0);
 
   return (
-    <section id="ai-suite" className={`${MARKETING.section} bg-[#FAFDFA]`}>
+    <section id="ai-suite" className={`${MARKETING.section} bg-black`}>
       <div className={MARKETING.container}>
         <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16">
           <div className="order-2 lg:order-1">
@@ -37,17 +37,17 @@ export default function AICapabilitiesSection({
                     onMouseEnter={() => setActive(i)}
                     onClick={() => setActive(i)}
                     className={`flex w-full items-start gap-3 rounded-lg px-2 py-1.5 text-left transition-colors ${
-                      active === i ? "bg-emerald-50" : "hover:bg-emerald-50/50"
+                      active === i ? "bg-[#00926B]/15" : "hover:bg-[#00926B]/10"
                     }`}
                   >
                     <span
                       className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-                        active === i ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-700"
+                        active === i ? "bg-[#00926B] text-white" : "bg-[#00926B]/20 text-[#00926B]"
                       }`}
                     >
                       <Check className="h-3.5 w-3.5" strokeWidth={3} />
                     </span>
-                    <span className="text-[15px] font-semibold text-[#111827]">{point.label}</span>
+                    <span className="text-[15px] font-semibold text-white">{point.label}</span>
                   </button>
                 </li>
               ))}
@@ -72,7 +72,7 @@ export default function AICapabilitiesSection({
               <img
                 src={AI_POINTS[active].image}
                 alt={AI_POINTS[active].label}
-                className="w-full rounded-2xl bg-white object-contain shadow-[0_20px_48px_rgba(15,23,42,0.12)]"
+                className="w-full rounded-2xl bg-white/[0.04] object-contain shadow-[0_20px_48px_rgba(0,0,0,0.5)]"
                 loading="lazy"
               />
             </div>

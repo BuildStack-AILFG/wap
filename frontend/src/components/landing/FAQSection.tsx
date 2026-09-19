@@ -35,19 +35,19 @@ export default function FAQSection({ onBookDemo }: { onBookDemo?: () => void }) 
   const [open, setOpen] = useState(0);
 
   return (
-    <section id="faq" className="relative overflow-hidden bg-[#FAFDFA] py-14 sm:py-16 lg:py-20">
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#FAFDFA] via-white to-[#EEF8ED]/30" />
+    <section id="faq" className="relative overflow-hidden bg-black py-14 sm:py-16 lg:py-20">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black via-[#050505] to-black" />
 
       <div className="relative mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <div className="mb-10 text-center sm:mb-12">
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-700">FAQ</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#00926B]">FAQ</p>
           <h2
-            className="mt-3 text-[1.75rem] font-extrabold leading-[1.12] tracking-[-0.03em] text-[#111827] sm:text-[2.15rem]"
+            className="mt-3 text-[1.75rem] font-extrabold leading-[1.12] tracking-[-0.03em] text-white sm:text-[2.15rem]"
             style={{ fontFamily: "var(--font-plus-jakarta)" }}
           >
             Questions before you start
           </h2>
-          <p className="mt-3 text-[15px] leading-relaxed text-[#64748B]">
+          <p className="mt-3 text-[15px] leading-relaxed text-white/60">
             Common questions about LeadForGrow, onboarding, pricing, and security.
           </p>
         </div>
@@ -56,24 +56,24 @@ export default function FAQSection({ onBookDemo }: { onBookDemo?: () => void }) 
           {FAQS.map((faq, i) => {
             const isOpen = open === i;
             return (
-              <div key={faq.q} className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_2px_12px_rgba(15,23,42,0.04)]">
+              <div key={faq.q} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl">
                 <button
                   type="button"
                   onClick={() => setOpen(isOpen ? -1 : i)}
-                  className="flex w-full items-center justify-between p-5 text-left transition-colors hover:bg-[#FAFDFA]"
+                  className="flex w-full items-center justify-between p-5 text-left transition-colors hover:bg-white/5"
                 >
-                  <span className="pr-4 text-[15px] font-semibold text-[#111827]">{faq.q}</span>
+                  <span className="pr-4 text-[15px] font-semibold text-white">{faq.q}</span>
                   <div
                     className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${
-                      isOpen ? "bg-emerald-700 text-white" : "bg-[#ECFDF5] text-emerald-800"
+                      isOpen ? "bg-[#00926B] text-white" : "bg-[#00926B]/15 text-[#00926B]"
                     }`}
                   >
                     {isOpen ? <Minus className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
                   </div>
                 </button>
                 {isOpen && (
-                  <div className="border-t border-[#E2E8F0] px-5 pb-5 pt-4">
-                    <p className="text-[15px] leading-relaxed text-[#4B5563]">{faq.a}</p>
+                  <div className="border-t border-white/10 px-5 pb-5 pt-4">
+                    <p className="text-[15px] leading-relaxed text-white/60">{faq.a}</p>
                   </div>
                 )}
               </div>
@@ -81,14 +81,14 @@ export default function FAQSection({ onBookDemo }: { onBookDemo?: () => void }) 
           })}
         </div>
 
-        <p className="mt-8 text-center text-[15px] text-[#64748B]">
+        <p className="mt-8 text-center text-[15px] text-white/60">
           Still have questions?{" "}
           {onBookDemo ? (
-            <button type="button" onClick={onBookDemo} className="font-semibold text-emerald-700 transition-colors hover:text-emerald-800">
+            <button type="button" onClick={onBookDemo} className="font-semibold text-[#00926B] transition-colors hover:text-[#00b384]">
               Book a demo
             </button>
           ) : (
-            <Link href="#contact" className="font-semibold text-emerald-700 transition-colors hover:text-emerald-800">
+            <Link href="#contact" className="font-semibold text-[#00926B] transition-colors hover:text-[#00b384]">
               Book a demo
             </Link>
           )}
