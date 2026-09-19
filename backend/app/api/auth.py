@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_tenant_id, get_current_user, get_db
+from app.core.config import get_settings
 from app.models.plan import Plan
 from app.models.tenant import Tenant, TenantMembership, User
 from app.schemas.auth import (
@@ -36,8 +37,9 @@ def _set_access_cookie(response: Response, access_token: str, expires_in_minutes
         key="access_token",
         value=access_token,
         httponly=True,
-        samesite="lax",
-        secure=False,  # flip to True once served over HTTPS
+        # Cross-site (Vercel frontend → separate API host) needs SameSite=None, which requires Secure.
+        samesite="none" if get_settings().is_production else "lax",
+        secure=get_settings().is_production,
         max_age=expires_in_minutes * 60,
     )
 

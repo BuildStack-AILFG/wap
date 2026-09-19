@@ -8,7 +8,12 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-engine = create_async_engine(settings.database_url, echo=settings.environment == "development", pool_pre_ping=True)
+engine = create_async_engine(
+    settings.async_database_url,
+    echo=settings.environment == "development",
+    pool_pre_ping=True,
+    connect_args={"ssl": True} if settings.database_requires_tls else {},
+)
 
 async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
 

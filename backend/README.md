@@ -71,9 +71,26 @@ Health check: `GET http://localhost:8000/api/health` → `{"status": "ok"}`
   to `'trial'` on signup.
 - No account lockout after failed attempts.
 
-## Frontend wiring
+## Deploying (Railway)
 
-`frontend/src/components/auth/{LoginForm,SignupForm}.tsx` are currently
-UI-only (`disabled` submit buttons, no fetch calls). Wiring them to these
-endpoints is the next step once this backend is actually running — set
-`NEXT_PUBLIC_API_URL` in the frontend's env pointing at this API's base URL.
+The repo ships a production `Dockerfile` and `railway.toml`. On every boot the container runs
+`alembic upgrade head` and the idempotent plan seed, then serves on `$PORT`.
+
+1. Create a Railway project, add a **PostgreSQL** service, and add this `backend/` folder as a service.
+2. Set these variables on the backend service:
+
+   | Variable | Value |
+   |---|---|
+   | `DATABASE_URL` | the Postgres service's URL (any `postgres://` / `postgresql://` URL works) |
+   | `JWT_SECRET`, `REFRESH_TOKEN_SECRET` | two different long random strings (`python -c "import secrets; print(secrets.token_urlsafe(48))"`) |
+   | `ENVIRONMENT` | `production` |
+   | `CORS_ORIGINS` | your production frontend origin(s), comma-separated |
+   | `CORS_ORIGIN_REGEX` | optional, e.g. `https://.*\.vercel\.app` to allow Vercel preview deploys |
+
+3. Generate a public domain, then set `NEXT_PUBLIC_API_URL=https://<domain>/api` on the frontend host and redeploy it.
+
+Health check: `GET /api/health`. Locally the frontend keeps using `frontend/.env.local`
+(`http://localhost:8000/api`); that file never reaches the hosted build.
+
+After changing backend code locally, restart uvicorn manually — `--reload` is unreliable on OneDrive folders.
+
