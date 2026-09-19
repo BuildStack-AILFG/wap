@@ -57,3 +57,53 @@ def get_current_tenant_id(request: Request) -> uuid.UUID:
         return uuid.UUID(tenant_id)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={"error": "Invalid session."})
+
+
+# ---- request context with live role verification ------------------------------------------------------------------
+
+from dataclasses import dataclass  # noqa: E402
+
+from sqlalchemy import select  # noqa: E402
+
+from app.models.tenant import TenantMembership  # noqa: E402
+
+MANAGER_ROLES = {"owner", "admin"}
+WRITER_ROLES = {"owner", "admin", "agent"}
+
+
+@dataclass
+class Ctx:
+    tenant_id: uuid.UUID
+    user_id: uuid.UUID
+    role: str
+
+    @property
+    def is_manager(self) -> bool:
+        return self.role in MANAGER_ROLES
+
+
+async def get_ctx(request: Request, db: AsyncSession = Depends(get_db)) -> Ctx:
+    """Tenant + user + *current* role. Unlike the JWT claim this reflects removals/role changes immediately."""
+    payload = _decode_request_token(request)
+    try:
+        tenant_id, user_id = uuid.UUID(payload["tenant_id"]), uuid.UUID(payload["sub"])
+    except (KeyError, ValueError):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={"error": "Invalid session."})
+    membership = (await db.execute(
+        select(TenantMembership.role).where(TenantMembership.tenant_id == tenant_id, TenantMembership.user_id == user_id)
+    )).scalar_one_or_none()
+    if membership is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail={"error": "You no longer have access to this workspace."})
+    return Ctx(tenant_id=tenant_id, user_id=user_id, role=membership)
+
+
+async def require_manager(ctx: Ctx = Depends(get_ctx)) -> Ctx:
+    if not ctx.is_manager:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail={"error": "Only workspace owners and admins can do this."})
+    return ctx
+
+
+async def require_writer(ctx: Ctx = Depends(get_ctx)) -> Ctx:
+    if ctx.role not in WRITER_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail={"error": "Your role is read-only."})
+    return ctx

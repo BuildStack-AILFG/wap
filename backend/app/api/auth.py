@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_tenant_id, get_current_user, get_db
+from app.core import ratelimit
 from app.core.config import get_settings
 from app.models.plan import Plan
 from app.models.tenant import Tenant, TenantMembership, User
@@ -21,7 +22,7 @@ from app.schemas.auth import (
     RotatePasswordRequest,
     WorkspaceOut,
 )
-from app.services import auth_service
+from app.services import auth_service, mailer
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -46,6 +47,7 @@ def _set_access_cookie(response: Response, access_token: str, expires_in_minutes
 
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 async def register(payload: RegisterRequest, request: Request, response: Response, db: AsyncSession = Depends(get_db)):
+    ratelimit.limit(request, "register", 10, 3600)
     user_agent, ip_address = _client_meta(request)
     user, tenant, membership, tokens = await auth_service.register_user(
         db,
@@ -76,6 +78,9 @@ async def register(payload: RegisterRequest, request: Request, response: Respons
 
 @router.post("/login", response_model=AuthResponse)
 async def login(payload: LoginRequest, request: Request, response: Response, db: AsyncSession = Depends(get_db)):
+    # per-IP and per-account limits: slows password guessing without letting one attacker lock a victim out for long
+    ratelimit.limit(request, "login-ip", 20, 60)
+    ratelimit.limit(request, "login-acct", 8, 300, payload.email.lower())
     user_agent, ip_address = _client_meta(request)
     user, tenant, membership, tokens, must_rotate = await auth_service.login_user(
         db, email=payload.email, password=payload.password, user_agent=user_agent, ip_address=ip_address
@@ -117,9 +122,14 @@ async def logout(payload: LogoutRequest, response: Response, db: AsyncSession = 
 
 
 @router.post("/forgot-password", status_code=status.HTTP_202_ACCEPTED)
-async def forgot_password(payload: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+async def forgot_password(payload: ForgotPasswordRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    ratelimit.limit(request, "forgot", 5, 3600)
+    ratelimit.limit(request, "forgot-acct", 3, 3600, payload.email.lower())
     reset_token = await auth_service.request_password_reset(db, email=payload.email)
-    # TODO(Phase 1+): send `reset_token` via email instead of returning it.
+    if reset_token:
+        link = f"{get_settings().frontend_url.rstrip('/')}/reset-password?token={reset_token}"
+        await mailer.send(payload.email, "Reset your LeadForGrow password",
+                          mailer.button_html("Reset your password", "We received a request to reset your password. This link expires in 1 hour. If this wasn't you, ignore this email.", "Choose a new password", link))
     # Always respond the same way regardless of whether the email existed,
     # so this endpoint can't be used to enumerate registered accounts.
     return {"success": True, "message": "If an account exists for that email, a reset link has been sent."}

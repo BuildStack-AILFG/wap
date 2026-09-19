@@ -35,6 +35,33 @@ class Settings(BaseSettings):
 
     encryption_key: str = ""
 
+    # Public URL of this API, used to build webhook callback URLs and widget embed snippets shown in the UI.
+    public_base_url: str = ""
+
+    # Meta / WhatsApp Cloud API. Per-workspace credentials (manual connect) live encrypted in whatsapp_accounts;
+    # these platform-level values are only needed for Embedded Signup and a shared platform webhook.
+    graph_api_base: str = "https://graph.facebook.com"
+    graph_api_version: str = "v21.0"
+    meta_app_id: str = ""
+    meta_app_secret: str = ""
+    meta_config_id: str = ""  # Embedded Signup configuration id
+    meta_webhook_verify_token: str = ""
+
+    # AI agent. Each workspace can bring its own key (stored encrypted); this is the platform fallback.
+    anthropic_api_key: str = ""
+    anthropic_api_base: str = "https://api.anthropic.com"
+    ai_model: str = "claude-sonnet-5"
+
+    # Transactional email (invites, password reset). Optional — without it, invite/reset links are returned to the caller.
+    resend_api_key: str = ""
+    email_from: str = "LeadForGrow <no-reply@leadforgrow.com>"
+    frontend_url: str = "http://localhost:3000"
+
+    # In-process scheduler (scheduled broadcasts, flow waits). See lib/PHASES.md — single instance only.
+    scheduler_enabled: bool = True
+    scheduler_interval_seconds: int = 15
+    broadcast_send_delay_ms: int = 60
+
     # Comma-separated in the environment: CORS_ORIGINS=https://app.example.com,https://www.example.com
     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:3000", "http://localhost:3001"]
     # Optional regex for dynamic origins, e.g. Vercel preview deploys: https://.*\.vercel\.app

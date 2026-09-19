@@ -17,7 +17,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -240,6 +240,7 @@ async def reset_password(db: AsyncSession, *, token: str, new_password: str) -> 
     user.must_rotate_password = False
     user.reset_token_hash = None
     user.reset_token_expires_at = None
+    await _revoke_sessions(db, user.id)  # a reset means the old credentials may be compromised — sign every device out
     await db.commit()
 
 
@@ -260,4 +261,9 @@ async def rotate_password(db: AsyncSession, *, user: User, current_password: str
     user.password_hash = hash_password(new_password)
     user.password_updated_at = datetime.now(timezone.utc)
     user.must_rotate_password = False
+    await _revoke_sessions(db, user.id)
     await db.commit()
+
+
+async def _revoke_sessions(db: AsyncSession, user_id: uuid.UUID) -> None:
+    await db.execute(update(RefreshToken).where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None)).values(revoked_at=datetime.now(timezone.utc)))
