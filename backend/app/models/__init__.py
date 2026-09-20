@@ -10,6 +10,7 @@ from app.models.integration import ApiKey, Integration, OutboundWebhook
 from app.models.knowledge import KnowledgeChunk, KnowledgeSource
 from app.models.pipeline import Deal, DealActivity, PipelineStage
 from app.models.plan import Plan
+from app.models.platform import PlatformSetting
 from app.models.public_forms import ContactMessage, NewsletterSubscriber
 from app.models.refresh_token import RefreshToken
 from app.models.segment import Segment
@@ -43,6 +44,7 @@ __all__ = [
     "PaymentLink",
     "PipelineStage",
     "Plan",
+    "PlatformSetting",
     "RefreshToken",
     "Segment",
     "TeamInvite",

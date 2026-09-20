@@ -36,4 +36,10 @@ class Plan(TimestampMixin, Base):
         ),
     )
 
+    # Feature switches, e.g. {"conversation_analytics": false}. A feature that is missing from this dict is ON, so a custom plan is never
+    # locked by accident — see app/services/entitlements.py for the catalogue.
+    features: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict, server_default="{}")
+    # Hidden plans (e.g. the retired 'scale' tier) keep working for the workspaces on them but are not offered for sale.
+    is_public: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+
     is_default_trial: Mapped[bool] = mapped_column(Boolean, default=False)

@@ -125,7 +125,7 @@ async def test_overview_lists_purchasable_plans_with_gst_quotes(ws, rzp):
     assert o["enabled"] and o["key_id"] == KEY_ID and o["gst_percent"] == 18 and o["plan"]["kind"] == "trial"
     starter = next(p for p in o["plans"] if p["id"] == "starter")
     q = starter["quotes"]["quarterly"]
-    assert q["base"] == 89900 * 3 and q["gst"] == round(q["base"] * 0.18) and q["total"] == q["base"] + q["gst"] and q["months"] == 3
+    assert q["base"] == 71900 * 3 and q["gst"] == round(q["base"] * 0.18) and q["total"] == q["base"] + q["gst"] and q["months"] == 3
     assert {"free", "trial"}.isdisjoint({p["id"] for p in o["plans"]})
     assert not next(p for p in o["plans"] if p["id"] == "enterprise")["purchasable"]
 
@@ -144,7 +144,7 @@ async def test_checkout_needs_billing_details_and_validates_gstin(ws, rzp):
 async def test_pay_activates_plan_and_issues_a_gst_invoice(ws, rzp):
     await ws.put("/billing/profile", json=PROFILE)
     pay = await buy(ws, rzp, "starter", "quarterly")
-    assert pay["status"] == "paid" and pay["total_amount"] == round(89900 * 3 * 1.18) and pay["method"] == "upi"
+    assert pay["status"] == "paid" and pay["total_amount"] == round(71900 * 3 * 1.18) and pay["method"] == "upi"
     assert re.fullmatch(r"SD/\d{4}-\d{2}/\d{5}", pay["invoice_number"])
     t = await tenant_row(ws)
     assert t.plan_id == "starter" and 88 <= (t.plan_expires_at - datetime.now(timezone.utc)).days <= 92
@@ -193,7 +193,7 @@ async def test_upgrade_credits_the_unused_part_of_the_current_plan(ws, rzp):
     await ws.put("/billing/profile", json=PROFILE)
     await buy(ws, rzp, "starter", "monthly")
     q = (await ws.post("/billing/quote", json={"plan_id": "growth", "interval": "monthly"})).json()
-    assert not q["renewal"] and 90000 < q["credit"] <= 99900  # almost all of the starter month is unused
+    assert not q["renewal"] and 70000 < q["credit"] <= 79900  # almost all of the starter month is unused
     assert q["taxable"] == q["base"] - q["credit"] and q["gst"] == round(q["taxable"] * 0.18)
     pay = await buy(ws, rzp, "growth", "monthly", "pay_UP")
     assert pay["credit_amount"] == pytest.approx(q["credit"], abs=200) and (await tenant_row(ws)).plan_id == "growth"
@@ -297,6 +297,7 @@ async def test_payments_disabled_without_platform_keys(ws, rzp):
 
 # ---- payment links (the workspace's own Razorpay account) ---------------------------------------------------------------------------------
 
+@pytest.mark.paid
 async def test_payment_links_end_to_end(wsa, rzp):
     assert (await wsa.get("/payments/settings")).json()["connected"] is False
     assert (await wsa.post("/payments/links", json={"amount": 50000})).status_code == 409  # not connected yet
@@ -327,6 +328,7 @@ async def test_payment_links_end_to_end(wsa, rzp):
     assert (await wsa.get("/payments/settings")).json()["connected"] is False
 
 
+@pytest.mark.paid
 async def test_payment_link_paid_via_the_workspace_webhook_and_poller(wsa, app_client, rzp):
     await wsa.put("/payments/settings", json={"key_id": OWN_KEYS[0], "key_secret": OWN_KEYS[1]})
     integ = (await wsa.put("/integrations/razorpay", json={"secret": "hook-secret"})).json()
@@ -445,6 +447,7 @@ async def test_pipeline_is_tenant_scoped_and_validates_references(ws, other):
     assert (await other.get("/pipeline/deals")).json()["total"] == 0
 
 
+@pytest.mark.paid
 async def test_report_numbers(ws):
     st = {s["name"]: s["id"] for s in (await ws.get("/pipeline/stages")).json()}
     mk = lambda title, value, stage: ws.post("/pipeline/deals", json={"title": title, "value": value, "stage_id": st[stage]})  # noqa: E731

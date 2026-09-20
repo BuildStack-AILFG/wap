@@ -32,10 +32,10 @@ from app.core.security import (
     verify_password,
 )
 from app.models.plan import Plan
+from app.services import entitlements
 from app.models.refresh_token import RefreshToken
 from app.models.tenant import Tenant, TenantMembership, User
 
-DEFAULT_TRIAL_DAYS = 14
 _SLUG_RX = re.compile(r"[^a-z0-9]+")
 
 
@@ -94,7 +94,7 @@ async def register_user(
         name=company_name,
         slug=_slugify(company_name),
         plan_id=trial_plan.id,
-        trial_ends_at=datetime.now(timezone.utc) + timedelta(days=DEFAULT_TRIAL_DAYS),
+        trial_ends_at=datetime.now(timezone.utc) + timedelta(days=await entitlements.trial_days(db)),
     )
     db.add(tenant)
     await db.flush()
@@ -143,6 +143,8 @@ async def login_user(
     tenant = await db.get(Tenant, membership.tenant_id)
     if tenant is None:
         raise HTTPException(status_code=500, detail="Workspace not found for this account.")
+    if tenant.status == "suspended":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail={"error": "This workspace has been suspended. Please contact support."})
 
     tokens = issue_token_pair(user_id=user.id, tenant_id=tenant.id, role=membership.role, plan_id=tenant.plan_id)
     await _store_refresh_token(db, user_id=user.id, tokens=tokens, user_agent=user_agent, ip_address=ip_address)

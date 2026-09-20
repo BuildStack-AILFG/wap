@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 import base64
 import hashlib
 import hmac
@@ -110,6 +111,7 @@ async def test_segments_by_trait_tag_and_event(wsa):
 
 # ---- team & roles ------------------------------------------------------------------------------------------------------------------------
 
+@pytest.mark.paid
 async def test_invite_accept_roles_and_removal(wsa, monkeypatch):
     sent = []
 
@@ -160,6 +162,7 @@ async def test_invite_without_email_provider_returns_a_shareable_link_and_respec
     assert len((await wsa.get("/team/invites")).json()) == 2
 
 
+@pytest.mark.paid
 async def test_auto_assignment_round_robin(wsa):
     from app.core.security import hash_password
     from app.models.tenant import TenantMembership, User
@@ -183,6 +186,19 @@ async def test_auto_assignment_round_robin(wsa):
 
 
 # ---- widget ---------------------------------------------------------------------------------------------------------------------------------
+
+async def test_widget_carries_a_fixed_powered_by_credit(wsa):
+    """Every widget shows "Powered by LeadForGrow.com" linking to leadforgrow.com; no workspace setting can change or remove it."""
+    credit = 'href="https://leadforgrow.com" target="_blank" rel="noopener">Powered by <b>LeadForGrow.com</b>'
+    w = (await wsa.post("/widgets", json={"phone_number": "919876543210", "collect_lead": True, "powered_by": "Evil Co", "powered_by_url": "https://evil.example",
+                                          "title": "Powered by <a href='https://evil.example'>x</a>"})).json()
+    js = (await wsa.client.get(f"/api/public/widget/{w['public_key']}.js")).text
+    assert js.count(credit) == 1  # exactly one real link, hard-coded in the template (a title that mimics it is only escaped text data)
+    assert '"powered_by' not in js and "Evil Co" not in js  # unknown settings are ignored, never reach the script
+    updated = await wsa.put(f"/widgets/{w['id']}", json={"phone_number": "919876543210", "powered_by": "", "powered_by_url": "", "title": "Hello"})
+    assert updated.status_code == 200, updated.text
+    assert credit in (await wsa.client.get(f"/api/public/widget/{w['public_key']}.js")).text  # editing the widget never removes it
+
 
 async def test_widget_lifecycle_script_lead_capture_and_qr(wsa):
     w = (await wsa.post("/widgets", json={"name": "Site", "phone_number": "+91 98765 43210", "title": "Chat <b>now</b>", "welcome_message": "Hi \"there\"", "collect_lead": True, "brand_color": "#112233"})).json()
@@ -242,6 +258,7 @@ async def test_widget_domain_lock_and_lead_rate_limit(wsa):
 
 # ---- developer API + webhooks -----------------------------------------------------------------------------------------------------------
 
+@pytest.mark.paid
 async def test_api_keys_public_api_and_event_triggered_flow(wsa, meta):
     meta.templates.append(approved_template("order_ship", "Hi {{1}}, order {{2}} has shipped!", "UTILITY"))
     await wsa.post(f"/whatsapp/accounts/{wsa.account['id']}/sync-templates")
@@ -302,6 +319,7 @@ class _Sink(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a): ...
 
 
+@pytest.mark.paid
 async def test_outbound_webhooks_are_signed_filtered_and_auto_disabled(wsa, monkeypatch):
     srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), _Sink)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
@@ -353,6 +371,7 @@ def _shopify_sig(secret: str, raw: bytes) -> str:
     return base64.b64encode(hmac.new(secret.encode(), raw, hashlib.sha256).digest()).decode()
 
 
+@pytest.mark.paid
 async def test_shopify_hook_verifies_signature_and_sends_the_mapped_template(wsa, meta):
     meta.templates.append(approved_template("order_confirm", "Hi {{1}}, thanks for order {{2}} ({{3}})!", "UTILITY"))
     await wsa.post(f"/whatsapp/accounts/{wsa.account['id']}/sync-templates")
@@ -381,6 +400,7 @@ async def test_shopify_hook_verifies_signature_and_sends_the_mapped_template(wsa
     assert (await wsa.get("/integrations")).json()[0]["last_event_at"]
 
 
+@pytest.mark.paid
 async def test_generic_hook_signature_optional_and_url_rotation(wsa):
     cfg = (await wsa.put("/integrations/zapier", json={})).json()
     assert cfg["kind"] == "generic"
@@ -403,6 +423,7 @@ async def test_generic_hook_signature_optional_and_url_rotation(wsa):
     assert (await wsa.client.post("/api/hooks/doesnotexist", json={})).status_code == 404
 
 
+@pytest.mark.paid
 async def test_razorpay_stripe_and_woocommerce_signatures(wsa):
     for provider, secret in (("razorpay", "rzp"), ("stripe", "whsec_x"), ("woocommerce", "wc")):
         assert (await wsa.put(f"/integrations/{provider}", json={"secret": secret})).status_code == 200
@@ -426,6 +447,7 @@ async def test_razorpay_stripe_and_woocommerce_signatures(wsa):
     assert res["processed"] == 0 and res["ignored"] == 1  # a bare national number with no workspace country code is ignored, never guessed
 
 
+@pytest.mark.paid
 async def test_slack_integration_validation(wsa):
     assert (await wsa.put("/integrations/slack", json={"secret": "https://evil.example/hook"})).status_code == 422
     assert (await wsa.put("/integrations/slack", json={})).status_code == 422
@@ -437,6 +459,7 @@ async def test_slack_integration_validation(wsa):
 
 # ---- analytics + auth ----------------------------------------------------------------------------------------------------------------------
 
+@pytest.mark.paid
 async def test_analytics_overview_reflects_real_activity(wsa, meta):
     await wsa.inbound("hi", from_="919800000031")
     await wsa.inbound("hello", from_="919800000032")

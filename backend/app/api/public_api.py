@@ -22,6 +22,7 @@ from app.models.whatsapp_account import WhatsAppAccount
 from app.services import quotas
 from app.services.automation import events
 from app.services.phone import InvalidPhone, normalize_phone
+from app.services.entitlements import ensure_feature
 from app.services.whatsapp import messaging
 from app.services.whatsapp.graph import GraphError
 from app.services.whatsapp.templates import TemplateValidationError, build_send_components, render_preview, variables_in
@@ -39,6 +40,7 @@ async def api_tenant(request: Request, db: AsyncSession = Depends(get_db)) -> uu
     row = (await db.execute(select(ApiKey).where(ApiKey.key_hash == hash_key(key)))).scalar_one_or_none()
     if row is None or row.revoked_at is not None:
         raise HTTPException(status_code=401, detail={"error": "Missing or invalid API key."}, headers={"WWW-Authenticate": "Bearer"})
+    await ensure_feature(db, row.tenant_id, "api_access")
     if not ratelimit.allow(f"apikey:{row.id}", RATE_PER_MINUTE, 60):
         raise HTTPException(status_code=429, detail={"error": f"Rate limit exceeded ({RATE_PER_MINUTE} requests/minute)."}, headers={"Retry-After": "60"})
     now = datetime.now(timezone.utc)

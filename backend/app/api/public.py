@@ -17,8 +17,10 @@ from app.api.deps import get_db
 from app.core import ratelimit
 from app.models.contact import Contact
 from app.models.contact_event import ContactEvent
+from app.models.plan import Plan
 from app.models.widget import Widget
-from app.services import outbound_webhooks, quotas, widget_js
+from app.services import entitlements, outbound_webhooks, quotas, widget_js
+from app.services.plan_catalog import FEATURES
 from app.services.phone import InvalidPhone, normalize_phone
 from app.services.whatsapp import messaging
 from app.services.whatsapp.accounts import public_base
@@ -42,6 +44,20 @@ def _host_allowed(w: Widget, request: Request) -> bool:
         return True
     host = (urlsplit(src).hostname or "").lower()
     return any(host == d or (d.startswith("*.") and host.endswith(d[1:])) or host.endswith("." + d) for d in w.allowed_domains)
+
+
+@router.get("/plans")
+async def public_plans(db: AsyncSession = Depends(get_db)) -> Response:
+    """The price list for the marketing site, straight from the plans table so admin edits show up without a redeploy."""
+    rows = (await db.execute(select(Plan).where(Plan.is_public.is_(True)))).scalars().all()
+    trial = await db.get(Plan, "trial")
+    body = {
+        "plans": [{"id": p.id, "name": p.name, "per_month": {"monthly": p.price_monthly, "quarterly": p.price_quarterly, "yearly": p.price_yearly},
+                   "quotas": p.quotas or {}, "features": entitlements.features_of(p)} for p in sorted(rows, key=lambda p: (p.price_monthly is None, p.price_monthly or 0))],
+        "trial": {"days": await entitlements.trial_days(db), "quotas": (trial.quotas if trial else {}) or {}, "features": entitlements.features_of(trial)},
+        "feature_catalog": FEATURES,
+    }
+    return Response(json.dumps(body), media_type="application/json", headers={"Cache-Control": "public, max-age=60", "Access-Control-Allow-Origin": "*"})
 
 
 @router.get("/widget/{key}.js")

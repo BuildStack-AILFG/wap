@@ -65,7 +65,8 @@ from dataclasses import dataclass  # noqa: E402
 
 from sqlalchemy import select  # noqa: E402
 
-from app.models.tenant import TenantMembership  # noqa: E402
+from app.core.config import get_settings  # noqa: E402
+from app.models.tenant import Tenant, TenantMembership  # noqa: E402
 
 MANAGER_ROLES = {"owner", "admin"}
 WRITER_ROLES = {"owner", "admin", "agent"}
@@ -89,12 +90,15 @@ async def get_ctx(request: Request, db: AsyncSession = Depends(get_db)) -> Ctx:
         tenant_id, user_id = uuid.UUID(payload["tenant_id"]), uuid.UUID(payload["sub"])
     except (KeyError, ValueError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={"error": "Invalid session."})
-    membership = (await db.execute(
-        select(TenantMembership.role).where(TenantMembership.tenant_id == tenant_id, TenantMembership.user_id == user_id)
-    )).scalar_one_or_none()
-    if membership is None:
+    row = (await db.execute(
+        select(TenantMembership.role, Tenant.status).join(Tenant, Tenant.id == TenantMembership.tenant_id)
+        .where(TenantMembership.tenant_id == tenant_id, TenantMembership.user_id == user_id)
+    )).one_or_none()
+    if row is None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail={"error": "You no longer have access to this workspace."})
-    return Ctx(tenant_id=tenant_id, user_id=user_id, role=membership)
+    if row.status == "suspended":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail={"error": "This workspace has been suspended. Please contact support.", "suspended": True})
+    return Ctx(tenant_id=tenant_id, user_id=user_id, role=row.role)
 
 
 async def require_manager(ctx: Ctx = Depends(get_ctx)) -> Ctx:
@@ -107,3 +111,16 @@ async def require_writer(ctx: Ctx = Depends(get_ctx)) -> Ctx:
     if ctx.role not in WRITER_ROLES:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail={"error": "Your role is read-only."})
     return ctx
+
+
+# ---- platform admin (the people who run LeadForGrow itself, not a customer workspace) -----------------------------------
+
+def is_platform_admin(user: User) -> bool:
+    return user.email.lower() in get_settings().platform_admin_emails
+
+
+async def require_platform_admin(user: User = Depends(get_current_user)) -> User:
+    if not is_platform_admin(user):
+        # 404, not 403: don't advertise that an admin console exists
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"error": "Not found."})
+    return user

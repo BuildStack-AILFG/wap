@@ -83,6 +83,16 @@ class Settings(BaseSettings):
     # Optional regex for dynamic origins, e.g. Vercel preview deploys: https://.*\.vercel\.app
     cors_origin_regex: str | None = None
 
+    # Emails (comma-separated) that may open the platform admin console: PLATFORM_ADMIN_EMAILS=you@company.com,partner@company.com
+    platform_admin_emails: Annotated[list[str], NoDecode] = []
+
+    @field_validator("platform_admin_emails", mode="before")
+    @classmethod
+    def _split_admins(cls, v):
+        if isinstance(v, str):
+            v = json.loads(v) if v.strip().startswith("[") else v.split(",")
+        return [e.strip().lower() for e in v if e.strip()]
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_origins(cls, v):

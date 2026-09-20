@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import math
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -72,19 +71,7 @@ async def _tenant(db: AsyncSession, ctx: Ctx) -> Tenant:
     return tenant
 
 
-def _state(tenant: Tenant) -> dict:
-    from app.services.billing import active_paid, utcnow
-    now = utcnow()
-    if tenant.plan_id == "trial":
-        end, kind = tenant.trial_ends_at, "trial"
-    elif tenant.plan_id == "free":
-        end, kind = None, "free"
-    elif tenant.plan_expires_at is None:
-        end, kind = None, "custom"  # e.g. Enterprise set up by hand
-    else:
-        end, kind = tenant.plan_expires_at, "active" if active_paid(tenant, now) else "grace"
-    days_left = max(math.ceil((end - now).total_seconds() / 86400), 0) if end and end > now else 0
-    return {"kind": kind, "ends_at": end.isoformat() if end else None, "days_left": days_left, "expired": bool(end and end <= now and kind != "custom")}
+_state = svc.plan_state
 
 
 # ---- overview & profile --------------------------------------------------------------------------------------------
@@ -104,7 +91,8 @@ async def overview(ctx: Ctx = Depends(require_manager), db: AsyncSession = Depen
                     card["quotes"][interval] = (await svc.quote(db, tenant, p.id, interval)).to_dict()
                 except svc.BillingError:
                     pass
-        if p.id not in svc.UNPAID_PLANS:
+        # retired/hidden plans (e.g. Scale) are listed only for the workspace that is still on one
+        if p.id not in svc.UNPAID_PLANS and (p.is_public or p.id == tenant.plan_id):
             cards.append(card)
     recent = (await db.execute(select(Payment).where(Payment.tenant_id == tenant.id, Payment.status == "paid").order_by(Payment.paid_at.desc()).limit(50))).scalars().all()
     return {

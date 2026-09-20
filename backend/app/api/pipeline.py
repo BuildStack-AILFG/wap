@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import Ctx, get_ctx, get_db, require_manager, require_writer
+from app.services.entitlements import require_feature
 from app.services import pipeline as svc
 
 router = APIRouter(prefix="/pipeline", tags=["pipeline"])
@@ -184,7 +185,7 @@ async def remove(deal_id: uuid.UUID, ctx: Ctx = Depends(require_writer), db: Asy
 # ---- reports & export -------------------------------------------------------------------------------------------------
 
 @router.get("/report")
-async def report(days: int = Query(default=30, ge=1, le=365), ctx: Ctx = Depends(get_ctx), db: AsyncSession = Depends(get_db)) -> dict:
+async def report(days: int = Query(default=30, ge=1, le=365), ctx: Ctx = Depends(require_feature("sales_reports")), db: AsyncSession = Depends(get_db)) -> dict:
     return await svc.report(db, ctx.tenant_id, days)
 
 

@@ -6,10 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_tenant_id, get_current_user, get_db
+from app.api.deps import get_current_tenant_id, get_current_user, get_db, is_platform_admin
 from app.core import ratelimit
 from app.core.config import get_settings
 from app.models.plan import Plan
+from app.services import billing as billing_svc
+from app.services import entitlements
 from app.models.tenant import Tenant, TenantMembership, User
 from app.schemas.auth import (
     AuthResponse,
@@ -177,6 +179,7 @@ async def me(
         "full_name": current_user.full_name,
         "must_rotate_password": current_user.must_rotate_password,
         "role": membership.role if membership else None,
+        "is_platform_admin": is_platform_admin(current_user),
         "workspace": {
             "id": tenant.id,
             "name": tenant.name,
@@ -184,5 +187,7 @@ async def me(
             "plan_id": tenant.plan_id,
             "plan_name": plan.name if plan else tenant.plan_id,
             "trial_ends_at": tenant.trial_ends_at.isoformat() if tenant.trial_ends_at else None,
+            "plan_state": billing_svc.plan_state(tenant),
+            "features": entitlements.features_of(plan),
         },
     }

@@ -16,6 +16,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from app.api.deps import Ctx, get_ctx, get_db
 from app.models.tenant import Tenant
+from app.services.entitlements import ensure_feature
 from app.services.assignment import MODES
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -173,6 +174,8 @@ async def patch_settings(body: SettingsPatch, ctx: Ctx = Depends(get_ctx), db: A
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail={"error": "Only workspace owners and admins can change these settings."})
     if ctx.role == "viewer":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail={"error": "Your role is read-only."})
+    if "assignment" in body.settings:
+        await ensure_feature(db, ctx.tenant_id, "assignment_rules")
     tenant = await db.get(Tenant, ctx.tenant_id)
     if tenant is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"error": "Workspace not found."})

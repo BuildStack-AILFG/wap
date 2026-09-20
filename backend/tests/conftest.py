@@ -221,13 +221,21 @@ _counter = 0
 
 
 @pytest_asyncio.fixture
-async def ws(app_client) -> Workspace:
+async def ws(app_client, request) -> Workspace:
+    """A fresh workspace on the free trial. Mark a test `@pytest.mark.paid` to start it on the Growth plan (every feature unlocked)."""
     global _counter
     _counter += 1
     email = f"owner{_counter}-{uuid.uuid4().hex[:6]}@example.com"
     r = await app_client.post("/api/auth/register", json={"company_name": f"Acme {_counter}", "full_name": "Owner", "email": email, "password": "Str0ng!Passw0rd#42"})
     assert r.status_code == 201, r.text
-    return Workspace(app_client, r.json())
+    workspace = Workspace(app_client, r.json())
+    if request.node.get_closest_marker("paid"):
+        from sqlalchemy import update
+        from app.models.tenant import Tenant
+        async with await db_session() as db:
+            await db.execute(update(Tenant).where(Tenant.id == uuid.UUID(workspace.tenant_id)).values(plan_id="growth"))
+            await db.commit()
+    return workspace
 
 
 @pytest_asyncio.fixture

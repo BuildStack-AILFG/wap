@@ -15,6 +15,7 @@ from app.models.conversation import Conversation, Message
 from app.models.template import WhatsAppTemplate
 from app.models.tenant import Tenant, User
 from app.models.whatsapp_account import WhatsAppAccount
+from app.services.entitlements import require_feature
 from app.services import quotas
 from app.services.ai import agent as ai_agent
 
@@ -32,7 +33,7 @@ def _series(rows: list[tuple], days: int, start: datetime, keys: list[str]) -> l
     return out
 
 
-@router.get("/analytics/overview")
+@router.get("/analytics/overview", dependencies=[Depends(require_feature("conversation_analytics"))])
 async def overview(days: int = Query(30, ge=1, le=90), ctx: Ctx = Depends(get_ctx), db: AsyncSession = Depends(get_db)) -> dict:
     now = datetime.now(timezone.utc)
     start = (now - timedelta(days=days - 1)).replace(hour=0, minute=0, second=0, microsecond=0)

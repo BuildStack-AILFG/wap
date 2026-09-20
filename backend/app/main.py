@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
+from app.api.admin import router as admin_router
 from app.api.ai import router as ai_router
 from app.api.analytics import router as analytics_router
 from app.api.auth import router as auth_router
@@ -70,7 +71,7 @@ app.add_middleware(
 )
 
 for r in (auth_router, contacts_router, templates_router, broadcasts_router, flows_router, custom_replies_router, settings_router, workspace_router, whatsapp_router,
-          inbox_router, segments_router, ai_router, widgets_router, developer_router, integrations_router, team_router, analytics_router, pipeline_router, billing_router, payments_router):
+          inbox_router, segments_router, ai_router, widgets_router, developer_router, integrations_router, team_router, analytics_router, pipeline_router, billing_router, payments_router, admin_router):
     app.include_router(r, prefix="/api")
 # Public surfaces (no login): Meta webhooks, provider hooks, widget script/beacons, and the API-key REST API.
 for r in (webhooks_router, hooks_router, public_router, public_api_router, site_router):

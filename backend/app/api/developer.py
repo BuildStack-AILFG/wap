@@ -16,9 +16,10 @@ from app.api.deps import Ctx, get_ctx, get_db, require_manager
 from app.core.crypto import decrypt, encrypt
 from app.core.net import UnsafeUrl, assert_public_url
 from app.models.integration import ApiKey, OutboundWebhook
+from app.services.entitlements import require_feature
 from app.services import outbound_webhooks
 
-router = APIRouter(prefix="/developer", tags=["developer"])
+router = APIRouter(prefix="/developer", tags=["developer"], dependencies=[Depends(require_feature("api_access"))])
 
 KEY_PREFIX = "lfg_live_"
 

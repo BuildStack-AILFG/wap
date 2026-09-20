@@ -20,6 +20,7 @@ from app.models.contact import Contact
 from app.models.integration import Integration
 from app.models.template import WhatsAppTemplate
 from app.models.tenant import Tenant
+from app.services.entitlements import require_feature
 from app.services import integrations as reg
 from app.services import payment_links, quotas
 from app.services.automation import events
@@ -28,7 +29,7 @@ from app.services.whatsapp import messaging
 from app.services.whatsapp.accounts import public_base
 
 log = logging.getLogger(__name__)
-router = APIRouter(prefix="/integrations", tags=["integrations"])
+router = APIRouter(prefix="/integrations", tags=["integrations"], dependencies=[Depends(require_feature("integrations"))])
 hooks = APIRouter(prefix="/hooks", tags=["hooks"])
 
 MAX_HOOK_BODY = 512 * 1024

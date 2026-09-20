@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import html
 import logging
+import math
 import re
 import uuid
 from dataclasses import dataclass
@@ -148,6 +149,21 @@ def per_month_price(plan: Plan, interval: str) -> int | None:
 
 def is_purchasable(plan: Plan) -> bool:
     return plan.id not in UNPAID_PLANS and plan.price_monthly is not None
+
+
+def plan_state(tenant: Tenant) -> dict:
+    """Where a workspace stands: trial | free | active | grace | custom, when it ends and how many days are left."""
+    now = utcnow()
+    if tenant.plan_id == "trial":
+        end, kind = tenant.trial_ends_at, "trial"
+    elif tenant.plan_id == "free":
+        end, kind = None, "free"
+    elif tenant.plan_expires_at is None:
+        end, kind = None, "custom"  # e.g. Enterprise set up by hand
+    else:
+        end, kind = tenant.plan_expires_at, "active" if active_paid(tenant, now) else "grace"
+    days_left = max(math.ceil((end - now).total_seconds() / 86400), 0) if end and end > now else 0
+    return {"kind": kind, "ends_at": end.isoformat() if end else None, "days_left": days_left, "expired": bool(end and end <= now and kind != "custom")}
 
 
 def active_paid(tenant: Tenant, now: datetime | None = None) -> bool:

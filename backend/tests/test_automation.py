@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 import json
 from datetime import datetime, timedelta, timezone
 
@@ -111,6 +112,7 @@ async def test_delayed_reply_sent_once_when_nobody_answers(wsa, meta):
     assert texts(meta) == ["A teammate will be with you shortly"]  # exactly once
 
 
+@pytest.mark.paid
 async def test_settings_are_validated_and_secrets_protected(wsa):
     assert (await wsa.patch("/settings", json={"settings": {"auto_replies": {"welcome": {"enabled": True, "message": "  "}}}})).status_code == 422
     assert (await wsa.patch("/settings", json={"settings": {"business_hours": {"timezone": "Mars/Base", "days": {}}}})).status_code == 422
