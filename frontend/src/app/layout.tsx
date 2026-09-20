@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { JsonLd } from "@/components/site/blocks";
+import { SITE } from "@/lib/site/config";
+import { organizationLd, websiteLd } from "@/lib/site/seo";
 import { THEME_INIT_SCRIPT } from "@/lib/themeConfig";
 import "./globals.css";
 
@@ -10,9 +13,20 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "LeadForGrow — WhatsApp Business Automation",
-  description:
-    "Auto-replies, no-code chat flows, broadcasts, and a shared team inbox for WhatsApp Business — all in one green dashboard.",
+  metadataBase: new URL(SITE.url),
+  title: { default: `${SITE.name} — WhatsApp Business Automation`, template: `%s | ${SITE.name}` },
+  description: SITE.description,
+  applicationName: SITE.name,
+  creator: SITE.legalName,
+  publisher: SITE.legalName,
+  openGraph: {
+    type: "website",
+    siteName: SITE.name,
+    locale: "en_IN",
+    images: [{ url: "/og", width: 1200, height: 630, alt: `${SITE.name} — ${SITE.tagline}` }],
+  },
+  twitter: { card: "summary_large_image", site: SITE.twitter, creator: SITE.twitter, images: ["/og"] },
+  formatDetection: { telephone: false },
   icons: {
     icon: "/favicon-green.png",
     shortcut: "/favicon-green.png",
@@ -27,7 +41,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <JsonLd data={[organizationLd(), websiteLd()]} />
+        {children}
+      </body>
     </html>
   );
 }

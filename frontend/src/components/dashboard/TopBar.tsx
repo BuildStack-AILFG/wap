@@ -56,7 +56,7 @@ export default function TopBar() {
               : `Your trial ends in ${trial.daysLeft} day${trial.daysLeft === 1 ? "" : "s"}. Subscribe to keep your automations running.`}
           </span>
           <Link
-            href="/dashboard/settings"
+            href="/dashboard/settings?tab=billing"
             className="shrink-0 rounded bg-red-600 px-3 py-1 text-[12.5px] font-semibold text-white hover:bg-red-500"
           >
             {trial.expired ? "Start your subscription →" : "Start subscription →"}

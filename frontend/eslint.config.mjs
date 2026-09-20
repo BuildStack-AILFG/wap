@@ -8,7 +8,7 @@ const eslintConfig = defineConfig([
   {
     // Dashboard screens fetch on mount and render blob:/QR images. These React-Compiler heuristics flag those idiomatic patterns
     // (setState after an awaited fetch inside an effect, <img> for object URLs) without pointing at real bugs.
-    files: ["src/app/dashboard/**", "src/components/dashboard/**", "src/components/auth/**", "src/components/sales/**"],
+    files: ["src/app/dashboard/**", "src/components/dashboard/**", "src/components/auth/**", "src/components/sales/**", "src/components/site/**"],
     rules: {
       "react-hooks/set-state-in-effect": "off",
       "react-hooks/refs": "off",

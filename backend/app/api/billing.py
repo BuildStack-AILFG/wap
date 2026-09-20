@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -82,7 +83,7 @@ def _state(tenant: Tenant) -> dict:
         end, kind = None, "custom"  # e.g. Enterprise set up by hand
     else:
         end, kind = tenant.plan_expires_at, "active" if active_paid(tenant, now) else "grace"
-    days_left = max(int((end - now).total_seconds() // 86400), 0) if end and end > now else 0
+    days_left = max(math.ceil((end - now).total_seconds() / 86400), 0) if end and end > now else 0
     return {"kind": kind, "ends_at": end.isoformat() if end else None, "days_left": days_left, "expired": bool(end and end <= now and kind != "custom")}
 
 

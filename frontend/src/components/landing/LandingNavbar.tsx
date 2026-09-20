@@ -18,21 +18,23 @@ function NavDropdownTrigger({ children, isOpen }: { children: React.ReactNode; i
 }
 
 const productDropdown = [
-  { label: "Auto-Replies", href: "#features" },
-  { label: "Chat Flow Builder", href: "#features" },
-  { label: "Shared Inbox", href: "#features" },
-  { label: "Broadcasts", href: "#features" },
-  { label: "Integrations", href: "#integrations" },
-  { label: "Pricing", href: "#pricing" },
+  { label: "Shared Team Inbox", href: "/features/shared-inbox" },
+  { label: "Chat Flow Builder", href: "/features/chat-flow-builder" },
+  { label: "Auto-Replies", href: "/features/auto-replies" },
+  { label: "Broadcasts", href: "/features/broadcasts" },
+  { label: "AI Agent", href: "/features/ai-agent" },
+  { label: "Sales Pipeline", href: "/features/sales-pipeline" },
+  { label: "Payments", href: "/features/payments" },
+  { label: "Integrations & API", href: "/features/integrations-api" },
 ];
 
 const solutionsDropdown = [
-  { label: "E-commerce", href: "#industries" },
-  { label: "Restaurants & Food", href: "#industries" },
-  { label: "Real Estate", href: "#industries" },
-  { label: "Healthcare", href: "#industries" },
-  { label: "Education", href: "#industries" },
-  { label: "Agencies", href: "#industries" },
+  { label: "E-commerce", href: "/solutions/ecommerce" },
+  { label: "Restaurants & Food", href: "/solutions/restaurants" },
+  { label: "Real Estate", href: "/solutions/real-estate" },
+  { label: "Healthcare", href: "/solutions/healthcare" },
+  { label: "Education", href: "/solutions/education" },
+  { label: "Agencies", href: "/solutions/agencies" },
 ];
 
 function DropdownMenu({ items, isOpen }: { items: { label: string; href: string }[]; isOpen: boolean }) {
@@ -93,9 +95,9 @@ export default function LandingNavbar() {
             <NavDropdownTrigger isOpen={openDropdown === "solutions"}>Solutions</NavDropdownTrigger>
             <DropdownMenu items={solutionsDropdown} isOpen={openDropdown === "solutions"} />
           </div>
-          <NavLink href="#pricing">Pricing</NavLink>
+          <NavLink href="/pricing">Pricing</NavLink>
           <NavLink href="#faq">FAQ</NavLink>
-          <NavLink href="#contact">Contact</NavLink>
+          <NavLink href="/contact">Contact</NavLink>
         </nav>
 
         <div className="hidden lg:flex items-center gap-2 shrink-0">
@@ -141,13 +143,13 @@ export default function LandingNavbar() {
                 {item.label}
               </a>
             ))}
-            <a href="#pricing" className="block px-3 py-2 text-sm font-medium text-white rounded-lg hover:bg-white/10" onClick={() => setIsMenuOpen(false)}>
+            <a href="/pricing" className="block px-3 py-2 text-sm font-medium text-white rounded-lg hover:bg-white/10" onClick={() => setIsMenuOpen(false)}>
               Pricing
             </a>
             <a href="#faq" className="block px-3 py-2 text-sm font-medium text-white rounded-lg hover:bg-white/10" onClick={() => setIsMenuOpen(false)}>
               FAQ
             </a>
-            <a href="#contact" className="block px-3 py-2 text-sm font-medium text-white rounded-lg hover:bg-white/10" onClick={() => setIsMenuOpen(false)}>
+            <a href="/contact" className="block px-3 py-2 text-sm font-medium text-white rounded-lg hover:bg-white/10" onClick={() => setIsMenuOpen(false)}>
               Contact
             </a>
             <div className="mt-3 flex gap-2 pt-3 border-t border-white/15">
