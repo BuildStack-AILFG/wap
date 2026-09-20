@@ -46,7 +46,7 @@ META: dict[str, dict] = {
                   "Copy the endpoint's signing secret into the field below."],
     },
     "slack": {
-        "mode": "notify", "secret_label": "Slack incoming webhook URL", "events": ["conversation_created", "lead_captured", "contact_opted_out", "message_failed", "broadcast_completed"],
+        "mode": "notify", "secret_label": "Slack incoming webhook URL", "events": ["conversation_created", "lead_captured", "contact_opted_out", "message_failed", "broadcast_completed", "deal_won", "payment_received"],
         "steps": ["In Slack: create an app → Incoming Webhooks → Add New Webhook to Workspace.", "Paste the webhook URL (https://hooks.slack.com/services/…) below and choose which events to post."],
     },
     "generic": {
@@ -222,5 +222,7 @@ SLACK_TEXT = {
     "lead_captured": lambda d: f"🎯 New website lead: {d.get('name') or 'Unknown'} ({d.get('phone', '?')})",
     "contact_opted_out": lambda d: f"🚫 {d.get('phone', 'A contact')} opted out of messages",
     "message_failed": lambda d: f"⚠️ A WhatsApp message failed to deliver ({d.get('error') or 'unknown error'})",
+    "deal_won": lambda d: f"🏆 Deal won: {d.get('title', 'a deal')} ({(d.get('value') or 0) / 100:,.0f} {d.get('currency', '')})",
+    "payment_received": lambda d: f"💰 Payment received: {(d.get('amount') or 0) / 100:,.2f} {d.get('currency', '')}",
     "broadcast_completed": lambda d: f"📣 Campaign '{d.get('name', '')}' {d.get('status', 'finished')}: {d.get('sent', 0)} sent, {d.get('delivered', 0)} delivered, {d.get('failed', 0)} failed",
 }

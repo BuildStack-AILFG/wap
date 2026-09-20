@@ -22,6 +22,8 @@ class Tenant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     plan_id: Mapped[str] = mapped_column(String(32), ForeignKey("plans.id"), nullable=False, default="trial")
     quotas_override: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     trial_ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # End of the paid period bought through Razorpay. A paid plan past this date is downgraded to free by the scheduler.
+    plan_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # business_hours{}, ai{tone,personality,...} — read as one blob, rarely queried by field.
     settings: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)

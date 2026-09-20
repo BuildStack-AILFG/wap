@@ -18,7 +18,7 @@ from app.models.conversation import Conversation, Message
 from app.models.tenant import Tenant
 from app.models.webhook import WebhookIngress
 from app.models.whatsapp_account import WhatsAppAccount
-from app.services import broadcasts
+from app.services import billing, broadcasts, payment_links
 from app.services.automation import dispatcher, flow_engine
 from app.services.whatsapp import accounts as wa_accounts
 from app.services.whatsapp import messaging
@@ -34,6 +34,8 @@ INGRESS_RETENTION = timedelta(days=30)
 _task: asyncio.Task | None = None
 _stop = asyncio.Event()
 _last_cleanup: datetime | None = None
+_last_billing: datetime | None = None
+BILLING_EVERY = timedelta(minutes=30)
 
 
 def utcnow() -> datetime:
@@ -42,7 +44,7 @@ def utcnow() -> datetime:
 
 async def tick() -> dict[str, int]:
     """One pass over every job. Exposed separately so tests (and an admin endpoint) can run it deterministically."""
-    stats = {"broadcasts": 0, "flows": 0, "delayed_replies": 0, "accounts": 0}
+    stats = {"broadcasts": 0, "flows": 0, "delayed_replies": 0, "accounts": 0, "payment_links": 0}
 
     async with db_session.async_session_factory() as db:
         for bid in await broadcasts.due_broadcasts(db):
@@ -61,6 +63,8 @@ async def tick() -> dict[str, int]:
 
     stats["delayed_replies"] = await _send_delayed_replies()
     stats["accounts"] = await _refresh_accounts()
+    stats["payment_links"] = await payment_links.poll_open_links()
+    await _billing_housekeeping()
     await _cleanup()
     return stats
 
@@ -108,6 +112,18 @@ async def _refresh_accounts() -> int:
                 account.last_synced_at = utcnow()  # back off instead of retrying every tick
                 await db.commit()
     return done
+
+
+async def _billing_housekeeping() -> None:
+    """Every 30 minutes: end lapsed trials/plans and send renewal reminders."""
+    global _last_billing
+    if _last_billing and utcnow() - _last_billing < BILLING_EVERY:
+        return
+    _last_billing = utcnow()
+    try:
+        await billing.housekeeping()
+    except Exception:  # noqa: BLE001
+        log.exception("billing housekeeping failed")
 
 
 async def _cleanup() -> None:

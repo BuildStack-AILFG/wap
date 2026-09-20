@@ -58,6 +58,21 @@ class Settings(BaseSettings):
     # Base URL of the web app, used in emailed links. Defaults to the first non-localhost CORS origin, so production needs no extra setting.
     frontend_url: str = ""
 
+    # Razorpay (our own subscription billing). Keys come from the Razorpay dashboard; webhook secret is optional but recommended.
+    razorpay_key_id: str = ""
+    razorpay_key_secret: str = ""
+    razorpay_webhook_secret: str = ""
+    razorpay_api_base: str = "https://api.razorpay.com"
+    billing_currency: str = "INR"
+    gst_percent: int = 18
+    # Seller details printed on invoices.
+    company_name: str = "ScaleDesk Technology Pvt Ltd"
+    company_gstin: str = ""
+    company_address: str = ""
+    company_email: str = ""
+    # Where marketing-site contact / demo requests are emailed (optional; they are always stored).
+    contact_notify_email: str = ""
+
     # In-process scheduler (scheduled broadcasts, flow waits). See lib/PHASES.md — single instance only.
     scheduler_enabled: bool = True
     scheduler_interval_seconds: int = 15

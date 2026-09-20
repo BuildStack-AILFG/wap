@@ -9,6 +9,8 @@ from sqlalchemy import text
 from app.api.ai import router as ai_router
 from app.api.analytics import router as analytics_router
 from app.api.auth import router as auth_router
+from app.api.billing import payments as payments_router
+from app.api.billing import router as billing_router
 from app.api.broadcasts import router as broadcasts_router
 from app.api.contacts import router as contacts_router
 from app.api.custom_replies import router as custom_replies_router
@@ -17,10 +19,12 @@ from app.api.flows import router as flows_router
 from app.api.inbox import router as inbox_router
 from app.api.integrations import hooks as hooks_router
 from app.api.integrations import router as integrations_router
+from app.api.pipeline import router as pipeline_router
 from app.api.public import router as public_router
 from app.api.public_api import router as public_api_router
 from app.api.segments import router as segments_router
 from app.api.settings import router as settings_router
+from app.api.site import router as site_router
 from app.api.team import router as team_router
 from app.api.templates import router as templates_router
 from app.api.webhooks import router as webhooks_router
@@ -66,10 +70,10 @@ app.add_middleware(
 )
 
 for r in (auth_router, contacts_router, templates_router, broadcasts_router, flows_router, custom_replies_router, settings_router, workspace_router, whatsapp_router,
-          inbox_router, segments_router, ai_router, widgets_router, developer_router, integrations_router, team_router, analytics_router):
+          inbox_router, segments_router, ai_router, widgets_router, developer_router, integrations_router, team_router, analytics_router, pipeline_router, billing_router, payments_router):
     app.include_router(r, prefix="/api")
 # Public surfaces (no login): Meta webhooks, provider hooks, widget script/beacons, and the API-key REST API.
-for r in (webhooks_router, hooks_router, public_router, public_api_router):
+for r in (webhooks_router, hooks_router, public_router, public_api_router, site_router):
     app.include_router(r, prefix="/api")
 
 

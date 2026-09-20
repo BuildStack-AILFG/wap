@@ -22,7 +22,7 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 
 DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 HHMM = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
-SERVER_OWNED = {"ai", "ai_usage", "notices"}
+SERVER_OWNED = {"ai", "ai_usage", "notices", "billing"}
 WRITER_KEYS = {"quick_replies"}  # anyone who can reply can manage canned replies; everything else is manager-only
 
 
@@ -118,6 +118,17 @@ def _ai_agents(v) -> dict:
     return {str(k)[:40]: bool(x) for k, x in v.items()}
 
 
+def _pipeline(v) -> dict:
+    if not isinstance(v, dict):
+        raise _bad("pipeline must be an object.")
+    out = {"auto_create": _bool(v.get("auto_create", False), "auto_create"), "currency": str(v.get("currency") or "INR").upper()[:3]}
+    try:
+        out["default_value"] = max(0, min(int(v.get("default_value") or 0), 10**12))
+    except (TypeError, ValueError):
+        raise _bad("Default deal value must be a number.")
+    return out
+
+
 def validate(patch: dict, current: dict) -> dict:
     out: dict = {}
     for key, value in patch.items():
@@ -137,6 +148,8 @@ def validate(patch: dict, current: dict) -> dict:
             out[key] = _bool(value, key)
         elif key == "ai_agents":
             out[key] = _ai_agents(value)
+        elif key == "pipeline":
+            out[key] = _pipeline(value)
         else:
             raise _bad(f"Unknown setting '{key}'.")
     return out

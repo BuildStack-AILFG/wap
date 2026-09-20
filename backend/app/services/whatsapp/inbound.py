@@ -22,7 +22,7 @@ from app.models.template import WhatsAppTemplate
 from app.models.tenant import Tenant
 from app.models.webhook import WebhookIngress
 from app.models.whatsapp_account import WhatsAppAccount
-from app.services import assignment, outbound_webhooks
+from app.services import assignment, outbound_webhooks, pipeline
 from app.services.whatsapp import messaging
 from app.services.whatsapp.graph import GraphError
 from app.services.whatsapp.templates import STATUS_MAP
@@ -224,6 +224,12 @@ async def _handle_inbound_message(db: AsyncSession, account: WhatsAppAccount, m:
 
     await _attribute_reply_to_broadcast(db, contact.id, now)
     await db.commit()
+    if contact_created:
+        try:
+            await pipeline.auto_deal_for_contact(db, account.tenant_id, contact)
+        except Exception:  # noqa: BLE001 — a CRM side effect must never lose an inbound message
+            log.exception("auto-creating a deal failed")
+            await db.rollback()
 
     result.messages += 1
     if mtype != "reaction":

@@ -1,5 +1,5 @@
 """
-Seed the `plans` table with WhatsApp-only quota tiers (mirrors the reference
+Seed the `plans` table with WhatsApp-only quota tiers. Prices are INR in paise, per month, for each billing period (mirrors the reference
 product's lib/plans.js PLAN_QUOTAS, translated to WhatsApp-only fields per
 the plan file's "Auth, Plans & Dashboard Shell" section).
 
@@ -57,9 +57,9 @@ PLANS: list[dict] = [
     {
         "id": "starter",
         "name": "Starter",
-        "price_monthly": 1900,  # smallest currency unit, e.g. $19.00
-        "price_quarterly": 1700,
-        "price_yearly": 1500,
+        "price_monthly": 99900,  # per month, in paise (₹999) when billed monthly
+        "price_quarterly": 89900,  # per month when billed quarterly
+        "price_yearly": 79900,  # per month when billed yearly
         "is_default_trial": False,
         "quotas": {
             "max_whatsapp_numbers": 1,
@@ -74,9 +74,9 @@ PLANS: list[dict] = [
     {
         "id": "growth",
         "name": "Growth",
-        "price_monthly": 4900,
-        "price_quarterly": 4400,
-        "price_yearly": 3900,
+        "price_monthly": 249900,
+        "price_quarterly": 224900,
+        "price_yearly": 199900,
         "is_default_trial": False,
         "quotas": {
             "max_whatsapp_numbers": 3,
@@ -91,9 +91,9 @@ PLANS: list[dict] = [
     {
         "id": "scale",
         "name": "Scale",
-        "price_monthly": 9900,
-        "price_quarterly": 8900,
-        "price_yearly": 7900,
+        "price_monthly": 599900,
+        "price_quarterly": 539900,
+        "price_yearly": 479900,
         "is_default_trial": False,
         "quotas": {
             "max_whatsapp_numbers": 10,

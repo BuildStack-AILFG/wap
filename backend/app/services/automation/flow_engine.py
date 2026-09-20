@@ -27,7 +27,7 @@ from app.models.conversation import Conversation, Message
 from app.models.template import WhatsAppTemplate
 from app.models.tenant import Tenant, TenantMembership
 from app.models.whatsapp_account import WhatsAppAccount
-from app.services import assignment, outbound_webhooks, templating
+from app.services import assignment, outbound_webhooks, pipeline, templating
 from app.services.ai import agent as ai_agent
 from app.services.phone import InvalidPhone, normalize_phone
 from app.services.whatsapp import messaging
@@ -41,6 +41,7 @@ WAIT_NODES = {"ask_question", "send_buttons", "send_list", "delay"}
 NODE_TYPES = {
     "start", "send_message", "send_media", "send_buttons", "send_list", "send_template", "ask_question", "condition", "delay",
     "add_tag", "remove_tag", "set_trait", "assign_agent", "webhook", "ai_reply", "handoff", "end",
+    "create_deal", "move_deal", "send_payment_link",
 }
 TRIGGERS = {"incoming_message", "keyword", "contact_created", "manual", "webhook", "campaign_reply", "event"}
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -155,6 +156,17 @@ def validate_graph(graph: dict) -> list[str]:
             errors.append(f"'{name}': field name is required.")
         elif t == "webhook" and not (d.get("url") or "").startswith(("http://", "https://")):
             errors.append(f"'{name}': a valid URL is required.")
+        elif t == "create_deal" and not (d.get("title") or "").strip():
+            errors.append(f"'{name}': give the deal a title.")
+        elif t == "move_deal" and not d.get("stage_id"):
+            errors.append(f"'{name}': choose the stage to move the deal to.")
+        elif t == "send_payment_link":
+            try:
+                ok = float(d.get("amount", 0)) >= 1
+            except (TypeError, ValueError):
+                ok = False
+            if not ok:
+                errors.append(f"'{name}': set an amount of at least 1.")
 
     # a loop is fine only if a wait sits inside it — otherwise it would spin
     def has_busy_cycle() -> bool:
@@ -379,6 +391,45 @@ async def _exec_node(db, ex, graph, node, tenant, contact, conv, account) -> tup
 
     if t == "webhook":
         return await _call_webhook(ex, node, d, contact, ctx)
+
+    if t == "create_deal":
+        try:
+            value = int(round(float(d.get("value") or 0) * 100))
+            stage_id = uuid.UUID(str(d["stage_id"])) if d.get("stage_id") else None
+            if d.get("only_if_none", True) and await pipeline.deal_for_contact(db, tenant.id, contact.id):
+                _log(ex, nid, "skipped", "contact already has an open deal")
+                return "next", None
+            deal = await pipeline.create_deal(db, tenant.id, title=r(d.get("title")) or contact.name, stage_id=stage_id, contact_id=contact.id, value=max(value, 0), source="flow")
+            _log(ex, nid, "deal_created", deal.title[:80])
+        except (pipeline.PipelineError, ValueError, TypeError) as exc:
+            _log(ex, nid, "skipped", getattr(exc, "message", str(exc)))
+        return "next", None
+
+    if t == "move_deal":
+        try:
+            deal = await pipeline.deal_for_contact(db, tenant.id, contact.id)
+            if deal is None:
+                _log(ex, nid, "skipped", "contact has no open deal")
+            else:
+                await pipeline.move_deal(db, deal, uuid.UUID(str(d["stage_id"])), user_id=None)
+                _log(ex, nid, "deal_moved", deal.title[:80])
+        except (pipeline.PipelineError, ValueError, KeyError) as exc:
+            _log(ex, nid, "skipped", getattr(exc, "message", str(exc)))
+        return "next", None
+
+    if t == "send_payment_link":
+        from app.services import payment_links  # local: payment_links -> events -> flow_engine
+        try:
+            deal = await pipeline.deal_for_contact(db, tenant.id, contact.id)
+            link = await payment_links.create(db, tenant.id, None, amount=int(round(float(d.get("amount") or 0) * 100)), currency=str(d.get("currency") or "INR"),
+                                              description=r(d.get("description")) or "Payment", contact_id=contact.id, deal_id=deal.id if deal else None)
+        except (payment_links.LinkError, ValueError, TypeError) as exc:
+            _log(ex, nid, "skipped", getattr(exc, "message", str(exc)))
+            return "next", None
+        text = r((d.get("message") or "Here's your secure payment link: {{link}}").replace("{{link}}", link.short_url))
+        m = await _send(db, ex, node, account, conv, contact, kind="text", text=text)
+        _log(ex, nid, "sent" if m else "not_sent", link.short_url)
+        return "next", None
 
     if t == "ai_reply":
         question = await _last_inbound(db, conv) or ""

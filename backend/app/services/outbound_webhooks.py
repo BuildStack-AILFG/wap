@@ -25,6 +25,7 @@ EVENTS = [
     "message_received", "message_sent", "message_delivered", "message_read", "message_failed",
     "conversation_created", "contact_created", "contact_opted_out", "template_status_update",
     "broadcast_completed", "flow_completed", "lead_captured",
+    "deal_created", "deal_stage_changed", "deal_won", "deal_lost", "payment_received",
 ]
 MAX_FAILURES = 5
 

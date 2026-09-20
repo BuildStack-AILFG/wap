@@ -21,7 +21,7 @@ from app.models.integration import Integration
 from app.models.template import WhatsAppTemplate
 from app.models.tenant import Tenant
 from app.services import integrations as reg
-from app.services import quotas
+from app.services import payment_links, quotas
 from app.services.automation import events
 from app.services.phone import InvalidPhone, normalize_phone
 from app.services.whatsapp import messaging
@@ -57,7 +57,7 @@ async def adapters(_: Ctx = Depends(get_ctx)) -> dict:
 @router.get("")
 async def list_integrations(request: Request, ctx: Ctx = Depends(require_manager), db: AsyncSession = Depends(get_db)) -> list[dict]:
     base = public_base(str(request.base_url))
-    rows = (await db.execute(select(Integration).where(Integration.tenant_id == ctx.tenant_id).order_by(Integration.created_at))).scalars().all()
+    rows = (await db.execute(select(Integration).where(Integration.tenant_id == ctx.tenant_id, Integration.provider != payment_links.PROVIDER).order_by(Integration.created_at))).scalars().all()
     return [_out(i, base) for i in rows]
 
 
@@ -75,7 +75,7 @@ async def _check_actions(db: AsyncSession, ctx: Ctx, actions: dict) -> None:
 
 @router.put("/{provider}")
 async def upsert(provider: str, body: IntegrationIn, request: Request, ctx: Ctx = Depends(require_manager), db: AsyncSession = Depends(get_db)) -> dict:
-    if not reg.PROVIDER_RE.match(provider):
+    if not reg.PROVIDER_RE.match(provider) or provider == payment_links.PROVIDER:
         raise HTTPException(status_code=422, detail={"error": "Invalid integration id."})
     kind = reg.kind_of(provider)
     row = (await db.execute(select(Integration).where(Integration.tenant_id == ctx.tenant_id, Integration.provider == provider))).scalar_one_or_none()
@@ -144,7 +144,7 @@ async def disconnect(provider: str, ctx: Ctx = Depends(require_manager), db: Asy
 async def receive(token: str, request: Request, db: AsyncSession = Depends(get_db)) -> dict:
     ratelimit.limit(request, "hook", 240, 60, token[:8])
     row = (await db.execute(select(Integration).where(Integration.hook_token == token))).scalar_one_or_none()
-    if row is None or reg.kind_of(row.provider) in reg.NOTIFY:
+    if row is None or reg.kind_of(row.provider) in reg.NOTIFY or row.provider == payment_links.PROVIDER:
         raise HTTPException(status_code=404, detail={"error": "Unknown hook."})
     raw = await request.body()
     if len(raw) > MAX_HOOK_BODY:
@@ -167,6 +167,7 @@ async def receive(token: str, request: Request, db: AsyncSession = Depends(get_d
     except ValueError:
         raise HTTPException(status_code=400, detail={"error": "Body must be JSON."})
 
+    paid_link = kind == "razorpay" and isinstance(data, dict) and await payment_links.handle_webhook_event(db, row.tenant_id, data)
     tenant = await db.get(Tenant, row.tenant_id)
     cc = str((tenant.settings or {}).get("default_country_code", "")) if tenant else ""
     actions = (row.config or {}).get("actions", {})
@@ -196,4 +197,4 @@ async def receive(token: str, request: Request, db: AsyncSession = Depends(get_d
         processed.append(await events.process(db, row.tenant_id, contact, n.event, n.properties, row.provider, action=actions.get(n.event)))
     row.last_event_at, row.last_error = datetime.now(timezone.utc), None
     await db.commit()
-    return {"ok": True, "processed": len(processed), "ignored": ignored, "results": processed[:20]}
+    return {"ok": True, "processed": len(processed), "ignored": ignored, "payment_link_paid": bool(paid_link), "results": processed[:20]}
