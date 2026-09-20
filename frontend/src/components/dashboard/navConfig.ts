@@ -17,6 +17,8 @@ import {
   Plug,
   LayoutGrid,
   FileText,
+  Handshake,
+  TrendingUp,
 } from "lucide-react";
 
 export type NavItem = {
@@ -74,6 +76,20 @@ export const NAV_GROUPS: NavGroup[] = [
         items: [
           { id: "conversation-analytics", label: "Analytics", href: "/dashboard/conversation-analytics", icon: BarChart3 },
           { id: "assignment-rules", label: "Assignment Rules", href: "/dashboard/assignment-rules", icon: ClipboardList },
+        ],
+      },
+    ],
+  },
+  {
+    id: "sales",
+    label: "Sales",
+    icon: Handshake,
+    badge: "new",
+    sections: [
+      {
+        items: [
+          { id: "pipeline", label: "Pipeline", href: "/dashboard/pipeline", icon: Handshake },
+          { id: "sales-reports", label: "Sales Reports", href: "/dashboard/sales-reports", icon: TrendingUp },
         ],
       },
     ],

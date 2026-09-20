@@ -1,8 +1,9 @@
 "use client";
 
 import { Plus, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button, Field, Input, Select, Textarea } from "@/components/ui/kit";
-import type { Member, Template } from "@/lib/api";
+import { pipeline, type Member, type PipelineStage, type Template } from "@/lib/api";
 import { STEP_META, uid } from "./model";
 
 type D = Record<string, unknown>;
@@ -11,9 +12,16 @@ type Props = { type: string; data: D; onChange: (d: D) => void; onDelete: () => 
 const str = (v: unknown) => (v == null ? "" : String(v));
 const HINT = "Merge fields: {{first_name}}, {{name}}, {{phone}}, {{trait.city}}, {{var.answer}}";
 
+function useStages(): PipelineStage[] {
+  const [stages, setStages] = useState<PipelineStage[]>([]);
+  useEffect(() => { pipeline.stages().then(setStages).catch(() => {}); }, []);
+  return stages;
+}
+
 export default function Inspector({ type, data, onChange, onDelete, templates, members, trigger }: Props) {
   const set = (patch: D) => onChange({ ...data, ...patch });
   const meta = STEP_META[type];
+  const stages = useStages();
 
   return (
     <div className="space-y-4">
@@ -126,6 +134,23 @@ export default function Inspector({ type, data, onChange, onDelete, templates, m
         <Field label="URL" hint="Receives the contact + flow variables as JSON. Response fields become {{var.field}}."><Input value={str(data.url)} onChange={(e) => set({ url: e.target.value })} placeholder="https://api.example.com/lead" /></Field>
         <Field label="Method"><Select value={str(data.method) || "POST"} onChange={(e) => set({ method: e.target.value })}><option>POST</option><option>PUT</option><option>PATCH</option><option>GET</option></Select></Field>
         <p className="text-[11.5px] text-white/40">Private/internal addresses are blocked. Connect the <b>Error</b> output for failures.</p></>}
+      {type === "create_deal" && <>
+        <Field label="Deal title" hint={HINT}><Input value={str(data.title)} onChange={(e) => set({ title: e.target.value })} placeholder="{{name}} - enquiry" /></Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Value (₹)"><Input type="number" min={0} value={str(data.value)} onChange={(e) => set({ value: Number(e.target.value) })} /></Field>
+          <Field label="Stage"><Select value={str(data.stage_id)} onChange={(e) => set({ stage_id: e.target.value })}><option value="">First stage</option>{stages.filter((s) => s.kind === "open").map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
+        </div>
+        <label className="flex items-center gap-2 text-[12.5px] text-white/70"><input type="checkbox" className="accent-brand" checked={data.only_if_none !== false} onChange={(e) => set({ only_if_none: e.target.checked })} />Skip if the contact already has an open deal</label>
+      </>}
+      {type === "move_deal" && <Field label="Move their open deal to" hint="Does nothing if the contact has no open deal."><Select value={str(data.stage_id)} onChange={(e) => set({ stage_id: e.target.value })}><option value="">Choose a stage…</option>{stages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>}
+      {type === "send_payment_link" && <>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Amount (₹)"><Input type="number" min={1} value={str(data.amount)} onChange={(e) => set({ amount: Number(e.target.value) })} /></Field>
+          <Field label="For"><Input value={str(data.description)} onChange={(e) => set({ description: e.target.value })} placeholder="Order #1042" /></Field>
+        </div>
+        <Field label="Message" hint="Use {{link}} where the payment link should go."><Textarea value={str(data.message)} onChange={(e) => set({ message: e.target.value })} /></Field>
+        <p className="text-[11.5px] text-white/40">Needs your Razorpay account connected under Settings → Payments.</p>
+      </>}
       {type === "ai_reply" && <Field label="Extra instructions (optional)" hint="Added to your AI agent's settings for this step only"><Textarea value={str(data.instructions)} onChange={(e) => set({ instructions: e.target.value })} /></Field>}
       {type === "handoff" && <Field label="Message to the customer (optional)"><Textarea value={str(data.message)} onChange={(e) => set({ message: e.target.value })} /></Field>}
       {type === "end" && <p className="text-[12.5px] text-white/50">The flow finishes here.</p>}

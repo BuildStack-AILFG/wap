@@ -447,3 +447,90 @@ export const analytics = {
   overview: (days: number) => request<Analytics>(`/analytics/overview${qs({ days })}`),
   notifications: () => request<{ unread_messages: number; unread_conversations: number; items: NotificationItem[] }>("/notifications"),
 };
+
+// ---- sales pipeline ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+export type PipelineStage = { id: string; name: string; position: number; color: string; kind: "open" | "won" | "lost"; probability: number };
+export type Deal = {
+  id: string; title: string; value: number; currency: string; status: "open" | "won" | "lost"; stage_id: string; position: number; source: string;
+  contact_id: string | null; contact_name: string | null; contact_phone: string | null; owner_user_id: string | null; owner_name: string | null;
+  expected_close: string | null; lost_reason: string | null; notes: string | null; closed_at: string | null; created_at: string | null; updated_at: string | null;
+};
+export type DealActivity = { id: string; kind: string; data: Record<string, unknown>; user: string | null; created_at: string };
+export type DealDetail = Deal & { activity: DealActivity[] };
+export type PipelineBoard = { stages: (PipelineStage & { count: number; value: number; deals: Deal[] })[] };
+export type DealInput = { title: string; stage_id?: string | null; contact_id?: string | null; value?: number; currency?: string; owner_user_id?: string | null; expected_close?: string | null; notes?: string | null };
+export type PipelineReport = {
+  days: number; open: { count: number; value: number; weighted: number }; created: number; won: { count: number; value: number; avg_value: number }; lost: { count: number; value: number };
+  win_rate: number | null; avg_cycle_days: number | null; series: { date: string; won_value: number; won_count: number }[];
+  funnel: { stage: string; color: string; kind: string; count: number }[]; by_owner: { user_id: string | null; name: string; won_count: number; won_value: number }[];
+  lost_reasons: { reason: string; count: number }[]; won_sources: { source: string; count: number }[];
+};
+export const pipeline = {
+  stages: () => request<PipelineStage[]>("/pipeline/stages"),
+  addStage: (b: { name: string; color?: string; kind?: string; probability?: number }) => request<PipelineStage>("/pipeline/stages", { method: "POST", body: b }),
+  updateStage: (id: string, b: Partial<Pick<PipelineStage, "name" | "color" | "kind" | "probability">>) => request<PipelineStage>(`/pipeline/stages/${id}`, { method: "PATCH", body: b }),
+  reorderStages: (ids: string[]) => request<PipelineStage[]>("/pipeline/stages/order", { method: "PUT", body: { ids } }),
+  deleteStage: (id: string, moveTo?: string) => request<void>(`/pipeline/stages/${id}${qs({ move_to: moveTo })}`, { method: "DELETE" }),
+  board: (p?: { owner?: string; q?: string }) => request<PipelineBoard>(`/pipeline/board${qs(p)}`),
+  deals: (p?: { status?: string; owner?: string; q?: string; contact_id?: string; limit?: number; offset?: number }) => request<Page<Deal>>(`/pipeline/deals${qs(p)}`),
+  deal: (id: string) => request<DealDetail>(`/pipeline/deals/${id}`),
+  create: (b: DealInput) => request<DealDetail>("/pipeline/deals", { method: "POST", body: b }),
+  update: (id: string, b: Partial<DealInput> & { lost_reason?: string | null }) => request<DealDetail>(`/pipeline/deals/${id}`, { method: "PATCH", body: b }),
+  move: (id: string, b: { stage_id: string; position?: number; lost_reason?: string }) => request<DealDetail>(`/pipeline/deals/${id}/move`, { method: "POST", body: b }),
+  note: (id: string, text: string) => request<DealDetail>(`/pipeline/deals/${id}/notes`, { method: "POST", body: { text } }),
+  remove: (id: string) => request<void>(`/pipeline/deals/${id}`, { method: "DELETE" }),
+  report: (days: number) => request<PipelineReport>(`/pipeline/report${qs({ days })}`),
+  exportCsv: () => downloadFile("/pipeline/export.csv", "deals.csv"),
+};
+
+// ---- billing (Razorpay) & payment links -------------------------------------------------------------------------------------------------------------------------------------------
+
+export type BillingInterval = "monthly" | "quarterly" | "yearly";
+export type BillingQuote = {
+  plan_id: string; plan_name: string; interval: BillingInterval; months: number; currency: string; per_month: number; base: number; credit: number; taxable: number; gst: number;
+  gst_percent: number; total: number; starts_at: string; ends_at: string; renewal: boolean;
+};
+export type BillingProfile = { legal_name: string; gstin: string; address: string; city: string; state_code: string; pincode: string; email: string; phone: string };
+export type BillingPayment = {
+  id: string; plan_id: string; interval: string; months: number; currency: string; base_amount: number; credit_amount: number; gst_amount: number; total_amount: number; status: string;
+  invoice_number: string | null; method: string | null; paid_at: string | null; period_start: string | null; period_end: string | null; created_at: string | null;
+};
+export type BillingOverview = {
+  enabled: boolean; key_id: string | null; currency: string; gst_percent: number;
+  plan: { id: string; kind: "trial" | "free" | "active" | "grace" | "custom"; ends_at: string | null; days_left: number; expired: boolean };
+  plans: { id: string; name: string; quotas: Record<string, number>; purchasable: boolean; current: boolean; per_month: Record<BillingInterval, number | null>; quotes: Partial<Record<BillingInterval, BillingQuote>> }[];
+  profile: BillingProfile; states: Record<string, string>; seller: { name: string; gstin: string; address: string; email: string }; payments: BillingPayment[];
+};
+export type BillingCheckout = { payment_id: string; order_id: string; key_id: string; amount: number; currency: string; name: string; description: string; prefill: { name: string; email: string; contact: string } };
+export type Invoice = {
+  number: string | null; date: string; status: string; currency: string; seller: { name: string; gstin: string; address: string; email: string; state: string };
+  buyer: Partial<BillingProfile> & { state: string }; place_of_supply: string; line: { description: string; sac: string; period_start: string | null; period_end: string | null };
+  amounts: { base: number; credit: number; taxable: number; gst_percent: number; cgst: number; sgst: number; igst: number; gst: number; total: number }; razorpay_payment_id: string | null; method: string | null;
+};
+export const billing = {
+  overview: () => request<BillingOverview>("/billing"),
+  saveProfile: (b: BillingProfile) => request<BillingProfile>("/billing/profile", { method: "PUT", body: b }),
+  quote: (plan_id: string, interval: BillingInterval) => request<BillingQuote>("/billing/quote", { method: "POST", body: { plan_id, interval } }),
+  checkout: (plan_id: string, interval: BillingInterval) => request<BillingCheckout>("/billing/checkout", { method: "POST", body: { plan_id, interval } }),
+  verify: (b: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => request<{ ok: boolean; payment: BillingPayment }>("/billing/verify", { method: "POST", body: b }),
+  invoice: (id: string) => request<Invoice>(`/billing/invoices/${id}`),
+};
+export type PaymentsStatus = { connected: boolean; key_id: string | null; test_mode: boolean; connected_at: string | null };
+export type PaymentLink = { id: string; short_url: string; amount: number; currency: string; description: string | null; status: "created" | "paid" | "cancelled" | "expired"; contact_id: string | null; contact_name: string | null; deal_id: string | null; paid_at: string | null; created_at: string | null };
+export const payments = {
+  settings: () => request<PaymentsStatus>("/payments/settings"),
+  connect: (key_id: string, key_secret: string) => request<PaymentsStatus>("/payments/settings", { method: "PUT", body: { key_id, key_secret } }),
+  disconnect: () => request<void>("/payments/settings", { method: "DELETE" }),
+  links: (p?: { contact_id?: string; deal_id?: string }) => request<PaymentLink[]>(`/payments/links${qs(p)}`),
+  createLink: (b: { amount: number; description?: string; contact_id?: string | null; deal_id?: string | null; currency?: string; expire_days?: number }) => request<PaymentLink>("/payments/links", { method: "POST", body: b }),
+  refreshLink: (id: string) => request<PaymentLink>(`/payments/links/${id}/refresh`, { method: "POST" }),
+  cancelLink: (id: string) => request<PaymentLink>(`/payments/links/${id}/cancel`, { method: "POST" }),
+};
+
+// ---- public marketing-site forms (no login) ---------------------------------------------------------------------------------------------------------------------------------------
+
+export const site = {
+  contact: (b: { topic: string; name: string; email: string; phone?: string; company?: string; message: string; page?: string; website?: string }) => request<{ ok: boolean }>("/site/contact", { method: "POST", auth: false, body: b }),
+  newsletter: (email: string, source: string, website?: string) => request<{ ok: boolean }>("/site/newsletter", { method: "POST", auth: false, body: { email, source, website } }),
+};

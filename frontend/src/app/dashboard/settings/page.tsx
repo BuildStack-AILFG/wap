@@ -2,16 +2,19 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Copy, KeyRound, Mail, Plus, Settings2, Trash2, Webhook } from "lucide-react";
-import { Alert, Badge, Button, Card, CopyField, cx, EmptyState, Field, fmtDateTime, Input, Modal, Page, PageHeader, Select, Spinner, statusTone, Tabs, Textarea, timeAgo, useUi } from "@/components/ui/kit";
+import { ArrowRight, Copy, KeyRound, Mail, Plus, Settings2, Trash2, Webhook } from "lucide-react";
+import Link from "next/link";
+import { Alert, Badge, Button, Card, CopyField, EmptyState, Field, fmtDateTime, Input, Modal, Page, PageHeader, Select, Spinner, statusTone, Tabs, Textarea, timeAgo, useUi } from "@/components/ui/kit";
 import {
-  API_ORIGIN, developer, errorMessage, getSettings, getWorkspaceDetail, listPlans, patchSettings, rotatePassword, team, updateWorkspaceName,
-  type ApiKeyRow, type ApiPlan, type ApiWorkspaceDetail, type Invite, type Member, type WebhookRow,
+  API_ORIGIN, developer, errorMessage, getSettings, getWorkspaceDetail, patchSettings, rotatePassword, team, updateWorkspaceName,
+  type ApiKeyRow, type ApiWorkspaceDetail, type Invite, type Member, type WebhookRow,
 } from "@/lib/api";
 import { useWorkspace } from "@/components/dashboard/WorkspaceContext";
 import AssignmentRules from "@/components/dashboard/AssignmentRules";
+import BillingTab from "@/components/sales/BillingTab";
+import PaymentsTab from "@/components/sales/PaymentsTab";
 
-type TabId = "workspace" | "team" | "assignment" | "quick" | "developer" | "account";
+type TabId = "workspace" | "billing" | "payments" | "team" | "assignment" | "quick" | "developer" | "account";
 
 export default function SettingsPage() {
   return <Suspense fallback={<Spinner />}><Settings /></Suspense>;
@@ -24,14 +27,17 @@ function Settings() {
   const manager = role === "owner" || role === "admin";
   const initial = (params.get("tab") as TabId) || "workspace";
   const [tab, setTabState] = useState<TabId>(initial);
+  useEffect(() => { const t = params.get("tab") as TabId | null; if (t) setTabState(t); }, [params]);
   const setTab = (t: TabId) => { setTabState(t); router.replace(`/dashboard/settings?tab=${t}`, { scroll: false }); };
-  const tabs: { id: TabId; label: string }[] = [{ id: "workspace", label: "Workspace" }, { id: "team", label: "Team" }, ...(manager ? [{ id: "assignment" as const, label: "Assignment" }] : []), { id: "quick", label: "Quick replies" }, ...(manager ? [{ id: "developer" as const, label: "Developer" }] : []), { id: "account", label: "Account" }];
+  const tabs: { id: TabId; label: string }[] = [{ id: "workspace", label: "Workspace" }, ...(manager ? [{ id: "billing" as const, label: "Plan & billing" }, { id: "payments" as const, label: "Payments" }] : []), { id: "team", label: "Team" }, ...(manager ? [{ id: "assignment" as const, label: "Assignment" }] : []), { id: "quick", label: "Quick replies" }, ...(manager ? [{ id: "developer" as const, label: "Developer" }] : []), { id: "account", label: "Account" }];
 
   return (
     <Page>
       <PageHeader icon={<Settings2 size={20} />} title="Settings" subtitle="Your workspace, team and developer tools." />
       <Tabs tabs={tabs} value={tab} onChange={setTab} />
       {tab === "workspace" && <WorkspaceTab manager={manager} />}
+      {tab === "billing" && manager && <BillingTab />}
+      {tab === "payments" && manager && <PaymentsTab />}
       {tab === "team" && <TeamTab manager={manager} isOwner={role === "owner"} />}
       {tab === "assignment" && manager && <AssignmentRules />}
       {tab === "quick" && <QuickReplies />}
@@ -56,18 +62,15 @@ function WorkspaceTab({ manager }: { manager: boolean }) {
   const { toast } = useUi();
   const { refresh } = useWorkspace();
   const [d, setD] = useState<ApiWorkspaceDetail | null>(null);
-  const [plans, setPlans] = useState<ApiPlan[]>([]);
   const [name, setName] = useState("");
   const [cc, setCc] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     getWorkspaceDetail().then((x) => { setD(x); setName(x.name); }).catch((e) => setErr(errorMessage(e)));
-    listPlans().then(setPlans).catch(() => {});
     getSettings().then((s) => setCc(String(s.settings.default_country_code ?? ""))).catch(() => {});
   }, []);
   if (!d) return err ? <Alert>{err}</Alert> : <Spinner />;
-  const money = (n: number | null) => (n == null ? "Free" : `$${(n / 100).toFixed(0)}/mo`);
 
   return (
     <div className="space-y-5">
@@ -84,13 +87,12 @@ function WorkspaceTab({ manager }: { manager: boolean }) {
         <div className="grid gap-4 sm:grid-cols-2"><Usage label="Contacts" used={d.usage.contacts} limit={d.quotas.max_contacts} /><Usage label="Team members" used={d.usage.team_members} limit={d.quotas.max_team_members} /><Usage label="Automation flows" used={d.usage.automation_flows} limit={d.quotas.max_automation_flows} />
           <div className="text-[12.5px] text-white/50">Per month: {d.quotas.max_broadcast_recipients_per_month?.toLocaleString() ?? "∞"} campaign recipients · {d.quotas.ai_replies_included_per_month?.toLocaleString() ?? "∞"} AI replies</div></div>
       </Card>
-      <Card className="p-5">
-        <h3 className="mb-1 text-[15px] font-semibold text-white">Plans</h3>
-        <p className="mb-4 text-[12.5px] text-white/50">Online checkout isn&apos;t switched on yet — <a className="text-sky-300 underline" href="https://wa.me/918810873052?text=I%27d%20like%20to%20upgrade%20my%20plan" target="_blank" rel="noreferrer">message us on WhatsApp</a> and we&apos;ll upgrade your workspace right away.</p>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{plans.filter((p) => p.id !== "trial").map((p) => (
-          <div key={p.id} className={cx("rounded-xl border p-4", p.id === d.plan.id ? "border-brand bg-brand/10" : "border-white/10")}><div className="flex items-baseline justify-between"><span className="text-[14px] font-semibold text-white">{p.name}</span><span className="text-[13px] text-white/60">{money(p.price_monthly)}</span></div>
-            <ul className="mt-2 space-y-0.5 text-[12px] text-white/50"><li>{p.quotas.max_contacts?.toLocaleString()} contacts</li><li>{p.quotas.max_team_members} team member{p.quotas.max_team_members === 1 ? "" : "s"}</li><li>{p.quotas.max_automation_flows} flows</li><li>{p.quotas.ai_replies_included_per_month?.toLocaleString()} AI replies / mo</li></ul></div>))}</div>
-      </Card>
+      {manager && (
+        <Card className="flex flex-wrap items-center justify-between gap-3 p-5">
+          <div><h3 className="text-[15px] font-semibold text-white">Upgrade or renew</h3><p className="mt-0.5 text-[12.5px] text-white/50">Pay online by UPI, card or netbanking. GST invoices are generated automatically.</p></div>
+          <Link href="/dashboard/settings?tab=billing" className="btn-accent inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-[13.5px] font-medium text-white hover:brightness-110">Plan &amp; billing <ArrowRight size={14} /></Link>
+        </Card>
+      )}
     </div>
   );
 }

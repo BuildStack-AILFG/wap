@@ -3,12 +3,14 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { AlertTriangle, Bot, Check, CheckCheck, Clock, FileText, Inbox as InboxIcon, Paperclip, Search, Send, StickyNote, UserRound, X, Zap } from "lucide-react";
+import { AlertTriangle, Bot, Check, CheckCheck, Clock, FileText, IndianRupee, Inbox as InboxIcon, Paperclip, Search, Send, StickyNote, UserRound, X, Zap } from "lucide-react";
 import { ACCENT, accentTint, Alert, Badge, Button, cx, EmptyState, Field, fmtDateTime, Input, Modal, Select, Spinner, timeAgo, Toggle, useDebounced, usePoll, useUi } from "@/components/ui/kit";
 import {
   contacts as contactsApi, errorMessage, getSettings, inbox, templates as templatesApi, whatsapp, team,
   type ChatMessage, type ConversationDetail, type ConversationSummary, type Member, type Template,
 } from "@/lib/api";
+import PaymentLinkModal from "@/components/sales/PaymentLinkModal";
+import ContactDeals from "@/components/sales/ContactDeals";
 import { useWorkspace } from "@/components/dashboard/WorkspaceContext";
 
 type Filter = "open" | "mine" | "unassigned" | "resolved";
@@ -145,6 +147,7 @@ function Thread({ id, members, userId, onBack, onChanged }: { id: string; member
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [showTpl, setShowTpl] = useState(false);
+  const [showPay, setShowPay] = useState(false);
   const [quick, setQuick] = useState<{ id: string; shortcut: string; text: string }[]>([]);
   const [panel, setPanel] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -286,6 +289,7 @@ function Thread({ id, members, userId, onBack, onChanged }: { id: string; member
                 <input ref={fileRef} type="file" hidden onChange={(e) => void onFile(e.target.files?.[0])} accept="image/jpeg,image/png,image/webp,video/mp4,audio/mpeg,audio/ogg,audio/aac,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" />
                 <button onClick={() => fileRef.current?.click()} disabled={blocked || sending || mode === "note"} className="rounded-md p-2 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-30" aria-label="Attach file"><Paperclip size={17} /></button>
                 <button onClick={() => setShowTpl(true)} disabled={sending || mode === "note"} className="rounded-md p-2 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-30" aria-label="Send template"><FileText size={17} /></button>
+                <button onClick={() => setShowPay(true)} disabled={sending || mode === "note"} className="rounded-md p-2 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-30" aria-label="Request payment" title="Request payment"><IndianRupee size={17} /></button>
                 <Button onClick={submit} loading={sending} disabled={!text.trim() || blocked}><Send size={15} /></Button>
               </div>
             </div>
@@ -294,6 +298,8 @@ function Thread({ id, members, userId, onBack, onChanged }: { id: string; member
       </section>
 
       {panel && <ContactPanel conv={conv} onChanged={async () => { await loadConv(); onChanged(); }} canWrite={canWrite} />}
+      <PaymentLinkModal open={showPay} onClose={() => setShowPay(false)} contact={{ id: c.id, name: c.name }} onInsert={(t) => { setMode("reply"); setText((prev) => (prev ? `${prev}
+${t}` : t)); }} />
       <TemplateModal open={showTpl} onClose={() => setShowTpl(false)} contact={c} onSend={async (b) => { await send(b); setShowTpl(false); toast("Template sent"); }} />
     </div>
   );
@@ -425,6 +431,7 @@ function ContactPanel({ conv, onChanged, canWrite }: { conv: ConversationDetail;
         <Chips items={conv.labels} onRemove={canWrite ? (l) => saveLabels(conv.labels.filter((x) => x !== l)) : undefined} />
         {canWrite && <Input value={label} onChange={(e) => setLabel(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addLabel()} placeholder="Add label + Enter" className="mt-2 !py-1.5 text-[12.5px]" />}
       </Section>
+      <Section title="Deals"><ContactDeals contact={{ id: c.id, name: c.name }} canWrite={canWrite} /></Section>
       <Section title="Contact tags">
         <Chips items={c.tags} onRemove={canWrite ? (t) => saveTags(c.tags.filter((x) => x !== t)) : undefined} />
         {canWrite && <Input value={tag} onChange={(e) => setTag(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addTag()} placeholder="Add tag + Enter" className="mt-2 !py-1.5 text-[12.5px]" />}

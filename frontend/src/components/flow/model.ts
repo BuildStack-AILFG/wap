@@ -11,9 +11,10 @@ export const TRIGGERS = [
 
 export type StepType =
   | "send_message" | "send_media" | "send_buttons" | "send_list" | "send_template" | "ask_question" | "condition" | "delay"
-  | "add_tag" | "remove_tag" | "set_trait" | "assign_agent" | "webhook" | "ai_reply" | "handoff" | "end";
+  | "add_tag" | "remove_tag" | "set_trait" | "assign_agent" | "webhook" | "ai_reply" | "handoff" | "end"
+  | "create_deal" | "move_deal" | "send_payment_link";
 
-export const STEP_META: Record<string, { label: string; group: "Messages" | "Logic" | "Contact" | "Advanced"; color: string; description: string }> = {
+export const STEP_META: Record<string, { label: string; group: "Messages" | "Logic" | "Contact" | "Sales" | "Advanced"; color: string; description: string }> = {
   start: { label: "Start", group: "Logic", color: "#00926B", description: "Where the flow begins" },
   send_message: { label: "Send message", group: "Messages", color: "#2563EB", description: "A text message" },
   send_media: { label: "Send media", group: "Messages", color: "#2563EB", description: "Image, video, audio or file" },
@@ -27,6 +28,9 @@ export const STEP_META: Record<string, { label: string; group: "Messages" | "Log
   remove_tag: { label: "Remove tag", group: "Contact", color: "#0891B2", description: "Remove a tag" },
   set_trait: { label: "Set detail", group: "Contact", color: "#0891B2", description: "Save a custom field" },
   assign_agent: { label: "Assign agent", group: "Contact", color: "#0891B2", description: "Assign the chat to a teammate" },
+  create_deal: { label: "Create deal", group: "Sales", color: "#16A34A", description: "Add the contact to your sales pipeline" },
+  move_deal: { label: "Move deal", group: "Sales", color: "#16A34A", description: "Move their open deal to another stage" },
+  send_payment_link: { label: "Payment link", group: "Sales", color: "#16A34A", description: "Send a Razorpay payment link in the chat" },
   webhook: { label: "Call webhook", group: "Advanced", color: "#475569", description: "HTTP request to your system" },
   ai_reply: { label: "AI reply", group: "Advanced", color: "#9333EA", description: "Answer from your knowledge base" },
   handoff: { label: "Hand over to human", group: "Advanced", color: "#DC2626", description: "Stop automation, notify the team" },
@@ -47,6 +51,9 @@ export function defaultData(type: string): Record<string, unknown> {
     case "delay": return { amount: 10, unit: "minutes" };
     case "add_tag": case "remove_tag": return { tag: "" };
     case "set_trait": return { key: "", value: "" };
+    case "create_deal": return { title: "{{name}}", value: 0, stage_id: "", only_if_none: true };
+    case "move_deal": return { stage_id: "" };
+    case "send_payment_link": return { amount: 0, description: "", message: "Here's your secure payment link: {{link}}" };
     case "webhook": return { url: "", method: "POST" };
     case "ai_reply": return { instructions: "" };
     case "handoff": return { message: "Connecting you with a teammate — they'll reply here shortly." };
@@ -120,6 +127,9 @@ export function summarize(node: { type: string; data: Record<string, unknown> })
     case "add_tag": case "remove_tag": return s(d.tag) || "No tag yet";
     case "set_trait": return `${s(d.key) || "?"} = ${s(d.value)}`;
     case "assign_agent": return d.user_id ? "Specific teammate" : "By workspace rules";
+    case "create_deal": return s(d.title) || "Untitled deal";
+    case "move_deal": return d.stage_id ? "Moves the open deal" : "Choose a stage";
+    case "send_payment_link": return Number(d.amount) > 0 ? `₹${s(d.amount)} link` : "Set an amount";
     case "webhook": return `${s(d.method)} ${s(d.url) || "no URL yet"}`;
     case "ai_reply": return "Answers from your knowledge base";
     case "handoff": return s(d.message) || "Notifies your team";

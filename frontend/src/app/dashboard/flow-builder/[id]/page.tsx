@@ -141,7 +141,7 @@ function Editor() {
   useEffect(() => { if (tab === "runs" || flow?.status === "published") void loadRuns(); }, [tab, flow?.status, loadRuns]);
   useEffect(() => { if (tab !== "runs") return; const t = setInterval(loadRuns, 5000); return () => clearInterval(t); }, [tab, loadRuns]);
 
-  const groups = useMemo(() => (["Messages", "Logic", "Contact", "Advanced"] as const).map((g) => [g, Object.entries(STEP_META).filter(([k, m]) => m.group === g && k !== "start")] as const), []);
+  const groups = useMemo(() => (["Messages", "Logic", "Contact", "Sales", "Advanced"] as const).map((g) => [g, Object.entries(STEP_META).filter(([k, m]) => m.group === g && k !== "start")] as const), []);
   if (!flow) return err ? <div className="p-6"><Alert>{err}</Alert></div> : <Spinner />;
   const trig = TRIGGERS.find((t) => t.id === trigger);
 
