@@ -3,7 +3,6 @@ import {
   Megaphone,
   Target,
   Mail,
-  Bot,
   Filter,
   Smartphone,
   MessageCircle,
@@ -13,78 +12,75 @@ import {
   Clock,
   ThumbsUp,
   Send,
-  Star,
-  Sparkles,
-  Zap,
   type LucideIcon,
 } from "lucide-react";
 
 type Badge = {
   Icon: LucideIcon;
-  top: string;
-  left: string;
   size: number;
-  rotate: number;
   variant?: "solid";
 };
 
+// Listed in clockwise order from the top; they are spaced evenly around the outer dashed ring.
 const badges: Badge[] = [
-  { Icon: BarChart3, top: "3%", left: "40%", size: 56, rotate: -6 },
-  { Icon: Megaphone, top: "8%", left: "66%", size: 58, rotate: 10, variant: "solid" },
-  { Icon: Target, top: "2%", left: "16%", size: 48, rotate: 6 },
-  { Icon: Mail, top: "22%", left: "3%", size: 56, rotate: -8 },
-  { Icon: Bot, top: "16%", left: "88%", size: 62, rotate: 6, variant: "solid" },
-  { Icon: Filter, top: "40%", left: "0%", size: 50, rotate: 10 },
-  { Icon: Smartphone, top: "38%", left: "94%", size: 54, rotate: -8 },
-  { Icon: MessageCircle, top: "58%", left: "2%", size: 54, rotate: -6, variant: "solid" },
-  { Icon: CheckCircle2, top: "54%", left: "92%", size: 58, rotate: 4, variant: "solid" },
-  { Icon: Users, top: "72%", left: "10%", size: 54, rotate: 6 },
-  { Icon: TrendingUp, top: "70%", left: "86%", size: 50, rotate: -6 },
-  { Icon: Clock, top: "88%", left: "26%", size: 46, rotate: 8 },
-  { Icon: ThumbsUp, top: "90%", left: "68%", size: 50, rotate: -8 },
-  { Icon: Send, top: "98%", left: "46%", size: 52, rotate: -12 },
+  { Icon: BarChart3, size: 56 },
+  { Icon: Megaphone, size: 58, variant: "solid" },
+  { Icon: Smartphone, size: 54 },
+  { Icon: TrendingUp, size: 50 },
+  { Icon: CheckCircle2, size: 58, variant: "solid" },
+  { Icon: ThumbsUp, size: 50 },
+  { Icon: Send, size: 52 },
+  { Icon: Clock, size: 46 },
+  { Icon: Users, size: 54 },
+  { Icon: MessageCircle, size: 54, variant: "solid" },
+  { Icon: Filter, size: 50 },
+  { Icon: Mail, size: 56 },
+  { Icon: Target, size: 48 },
 ];
 
-const accents = [
-  { Icon: Star, top: "13%", left: "50%", size: 18 },
-  { Icon: Sparkles, top: "64%", left: "50%", size: 20 },
-  { Icon: Zap, top: "46%", left: "14%", size: 18 },
-];
+// Radius of the outer dashed ring drawn below (inset-[8%] -> 0.42 of the square), plus a fixed 6px.
+const OUTER_RADIUS = 0.42;
+const RADIUS_EXTRA_PX = 6;
+
+/** Position of item `index` of `count` on a circle, clockwise from 12 o'clock, as CSS calc() values. */
+function onCircle(index: number, count: number, radius: number, extraPx = 0) {
+  const angle = (2 * Math.PI * index) / count;
+  const sin = Math.sin(angle);
+  const cos = Math.cos(angle);
+  return {
+    top: `calc(50% - ${(radius * cos * 100).toFixed(3)}% - ${(extraPx * cos).toFixed(3)}px)`,
+    left: `calc(50% + ${(radius * sin * 100).toFixed(3)}% + ${(extraPx * sin).toFixed(3)}px)`,
+  };
+}
 
 export default function AuthIllustration() {
   return (
     <div className="relative mx-auto aspect-square w-full max-w-[540px] select-none">
-      <div className="absolute inset-[8%] rounded-full border-2 border-dashed border-white/10" />
+      <div className="absolute inset-[calc(8%-6px)] rounded-full border-2 border-dashed border-white/10" />
       <div className="absolute inset-[20%] rounded-full border-2 border-dashed border-white/[0.06]" />
 
-      {badges.map(({ Icon, top, left, size, rotate, variant }, i) => (
-        <div
-          key={i}
-          className={`absolute grid place-items-center rounded-2xl shadow-[0_6px_20px_rgba(0,0,0,0.4)] ${
-            variant === "solid"
-              ? "bg-brand text-white"
-              : "border-2 border-white/10 bg-white/[0.04] text-brand backdrop-blur-xl"
-          }`}
-          style={{
-            top,
-            left,
-            width: size,
-            height: size,
-            transform: `translate(-50%, -50%) rotate(${rotate}deg)`,
-          }}
-        >
-          <Icon className="h-[46%] w-[46%]" strokeWidth={2} />
-        </div>
-      ))}
-
-      {accents.map(({ Icon, top, left, size }, i) => (
-        <Icon
-          key={i}
-          className="absolute text-brand"
-          style={{ top, left, width: size, height: size, transform: "translate(-50%, -50%)" }}
-          strokeWidth={2.5}
-        />
-      ))}
+      {/* The whole ring turns clockwise; each icon counter-turns so it stays upright while it travels. */}
+      <div className="auth-orbit absolute inset-0">
+        {badges.map(({ Icon, size, variant }, i) => (
+          <div
+            key={i}
+            className="absolute"
+            style={{ ...onCircle(i, badges.length, OUTER_RADIUS, RADIUS_EXTRA_PX), width: size, height: size, transform: "translate(-50%, -50%)" }}
+          >
+            <div className="auth-orbit-counter h-full w-full">
+              <div
+                className={`auth-badge grid h-full w-full place-items-center rounded-2xl shadow-[0_6px_20px_rgba(0,0,0,0.4)] ${
+                  variant === "solid"
+                    ? "auth-badge-solid bg-brand text-white"
+                    : "border-2 border-white/10 bg-white/[0.04] text-brand backdrop-blur-xl"
+                }`}
+              >
+                <Icon className="h-[46%] w-[46%]" strokeWidth={2} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
 
       <div className="absolute left-1/2 top-1/2 w-[94%] -translate-x-1/2 -translate-y-1/2 text-center">
         <p

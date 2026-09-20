@@ -170,6 +170,36 @@ body {
   border-radius: 999px;
 }
 
+/* Login / signup illustration: the icon ring turns clockwise; icons counter-turn (same duration) to stay upright. */
+@keyframes auth-orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.auth-orbit {
+  animation: auth-orbit-spin 60s linear infinite;
+}
+
+.auth-orbit-counter {
+  animation: auth-orbit-spin 60s linear infinite reverse;
+}
+
+/* Hover: outlined badges fill with brand green (white icon); the already-solid ones shift to the lighter green. */
+.auth-badge {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+
+.auth-badge:hover {
+  background-color: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+
+.auth-badge-solid:hover {
+  background-color: var(--brand-soft);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lfg-card-float,
   .typing-dot {
