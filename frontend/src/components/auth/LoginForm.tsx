@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, Lock } from "lucide-react";
 import FormField from "./FormField";
-import { ApiError, login, storeSession } from "@/lib/api";
+import { ApiError, login, safeNextPath, storeSession } from "@/lib/api";
 import { getEmailError, getPasswordError } from "@/lib/validation";
 
 type Touched = { email?: boolean; password?: boolean };
@@ -45,7 +45,7 @@ export default function LoginForm() {
       if (auth.must_rotate_password) {
         router.push("/rotate-password");
       } else {
-        router.push("/dashboard");
+        router.push(safeNextPath() ?? "/dashboard");
       }
     } catch (err) {
       if (err instanceof ApiError) {

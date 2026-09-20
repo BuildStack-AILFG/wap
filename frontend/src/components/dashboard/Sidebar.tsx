@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Lock, Menu, X } from "lucide-react";
+import { useIsLocked } from "./UpgradeGate";
 import { QUICK_LINKS, NAV_GROUPS, RAIL_LINKS, SIDEBAR_WIDTH, type NavItem, type NavGroup } from "./navConfig";
 
 // Black + glass in the dark theme, cream + green in the light one — every colour below is a theme variable
@@ -33,6 +34,7 @@ function groupHasActiveChild(pathname: string, group: NavGroup) {
 function PanelRow({ item, active, onNavigate }: { item: NavItem; active: boolean; onNavigate?: () => void }) {
   const [hovered, setHovered] = useState(false);
   const Icon = item.icon;
+  const locked = useIsLocked(item.href);
 
   return (
     <Link
@@ -56,6 +58,7 @@ function PanelRow({ item, active, onNavigate }: { item: NavItem; active: boolean
     >
       <Icon className="h-5 w-5 shrink-0" style={{ color: active ? ACCENT : TEXT_DEFAULT }} strokeWidth={1.75} />
       <span className="truncate">{item.label}</span>
+      {locked && <Lock className="ml-auto h-3.5 w-3.5 shrink-0" style={{ color: TEXT_DEFAULT }} strokeWidth={2} aria-label="Upgrade to unlock" />}
     </Link>
   );
 }

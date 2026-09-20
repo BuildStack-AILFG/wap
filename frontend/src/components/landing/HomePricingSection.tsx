@@ -1,105 +1,28 @@
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { PlanCards, TrustStrip } from "@/components/site/PricingTable";
+import { getPublicPricing } from "@/lib/site/livePlans";
 
-const PLANS = [
-  {
-    name: "Starter",
-    price: "$19",
-    period: "/mo",
-    desc: "For solo sellers getting started with WhatsApp automation.",
-    features: ["1 WhatsApp number", "Auto-replies & 1 chat flow", "500 broadcast contacts", "Shared inbox (2 seats)"],
-    highlighted: false,
-  },
-  {
-    name: "Growth",
-    price: "$49",
-    period: "/mo",
-    desc: "For teams running broadcasts and multi-step flows daily.",
-    features: [
-      "3 WhatsApp numbers",
-      "Unlimited chat flows",
-      "10,000 broadcast contacts",
-      "Shared inbox (10 seats)",
-      "AI-assisted replies",
-    ],
-    highlighted: true,
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    period: "",
-    desc: "For high-volume support and sales teams at scale.",
-    features: ["Unlimited numbers & seats", "Priority delivery throughput", "Dedicated onboarding", "SLA & priority support"],
-    highlighted: false,
-  },
-];
-
-export default function HomePricingSection() {
+/** Home-page pricing: the same live plan cards as /pricing (Starter, Growth, Enterprise) under the hero copy. */
+export default async function HomePricingSection() {
+  const { plans, trial } = await getPublicPricing();
   return (
-    <section id="pricing" className="relative bg-black py-14 sm:py-16 lg:py-20">
-      <div className="mx-auto max-w-2xl px-4 sm:px-6 text-center">
+    <section id="pricing" className="relative bg-black py-16 sm:py-20 lg:py-24">
+      <div className="mx-auto max-w-2xl px-4 text-center sm:px-6">
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand">Pricing</p>
-        <h2
-          className="mt-3 text-[1.75rem] font-extrabold leading-[1.12] tracking-[-0.03em] text-white sm:text-[2.15rem]"
-          style={{ fontFamily: "var(--font-plus-jakarta)" }}
-        >
-          Simple, Transparent Pricing
+        <h2 className="mt-3 text-[1.75rem] font-extrabold leading-[1.12] tracking-[-0.03em] text-white sm:text-[2.35rem]" style={{ fontFamily: "var(--font-plus-jakarta)" }}>
+          Start free. Pay only for volume.
         </h2>
         <p className="mt-3 text-[15px] leading-relaxed text-white/60">
-          Every plan runs on the official WhatsApp Business API — even your free trial.
+          Every paid plan includes every feature — inbox, flows, broadcasts, AI agent, pipeline and payments. Pick the size that fits your team and upgrade any time.
         </p>
       </div>
-
-      <div className="mx-auto mt-12 grid max-w-6xl gap-6 px-4 sm:px-6 lg:grid-cols-3 lg:px-8">
-        {PLANS.map((plan) => (
-          <div
-            key={plan.name}
-            className={`relative flex flex-col rounded-2xl border p-7 ${
-              plan.highlighted ? "border-brand bg-brand/10 text-white shadow-xl" : "border-white/10 bg-white/[0.03] backdrop-blur-xl"
-            }`}
-          >
-            {plan.highlighted && (
-              <span className="absolute -top-3 left-7 rounded-full bg-brand px-3 py-1 text-[11px] font-bold text-white">
-                Most popular
-              </span>
-            )}
-            <h3 className={`text-[15px] font-bold ${plan.highlighted ? "text-white" : "text-white"}`}>{plan.name}</h3>
-            <p className={`mt-3 flex items-end gap-1 ${plan.highlighted ? "text-white" : "text-white"}`}>
-              <span className="text-[2.4rem] font-extrabold leading-none tracking-tight">{plan.price}</span>
-              <span className={`text-sm font-semibold ${plan.highlighted ? "text-white/40" : "text-white/40"}`}>
-                {plan.period}
-              </span>
-            </p>
-            <p className={`mt-2 text-[13.5px] leading-relaxed ${plan.highlighted ? "text-white/40" : "text-white/60"}`}>
-              {plan.desc}
-            </p>
-
-            <ul className="mt-6 flex-1 space-y-3">
-              {plan.features.map((f) => (
-                <li key={f} className={`flex items-center gap-2.5 text-[13.5px] ${plan.highlighted ? "text-white/70" : "text-white/70"}`}>
-                  <span
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-                      plan.highlighted ? "bg-white/10 text-brand-bright" : "bg-brand/15 text-brand"
-                    }`}
-                  >
-                    <Check className="h-3 w-3" strokeWidth={3} />
-                  </span>
-                  {f}
-                </li>
-              ))}
-            </ul>
-
-            <Link
-              href="#get-started"
-              className={`mt-8 flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[14px] font-bold transition-transform hover:-translate-y-0.5 ${
-                plan.highlighted ? "bg-brand/150 text-[#0B1712]" : "bg-brand text-white"
-              }`}
-            >
-              Choose {plan.name}
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-        ))}
+      <div className="mx-auto mt-12 max-w-6xl px-4 sm:px-6 lg:px-8">
+        <PlanCards plans={plans} />
+        <TrustStrip trialDays={trial.days} />
+        <p className="mt-8 text-center text-[13.5px] text-white/50">
+          Want to compare every limit? <Link href="/pricing" className="inline-flex items-center gap-1 font-semibold text-brand-bright hover:underline">See the full comparison <ArrowRight size={13} /></Link>
+        </p>
       </div>
     </section>
   );

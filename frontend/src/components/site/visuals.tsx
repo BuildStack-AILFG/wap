@@ -115,7 +115,7 @@ function Ai() {
 }
 
 function Replies() {
-  const rows = [["Welcome message", "Hi {{first_name}}! Thanks for writing to us 👋", true], ["Away message", "We're closed now. We'll reply at 10 AM.", true], ["Keyword: price", "Our plans start at ₹999/month — see the list 👉", true], ["Delayed reply", "Sorry for the wait — someone will be with you shortly.", false]] as const;
+  const rows = [["Welcome message", "Hi {{first_name}}! Thanks for writing to us 👋", true], ["Away message", "We're closed now. We'll reply at 10 AM.", true], ["Keyword: price", "Our plans start at ₹799/month — see the list 👉", true], ["Delayed reply", "Sorry for the wait — someone will be with you shortly.", false]] as const;
   return (
     <Frame title="Auto-replies">
       <div className="space-y-2.5 p-4">

@@ -17,7 +17,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const load = useCallback(() => {
     setFailed(null);
     if (!getAccessToken()) {
-      router.replace("/login");
+      router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
       return;
     }
     getMe()

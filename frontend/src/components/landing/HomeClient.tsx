@@ -20,7 +20,7 @@ import ScrollToTopButton from "@/components/landing/ScrollToTopButton";
 import BookDemoModal from "@/components/landing/BookDemoModal";
 import Footer from "@/components/landing/Footer";
 
-export default function HomeClient() {
+export default function HomeClient({ pricing }: { pricing?: React.ReactNode }) {
   const router = useRouter();
   const [demoOpen, setDemoOpen] = useState(false);
 
@@ -44,6 +44,7 @@ export default function HomeClient() {
         <IntegrationsTeaser />
         <IndustriesGridSection />
         <SuccessStoriesSection />
+        {pricing}
         <FAQSection onBookDemo={handleBookDemo} />
         <LandingCTA onGetStarted={handleGetStarted} onBookDemo={handleBookDemo} />
         <Footer />

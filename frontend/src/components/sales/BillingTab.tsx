@@ -1,13 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { BadgeCheck, Building2, CalendarClock, Check, FileText, Printer, ShieldCheck, Sparkles } from "lucide-react";
 import { Alert, Badge, Button, Card, cx, Field, fmtDateTime, Input, Modal, Select, Spinner, Textarea, useUi } from "@/components/ui/kit";
 import { billing, errorMessage, type BillingInterval, type BillingOverview, type BillingProfile, type Invoice } from "@/lib/api";
 import { fmtMoney } from "@/lib/money";
 import { useWorkspace } from "@/components/dashboard/WorkspaceContext";
+import CheckoutPreview from "./CheckoutPreview";
 
-const INTERVALS: { id: BillingInterval; label: string }[] = [{ id: "monthly", label: "Monthly" }, { id: "quarterly", label: "Quarterly" }, { id: "yearly", label: "Yearly" }];
+// Quarterly still exists on the server for existing customers, but the price list is kept simple: monthly or yearly.
+const INTERVALS: { id: BillingInterval; label: string }[] = [{ id: "monthly", label: "Monthly" }, { id: "yearly", label: "Yearly" }];
 const CHECKOUT_SRC = "https://checkout.razorpay.com/v1/checkout.js";
 
 type RazorpayResponse = { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string };
@@ -40,8 +43,11 @@ const dateOnly = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString
 export default function BillingTab() {
   const { toast } = useUi();
   const { refresh } = useWorkspace();
+  const params = useSearchParams();
+  const wanted = params.get("plan"); // deep link from the pricing page: /dashboard/settings?tab=billing&plan=growth&interval=yearly
   const [o, setO] = useState<BillingOverview | null>(null);
-  const [period, setPeriod] = useState<BillingInterval>("yearly");
+  const [period, setPeriod] = useState<BillingInterval>(params.get("interval") === "monthly" ? "monthly" : "yearly");
+  const [preview, setPreview] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [buying, setBuying] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState<{ then?: string } | null>(null);
@@ -49,9 +55,11 @@ export default function BillingTab() {
 
   const load = useCallback(async () => { try { setO(await billing.overview()); } catch (e) { setErr(errorMessage(e, "Couldn't load billing.")); } }, []);
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => { if (o && wanted) document.getElementById(`plan-${wanted}`)?.scrollIntoView({ behavior: "smooth", block: "center" }); }, [o, wanted]);
 
   const pay = async (planId: string) => {
     if (!o) return;
+    if (!o.enabled) return setPreview(planId); // Razorpay isn't configured yet: show the checkout wireframe instead of a real payment
     if (!o.profile.legal_name || !o.profile.state_code) return setProfileOpen({ then: planId });
     setBuying(planId);
     setErr(null);
@@ -87,13 +95,12 @@ export default function BillingTab() {
   return (
     <div className="space-y-5">
       {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
-      {!o.enabled && <Alert tone="yellow">Online payments aren&apos;t switched on for this server yet. Contact <a className="underline" href="mailto:support@leadforgrow.com">support</a> to upgrade in the meantime.</Alert>}
 
       <Card className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[12px] uppercase tracking-wide text-white/40">Current plan</p>
-            <div className="mt-1 flex items-center gap-2.5"><h3 className="text-[20px] font-semibold text-white">{current?.name ?? (state.id === "trial" ? "Free trial" : state.id[0].toUpperCase() + state.id.slice(1))}</h3>
+            <div className="mt-1 flex items-center gap-2.5"><h3 className="text-[20px] font-semibold text-white">{state.id === "trial" ? "Free trial" : current?.name ?? state.id[0].toUpperCase() + state.id.slice(1)}</h3>
               <Badge tone={state.kind === "active" ? "green" : state.kind === "trial" ? "blue" : state.kind === "grace" || state.expired ? "red" : "gray"}>
                 {state.kind === "active" ? "Active" : state.kind === "trial" ? "Trial" : state.kind === "grace" ? "Payment overdue" : state.kind === "custom" ? "Custom" : "Free"}
               </Badge></div>
@@ -103,11 +110,17 @@ export default function BillingTab() {
             {state.kind === "active" && <>Active until <b className="text-white">{dateOnly(state.ends_at)}</b> · {state.days_left} day{state.days_left === 1 ? "" : "s"} left</>}
             {state.kind === "trial" && (state.expired ? "Your trial has ended — choose a plan to continue" : <><b className="text-white">{state.days_left}</b> day{state.days_left === 1 ? "" : "s"} left in your trial</>)}
             {state.kind === "grace" && <>Ended {dateOnly(state.ends_at)} — renew now to keep your paid features</>}
-            {state.kind === "free" && "You're on the free plan with limited features"}
+            {state.kind === "free" && "You're on the free plan. Upgrade to unlock every feature"}
             {state.kind === "custom" && "Managed by our team"}
           </p>
         </div>
       </Card>
+
+      {state.kind === "trial" && !state.expired && (
+        <p className="rounded-xl border border-brand/25 bg-brand/[0.07] px-4 py-3 text-[13px] text-white/75">
+          You&apos;re on the free trial: outbound campaigns are capped and analytics, reports, auto-assignment, API &amp; webhooks and integrations are locked. Every paid plan unlocks all of them.
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-[16px] font-semibold text-white">Choose a plan</h3>
@@ -118,14 +131,14 @@ export default function BillingTab() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 lg:grid-cols-3">
         {o.plans.map((p) => {
           const q = p.quotes[period];
           const perMonth = p.per_month[period];
           const off = saving(p, period);
           const popular = p.id === "growth";
           return (
-            <div key={p.id} className={cx("relative flex flex-col rounded-2xl border p-5", p.current ? "border-brand bg-brand/[0.06]" : popular ? "border-brand/50 bg-card" : "border-white/10 bg-card")}>
+            <div key={p.id} id={`plan-${p.id}`} className={cx("relative flex flex-col rounded-2xl border p-5", p.current ? "border-brand bg-brand/[0.06]" : popular ? "border-brand/50 bg-card" : "border-white/10 bg-card", wanted === p.id && "ring-2 ring-brand")}>
               {popular && !p.current && <span className="absolute -top-2.5 left-5 rounded-full bg-brand px-2.5 py-0.5 text-[11px] font-semibold text-white btn-accent">Most popular</span>}
               <div className="flex items-center justify-between"><h4 className="text-[16px] font-semibold text-white">{p.name}</h4>{off > 0 && <Badge tone="green">Save {off}%</Badge>}</div>
               {p.purchasable && perMonth ? (
@@ -135,6 +148,7 @@ export default function BillingTab() {
                 </>
               ) : <p className="mt-3 text-[24px] font-bold text-white">Let&apos;s talk</p>}
               <ul className="mt-4 flex-1 space-y-1.5 text-[13px] text-white/65">
+                {p.purchasable && <li className="flex gap-2 font-semibold text-white"><Check size={14} className="mt-0.5 shrink-0 text-brand" />Every feature included</li>}
                 {QUOTA_LINES.map((l) => p.quotas[l.key] !== undefined && <li key={l.key} className="flex gap-2"><Check size={14} className="mt-0.5 shrink-0 text-brand" />{p.quotas[l.key] >= 999999 ? l.label(0).replace(/^0/, "Unlimited") : l.label(p.quotas[l.key])}</li>)}
               </ul>
               {q && (
@@ -146,8 +160,8 @@ export default function BillingTab() {
                 </div>
               )}
               {p.purchasable ? (
-                <Button className="mt-4 w-full" variant={p.current ? "soft" : "primary"} loading={buying === p.id} disabled={!o.enabled || !!buying} onClick={() => void pay(p.id)}>
-                  {p.current && q?.renewal ? "Renew plan" : p.current ? "Buy again" : state.kind === "active" ? "Switch to this plan" : "Choose plan"}
+                <Button className="mt-4 w-full" variant={p.current ? "soft" : "primary"} loading={buying === p.id} disabled={!!buying} onClick={() => void pay(p.id)}>
+                  {p.current && q?.renewal ? "Renew plan" : p.current ? "Buy again" : state.kind === "active" ? "Switch to this plan" : q ? `Pay ${fmtMoney(q.total, o.currency)} & upgrade` : "Choose plan"}
                 </Button>
               ) : (
                 <a href="/contact?topic=sales" className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-[13.5px] font-medium text-white hover:bg-white/[0.07]"><Sparkles size={14} /> Talk to sales</a>
@@ -189,6 +203,9 @@ export default function BillingTab() {
       {profileOpen && <ProfileModal profile={o.profile} states={o.states} onClose={() => setProfileOpen(null)}
         onSaved={async () => { const then = profileOpen.then; setProfileOpen(null); await load(); toast("Billing details saved"); if (then) void pay(then); }} />}
       <InvoiceModal invoice={invoice} onClose={() => setInvoice(null)} />
+      {preview && o.plans.find((x) => x.id === preview)?.quotes[period] && (
+        <CheckoutPreview quote={o.plans.find((x) => x.id === preview)!.quotes[period]!} currency={o.currency} businessName="LeadForGrow" onClose={() => setPreview(null)} />
+      )}
     </div>
   );
 }

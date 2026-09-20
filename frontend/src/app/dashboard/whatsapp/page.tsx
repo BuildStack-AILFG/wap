@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, ExternalLink, Facebook, KeyRound, RefreshCw, Send, Smartphone, Unplug } from "lucide-react";
 import { ACCENT, accentTint, Alert, Badge, Button, Card, CopyField, Field, Input, Modal, PageHeader, Page, Spinner, statusTone, timeAgo, useUi } from "@/components/ui/kit";
 import { errorMessage, whatsapp, type WaAccount, type WaConfig } from "@/lib/api";
+import EmbeddedSignupPreview from "@/components/dashboard/EmbeddedSignupPreview";
 
 declare global {
   interface Window {
@@ -40,6 +41,7 @@ export default function WhatsAppPage() {
   const [warnings, setWarnings] = useState<string[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [showManual, setShowManual] = useState(false);
+  const [fbPreview, setFbPreview] = useState(false);
   const [testFor, setTestFor] = useState<WaAccount | null>(null);
   const [tokenFor, setTokenFor] = useState<WaAccount | null>(null);
 
@@ -71,7 +73,8 @@ export default function WhatsAppPage() {
   };
 
   const embeddedSignup = async () => {
-    if (!config?.embedded_signup.enabled) return;
+    if (!config?.embedded_signup.enabled) return setFbPreview(true); // Meta credentials not added yet: show where this will go
+
     setBusy("embedded");
     setError(null);
     let sessionInfo: { waba_id?: string; phone_number_id?: string } = {};
@@ -121,10 +124,9 @@ export default function WhatsAppPage() {
             <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[#1877F2]/20 text-[#5b9bff]"><Facebook size={20} /></div>
             <h3 className="text-[16px] font-semibold text-white">Connect with Facebook</h3>
             <p className="mt-1.5 flex-1 text-[13px] text-white/55">The fastest way: log in with Facebook, pick or create your WhatsApp Business account and verify your number by SMS or call. We set up webhooks for you.</p>
-            <Button className="mt-5" onClick={embeddedSignup} loading={busy === "embedded"} disabled={!config.embedded_signup.enabled}>
+            <Button className="mt-5" onClick={embeddedSignup} loading={busy === "embedded"}>
               <Facebook size={15} /> Continue with Facebook
             </Button>
-            {!config.embedded_signup.enabled && <p className="mt-2 text-[11.5px] text-white/40">Not enabled on this server yet — the platform owner needs to set META_APP_ID, META_APP_SECRET and META_CONFIG_ID. Use manual connect below in the meantime.</p>}
           </Card>
           <Card className="flex flex-col p-6">
             <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: accentTint(13), color: ACCENT }}><KeyRound size={20} /></div>
@@ -187,6 +189,7 @@ export default function WhatsAppPage() {
         ))}
       </div>
 
+      {fbPreview && <EmbeddedSignupPreview onClose={() => setFbPreview(false)} onManual={() => { setFbPreview(false); setShowManual(true); }} />}
       <ManualModal open={showManual} onClose={() => setShowManual(false)} secretRequired={config.app_secret_required}
         onDone={(a) => { setWarnings(a.warnings ?? []); setShowManual(false); toast("WhatsApp number connected"); void load(); }} />
       <TestModal account={testFor} onClose={() => setTestFor(null)} />

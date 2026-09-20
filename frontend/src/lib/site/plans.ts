@@ -1,67 +1,116 @@
 /**
- * Public plan catalogue. Keep in step with backend/scripts/seed_plans.py — that seed is what checkout actually charges.
+ * Public plan catalogue — the fallback the marketing site shows if the live price list (`GET /api/public/plans`, see livePlans.ts) can't be
+ * reached. Keep in step with backend/app/services/plan_catalog.py; the platform admin edits the live values in the admin console.
  * Prices are rupees per month, before 18% GST, for each billing period.
+ *
+ * Commercial model: the free trial is the whole product with tiny outbound-messaging limits and a few advanced features locked. Both paid
+ * plans unlock every feature and differ only in volume, so choosing a plan is a question of "how much", never "which features".
  */
 
-export type PlanId = "starter" | "growth" | "scale" | "enterprise";
-export type Period = "monthly" | "quarterly" | "yearly";
+export type PlanId = "starter" | "growth" | "enterprise";
+export type Period = "monthly" | "yearly";
 
 export const PERIODS: { id: Period; label: string; months: number }[] = [
   { id: "monthly", label: "Monthly", months: 1 },
-  { id: "quarterly", label: "Quarterly", months: 3 },
   { id: "yearly", label: "Yearly", months: 12 },
 ];
 
 export const GST_PERCENT = 18;
+export const TRIAL_DAYS = 14;
+
+export type Limit = number | "Unlimited";
+export type Limits = { numbers: Limit; seats: Limit; contacts: Limit; campaign: Limit; flows: Limit; ai: Limit; knowledge: Limit };
 
 export type PlanInfo = {
   id: PlanId;
   name: string;
-  blurb: string;
+  /** Who it's for — the line under the plan name. */
+  audience: string;
   perMonth: Record<Period, number> | null;
   highlight?: boolean;
-  limits: { numbers: number | "Unlimited"; seats: number | "Unlimited"; contacts: number | "Unlimited"; campaign: number | "Unlimited"; flows: number | "Unlimited"; ai: number | "Unlimited"; knowledge: number | "Unlimited" };
-  features: string[];
+  limits: Limits;
+};
+
+export type FeatureKey = "ai_agent" | "conversation_analytics" | "campaign_reports" | "sales_reports" | "assignment_rules" | "api_access" | "integrations";
+
+/** What the free trial can and can't do (mirrors the trial row in the database). */
+export type TrialInfo = { days: number; limits: Limits; features: Record<FeatureKey, boolean> };
+
+export const FEATURE_LABELS: Record<FeatureKey, { label: string; blurb: string }> = {
+  ai_agent: { label: "AI agent", blurb: "Answers customers automatically from your knowledge base." },
+  conversation_analytics: { label: "Conversation analytics", blurb: "Response times, volumes and agent performance." },
+  campaign_reports: { label: "Campaign reports", blurb: "Delivery, read and reply reports for every broadcast." },
+  sales_reports: { label: "Sales reports", blurb: "Pipeline, win-rate and revenue reports." },
+  assignment_rules: { label: "Auto-assignment rules", blurb: "Route new chats to the right teammate automatically." },
+  api_access: { label: "API keys & webhooks", blurb: "Send messages and receive events from your own systems." },
+  integrations: { label: "App integrations", blurb: "Shopify, WooCommerce, Razorpay and other event triggers." },
 };
 
 export const PLANS: PlanInfo[] = [
   {
     id: "starter",
     name: "Starter",
-    blurb: "For a single team getting its first WhatsApp workflows live.",
-    perMonth: { monthly: 999, quarterly: 899, yearly: 799 },
-    limits: { numbers: 1, seats: 2, contacts: 2000, campaign: 2000, flows: 3, ai: 500, knowledge: 3 },
-    features: ["Shared team inbox with assignment", "Auto-replies, chat flows & templates", "Broadcasts, segments & website widget", "AI agent with human hand-over", "Sales pipeline & Razorpay payment links", "API keys, webhooks & integrations"],
+    audience: "For a small team taking its first customers on WhatsApp.",
+    perMonth: { monthly: 799, yearly: 639 },
+    limits: { numbers: 1, seats: 3, contacts: 2000, campaign: 2000, flows: 5, ai: 500, knowledge: 3 },
   },
   {
     id: "growth",
     name: "Growth",
-    blurb: "For teams that run campaigns and automation every day.",
-    perMonth: { monthly: 2499, quarterly: 2249, yearly: 1999 },
+    audience: "For teams that run campaigns and automation every day.",
+    perMonth: { monthly: 1299, yearly: 1039 },
     highlight: true,
-    limits: { numbers: 3, seats: 7, contacts: 10000, campaign: 10000, flows: 15, ai: 2000, knowledge: 10 },
-    features: ["Everything in Starter", "3 WhatsApp numbers on one workspace", "5× the contacts and 4× the AI replies", "15 automation flows", "A bigger team: 7 seats", "Shopify, WooCommerce & Razorpay event triggers"],
-  },
-  {
-    id: "scale",
-    name: "Scale",
-    blurb: "For larger sales and support desks with several numbers.",
-    perMonth: { monthly: 5999, quarterly: 5399, yearly: 4799 },
-    limits: { numbers: 10, seats: 20, contacts: 50000, campaign: 50000, flows: 50, ai: 10000, knowledge: 25 },
-    features: ["Everything in Growth", "10 WhatsApp numbers and 20 seats", "50,000 contacts and campaign recipients", "50 automation flows and 10,000 AI replies", "Priority support"],
+    limits: { numbers: 3, seats: 8, contacts: 10000, campaign: 10000, flows: 20, ai: 2000, knowledge: 10 },
   },
   {
     id: "enterprise",
     name: "Enterprise",
-    blurb: "Custom limits, onboarding and support for high-volume operations.",
+    audience: "For high-volume sales and support desks with custom needs.",
     perMonth: null,
     limits: { numbers: "Unlimited", seats: "Unlimited", contacts: "Unlimited", campaign: "Unlimited", flows: "Unlimited", ai: "Unlimited", knowledge: "Unlimited" },
-    features: ["Custom limits and invoicing", "Guided onboarding & migration", "Security review and DPA", "Named support contact"],
   },
 ];
 
+export const TRIAL: TrialInfo = {
+  days: TRIAL_DAYS,
+  limits: { numbers: 1, seats: 3, contacts: 1000, campaign: 20, flows: 5, ai: 200, knowledge: 2 },
+  features: { ai_agent: true, conversation_analytics: false, campaign_reports: false, sales_reports: false, assignment_rules: false, api_access: false, integrations: false },
+};
+
+/** Everything both paid plans and Enterprise include, whatever the volume. */
+export const EVERY_PLAN = [
+  "Shared team inbox with assignment",
+  "Auto-replies, chat flows & templates",
+  "Broadcasts, segments & website widget",
+  "AI agent with human hand-over",
+  "Sales pipeline & Razorpay payment links",
+  "Analytics, campaign & sales reports",
+  "API keys, webhooks & app integrations",
+];
+
+export const ENTERPRISE_EXTRAS = ["Custom limits & invoicing", "Guided onboarding & migration", "Security review & DPA", "Named account manager"];
+
 export const inr = (n: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
 
-export const fmtLimit = (v: number | "Unlimited") => (v === "Unlimited" ? "Unlimited" : v.toLocaleString("en-IN"));
+export const fmtLimit = (v: Limit) => (v === "Unlimited" ? "Unlimited" : v.toLocaleString("en-IN"));
 
-export const savingPercent = (p: PlanInfo, period: Period) => (p.perMonth && period !== "monthly" ? Math.round((1 - p.perMonth[period] / p.perMonth.monthly) * 100) : 0);
+export const monthsOf = (period: Period) => PERIODS.find((p) => p.id === period)!.months;
+
+/** Percentage saved per month by paying for `period` up front, rounded. */
+export const savingPercent = (p: PlanInfo, period: Period) => (p.perMonth && period !== "monthly" && p.perMonth.monthly ? Math.round((1 - p.perMonth[period] / p.perMonth.monthly) * 100) : 0);
+
+/** "About ₹27 a day" — the small-number framing that makes a monthly price feel light. */
+export const perDay = (perMonth: number) => Math.round(perMonth / 30);
+
+/** The headline limits as short bullets, generated from the (possibly admin-edited) numbers. */
+export function limitBullets(l: Limits): string[] {
+  const n = (v: Limit) => fmtLimit(v);
+  return [
+    `${n(l.numbers)} WhatsApp number${l.numbers === 1 ? "" : "s"}`,
+    `${n(l.seats)} team member${l.seats === 1 ? "" : "s"}`,
+    `${n(l.contacts)} contacts`,
+    `${n(l.campaign)} campaign recipients / month`,
+    `${n(l.flows)} automation flows`,
+    `${n(l.ai)} AI replies / month`,
+  ];
+}

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { User, Mail, Lock, Building2 } from "lucide-react";
 import FormField from "./FormField";
-import { ApiError, register, storeSession } from "@/lib/api";
+import { ApiError, register, safeNextPath, storeSession } from "@/lib/api";
 import {
   getNameError,
   getEmailError,
@@ -53,7 +53,7 @@ export default function SignupForm() {
     try {
       const auth = await register({ companyName, fullName: name, email, password });
       storeSession(auth);
-      router.push("/dashboard");
+      router.push(safeNextPath() ?? "/dashboard");
     } catch (err) {
       if (err instanceof ApiError) {
         setSubmitError(err.passwordFailures?.[0]?.message ?? err.message);

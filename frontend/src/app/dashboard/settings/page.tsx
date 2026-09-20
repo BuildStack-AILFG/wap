@@ -11,6 +11,7 @@ import {
 } from "@/lib/api";
 import { useWorkspace } from "@/components/dashboard/WorkspaceContext";
 import AssignmentRules from "@/components/dashboard/AssignmentRules";
+import { UpgradeGate, useHasFeature } from "@/components/dashboard/UpgradeGate";
 import BillingTab from "@/components/sales/BillingTab";
 import PaymentsTab from "@/components/sales/PaymentsTab";
 
@@ -25,6 +26,8 @@ function Settings() {
   const params = useSearchParams();
   const { role } = useWorkspace();
   const manager = role === "owner" || role === "admin";
+  const hasApi = useHasFeature("api_access");
+  const hasAssign = useHasFeature("assignment_rules");
   const initial = (params.get("tab") as TabId) || "workspace";
   const [tab, setTabState] = useState<TabId>(initial);
   useEffect(() => { const t = params.get("tab") as TabId | null; if (t) setTabState(t); }, [params]);
@@ -39,9 +42,9 @@ function Settings() {
       {tab === "billing" && manager && <BillingTab />}
       {tab === "payments" && manager && <PaymentsTab />}
       {tab === "team" && <TeamTab manager={manager} isOwner={role === "owner"} />}
-      {tab === "assignment" && manager && <AssignmentRules />}
+      {tab === "assignment" && manager && (hasAssign ? <AssignmentRules /> : <UpgradeGate feature="assignment_rules" inline />)}
       {tab === "quick" && <QuickReplies />}
-      {tab === "developer" && manager && <DeveloperTab />}
+      {tab === "developer" && manager && (hasApi ? <DeveloperTab /> : <UpgradeGate feature="api_access" inline />)}
       {tab === "account" && <AccountTab />}
     </Page>
   );

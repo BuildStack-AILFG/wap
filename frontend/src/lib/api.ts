@@ -7,13 +7,16 @@ export type PasswordFailure = { rule: string; message: string };
 export class ApiError extends Error {
   status: number;
   code?: string;
+  /** Set on a 402 when the workspace's plan doesn't include the feature (e.g. "api_access"). */
+  feature?: string;
   problems?: string[];
   passwordFailures?: PasswordFailure[];
 
-  constructor(status: number, message: string, extra?: { code?: string; problems?: string[]; passwordFailures?: PasswordFailure[] }) {
+  constructor(status: number, message: string, extra?: { code?: string; feature?: string; problems?: string[]; passwordFailures?: PasswordFailure[] }) {
     super(message);
     this.status = status;
     this.code = extra?.code;
+    this.feature = extra?.feature;
     this.problems = extra?.problems;
     this.passwordFailures = extra?.passwordFailures;
   }
@@ -29,13 +32,18 @@ const ACCESS_TOKEN_KEY = "wa_access_token";
 const REFRESH_TOKEN_KEY = "wa_refresh_token";
 
 export type Workspace = { id: string; name: string; slug: string; plan_id: string; trial_ends_at: string | null };
-export type MeWorkspace = Workspace & { plan_name: string };
+export type PlanKind = "trial" | "free" | "active" | "grace" | "custom";
+export type PlanState = { kind: PlanKind; ends_at: string | null; days_left: number; expired: boolean };
+/** Keys of the plan feature switches (see backend/app/services/plan_catalog.py). */
+export type FeatureKey = "ai_agent" | "conversation_analytics" | "campaign_reports" | "sales_reports" | "assignment_rules" | "api_access" | "integrations";
+export type MeWorkspace = Workspace & { plan_name: string; plan_state: PlanState; features: Record<FeatureKey, boolean> };
 export type MeResponse = {
   user_id: string;
   email: string;
   full_name: string | null;
   must_rotate_password: boolean;
   role: string | null;
+  is_platform_admin: boolean;
   workspace: MeWorkspace;
 };
 export type AuthResponse = {
@@ -52,6 +60,12 @@ export type AuthResponse = {
 export function storeSession(auth: { access_token: string; refresh_token: string }) {
   window.localStorage.setItem(ACCESS_TOKEN_KEY, auth.access_token);
   window.localStorage.setItem(REFRESH_TOKEN_KEY, auth.refresh_token);
+}
+/** Where to send the user after signing in: the `next` query param, but only for our own dashboard/admin paths (never an external URL). */
+export function safeNextPath(): string | null {
+  if (typeof window === "undefined") return null;
+  const n = new URLSearchParams(window.location.search).get("next");
+  return n && /^\/(dashboard|admin)(\/\S*)?$/.test(n) && !n.includes("\\") ? n : null;
 }
 export function clearSession() {
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);
@@ -79,7 +93,7 @@ async function parse<T>(res: Response): Promise<T> {
         message = first?.msg ? `${(first.loc ?? []).slice(1).join(".") || "Input"}: ${first.msg}` : message;
       } else {
         message = detail?.error ?? message;
-        extra = { code: detail?.code, problems: detail?.problems, passwordFailures: detail?.password_failures };
+        extra = { code: detail?.code, feature: detail?.feature, problems: detail?.problems, passwordFailures: detail?.password_failures };
       }
     } catch {
       /* non-JSON body */
@@ -498,7 +512,7 @@ export type BillingPayment = {
 };
 export type BillingOverview = {
   enabled: boolean; key_id: string | null; currency: string; gst_percent: number;
-  plan: { id: string; kind: "trial" | "free" | "active" | "grace" | "custom"; ends_at: string | null; days_left: number; expired: boolean };
+  plan: { id: string } & PlanState;
   plans: { id: string; name: string; quotas: Record<string, number>; purchasable: boolean; current: boolean; per_month: Record<BillingInterval, number | null>; quotes: Partial<Record<BillingInterval, BillingQuote>> }[];
   profile: BillingProfile; states: Record<string, string>; seller: { name: string; gstin: string; address: string; email: string }; payments: BillingPayment[];
 };
@@ -533,4 +547,54 @@ export const payments = {
 export const site = {
   contact: (b: { topic: string; name: string; email: string; phone?: string; company?: string; message: string; page?: string; website?: string }) => request<{ ok: boolean }>("/site/contact", { method: "POST", auth: false, body: b }),
   newsletter: (email: string, source: string, website?: string) => request<{ ok: boolean }>("/site/newsletter", { method: "POST", auth: false, body: { email, source, website } }),
+};
+
+
+// ---- platform admin console -------------------------------------------------------------------------------------------------------------------
+
+export type AdminState = PlanState;
+export type AdminWorkspaceRow = {
+  id: string; name: string; slug: string; status: "active" | "suspended"; plan_id: string; plan_name: string; trial_ends_at: string | null; plan_expires_at: string | null;
+  created_at: string | null; owner_email: string | null; members: number; state: AdminState;
+};
+export type AdminWorkspaceDetail = AdminWorkspaceRow & {
+  quotas: Record<string, number>; quotas_override: Record<string, number>; features: Record<string, boolean>;
+  usage: { contacts: number; automation_flows: number; team_members: number; whatsapp_numbers: number };
+  members: { user_id: string; email: string; full_name: string | null; role: string; last_login_at: string | null; is_active: boolean }[];
+  payments: { id: string; plan_id: string; months: number; total_amount: number; invoice_number: string | null; paid_at: string | null }[];
+};
+export type AdminOverview = {
+  workspaces: { total: number; by_plan: Record<string, number>; suspended: number; trial_active: number; trial_expiring_3d: number; paying: number };
+  signups: { last_7d: number; last_30d: number }; users: number;
+  revenue: { currency: string; mrr: number; last_30_days: number; all_time: number };
+  recent_workspaces: AdminWorkspaceRow[];
+  recent_payments: { id: string; workspace: string; plan_id: string; months: number; total_amount: number; invoice_number: string | null; paid_at: string | null }[];
+};
+export type AdminPlan = {
+  id: string; name: string; price_monthly: number | null; price_quarterly: number | null; price_yearly: number | null; quotas: Record<string, number>;
+  features: Record<string, boolean>; is_public: boolean; workspaces: number; purchasable: boolean;
+};
+export type AdminPlans = { plans: AdminPlan[]; feature_catalog: Record<string, { label: string; blurb: string }>; quota_keys: string[]; trial_days: number };
+export type AdminPayment = {
+  id: string; workspace_id: string; workspace: string; plan_id: string; interval: string; months: number; base_amount: number; gst_amount: number; total_amount: number;
+  method: string | null; invoice_number: string | null; paid_at: string | null;
+};
+export type AdminUser = { id: string; email: string; full_name: string | null; is_active: boolean; created_at: string | null; last_login_at: string | null; workspaces: { name: string; role: string }[] };
+export type AdminWorkspacePatch = {
+  plan_id?: string; status?: "active" | "suspended"; extend_trial_days?: number; trial_ends_at?: string; plan_expires_at?: string; clear_plan_expiry?: boolean; quotas_override?: Record<string, number>;
+};
+export type AdminPlanPatch = {
+  name?: string; price_monthly?: number; price_quarterly?: number; price_yearly?: number; clear_prices?: boolean; quotas?: Record<string, number>; features?: Record<string, boolean>; is_public?: boolean;
+};
+export const admin = {
+  overview: () => request<AdminOverview>("/admin/overview"),
+  workspaces: (p?: { q?: string; plan?: string; status?: string; limit?: number; offset?: number }) => request<{ total: number; items: AdminWorkspaceRow[] }>(`/admin/workspaces${qs(p)}`),
+  workspace: (id: string) => request<AdminWorkspaceDetail>(`/admin/workspaces/${id}`),
+  updateWorkspace: (id: string, body: AdminWorkspacePatch) => request<AdminWorkspaceDetail>(`/admin/workspaces/${id}`, { method: "PATCH", body }),
+  plans: () => request<AdminPlans>("/admin/plans"),
+  updatePlan: (id: string, body: AdminPlanPatch) => request<AdminPlan>(`/admin/plans/${id}`, { method: "PUT", body }),
+  setTrialDays: (trial_days: number) => request<{ trial_days: number }>("/admin/settings", { method: "PUT", body: { trial_days } }),
+  payments: (p?: { limit?: number; offset?: number }) => request<{ total: number; items: AdminPayment[] }>(`/admin/payments${qs(p)}`),
+  users: (p?: { q?: string; limit?: number; offset?: number }) => request<{ total: number; items: AdminUser[] }>(`/admin/users${qs(p)}`),
+  updateUser: (id: string, is_active: boolean) => request<{ id: string; is_active: boolean }>(`/admin/users/${id}`, { method: "PATCH", body: { is_active } }),
 };
