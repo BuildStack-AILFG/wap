@@ -14,9 +14,11 @@ export const metadata = pageMetadata({
   keywords: ["WhatsApp Business automation", "WhatsApp chatbot", "WhatsApp CRM", "WhatsApp broadcast", "WhatsApp shared inbox", "WhatsApp Business API India"],
 });
 
-// Chat widget embed for the homepage. Set NEXT_PUBLIC_HOME_WIDGET_SRC to the script URL copied from Dashboard -> Widget;
-// leave it unset to render no widget. It must be a URL the visitor's browser can reach (not localhost in production).
-const HOME_WIDGET_SRC = process.env.NEXT_PUBLIC_HOME_WIDGET_SRC?.trim();
+// Chat widget embed for the homepage (created in Dashboard -> Widget on production). Override per deployment with
+// NEXT_PUBLIC_HOME_WIDGET_SRC; it must be a URL the visitor's browser can reach (not localhost in production).
+const HOME_WIDGET_SRC =
+  process.env.NEXT_PUBLIC_HOME_WIDGET_SRC?.trim() ||
+  "https://wap-production-ce44.up.railway.app/api/public/widget/CCLRD35UNiEob6j1.js";
 
 export default function Home() {
   return (
