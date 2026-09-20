@@ -217,6 +217,19 @@ async def test_widget_lifecycle_script_lead_capture_and_qr(wsa):
     assert (await wsa.client.post(f"{beacon}/open", content=b"{}", headers={"content-type": "text/plain"})).status_code == 404
 
 
+async def test_widget_create_blank_number_uses_connected_number_else_asks(ws, meta):
+    # No WhatsApp number connected and none typed: a clear 422 that says what to do (the UI collects the number in the create dialog).
+    blank = await ws.post("/widgets", json={})
+    assert blank.status_code == 422 and "WhatsApp number" in blank.json()["detail"]["error"]
+    typed = await ws.post("/widgets", json={"name": "Typed", "phone_number": "+91 98765 43210"})
+    assert typed.status_code == 201 and typed.json()["phone_number"] == "919876543210"
+
+    # Once a number is connected, a blank number falls back to it instead of failing validation.
+    await ws.connect(meta)
+    fallback = await ws.post("/widgets", json={})
+    assert fallback.status_code == 201 and fallback.json()["phone_number"] == "919876543210"
+
+
 async def test_widget_domain_lock_and_lead_rate_limit(wsa):
     w = (await wsa.post("/widgets", json={"phone_number": "919876543210", "allowed_domains": ["https://shop.io/"]})).json()
     ok = await wsa.client.get(f"/api/public/widget/{w['public_key']}.js", headers={"referer": "https://www.shop.io/page"})

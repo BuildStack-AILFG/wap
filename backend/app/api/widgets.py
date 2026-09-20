@@ -38,13 +38,13 @@ class WidgetIn(BaseModel):
     allowed_domains: list[str] = Field(default_factory=list, max_length=20)
 
 
-def _clean(body: WidgetIn) -> dict:
+def _clean(body: WidgetIn, fallback_phone: str = "") -> dict:
     data = body.model_dump()
     if not HEX.match(data["brand_color"]):
         raise HTTPException(status_code=422, detail={"error": "Brand color must be a hex color like #00926B."})
-    data["phone_number"] = re.sub(r"\D", "", data["phone_number"])
+    data["phone_number"] = re.sub(r"\D", "", data["phone_number"]) or fallback_phone
     if data["enabled"] and not 8 <= len(data["phone_number"]) <= 15:
-        raise HTTPException(status_code=422, detail={"error": "Enter the WhatsApp number (with country code) the widget should open."})
+        raise HTTPException(status_code=422, detail={"error": "Enter the WhatsApp number (with country code) the widget should open, e.g. 919876543210."})
     domains = []
     for d in data["allowed_domains"]:
         host = re.sub(r"^https?://", "", d.strip().lower()).split("/")[0]
@@ -86,10 +86,11 @@ async def list_widgets(request: Request, ctx: Ctx = Depends(get_ctx), db: AsyncS
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_widget(body: WidgetIn, request: Request, ctx: Ctx = Depends(require_manager), db: AsyncSession = Depends(get_db)) -> dict:
-    data = _clean(body)
-    if not data["phone_number"]:  # default to the connected number so the widget works out of the box
+    fallback = ""
+    if not re.sub(r"\D", "", body.phone_number):  # no number typed: default to the connected one so the widget works out of the box
         acct = (await db.execute(select(WhatsAppAccount).where(WhatsAppAccount.tenant_id == ctx.tenant_id, WhatsAppAccount.status == "connected").limit(1))).scalar_one_or_none()
-        data["phone_number"] = re.sub(r"\D", "", acct.display_phone_number or "") if acct else ""
+        fallback = re.sub(r"\D", "", acct.display_phone_number or "") if acct else ""
+    data = _clean(body, fallback)  # validate only after the fallback is applied — otherwise a blank number always 422s
     w = Widget(tenant_id=ctx.tenant_id, public_key=secrets.token_urlsafe(12).replace("-", "a").replace("_", "b"), **data)
     db.add(w)
     await db.commit()
