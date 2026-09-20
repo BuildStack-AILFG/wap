@@ -19,7 +19,7 @@ const CAPABILITIES = [
     title: "Turn Conversations into Sales with AI",
     description: "Deploy an AI agent that answers queries, qualifies leads, and recommends products like a human would.",
     href: "#ai-suite",
-    tagColor: "#00C48F",
+    tagColor: "var(--brand-bright)",
     image: "/images/interakt-clone/Group-1430106369.webp",
   },
   {
@@ -27,7 +27,7 @@ const CAPABILITIES = [
     title: "Launch WhatsApp Chatbots in Minutes",
     description: "Automate up to 80% of queries with an easy, drag-and-drop, no-code chatbot builder.",
     href: "#features",
-    tagColor: "#00C48F",
+    tagColor: "var(--brand-bright)",
     image: "/images/interakt-clone/chatbot-builder.gif",
   },
   {
@@ -35,7 +35,7 @@ const CAPABILITIES = [
     title: "Broadcast Messages to Thousands in One Click",
     description: "Scale your business communication effortlessly and reach every contact in a single send.",
     href: "#features",
-    tagColor: "#00C48F",
+    tagColor: "var(--brand-bright)",
     image: "/images/interakt-clone/Broadcast-WhatsApp-Messages-to-1000s-in-a-single-click3x_-1.webp",
   },
   {
@@ -43,7 +43,7 @@ const CAPABILITIES = [
     title: "Streamline Queries, Boost Efficiency",
     description: "Manage every WhatsApp query with a shared inbox — assignment, notes, and zero missed messages.",
     href: "#features",
-    tagColor: "#00C48F",
+    tagColor: "var(--brand-bright)",
     image: "/images/interakt-clone/Manage-Customer-Interactions-with-Ease-2.webp",
   },
   {
@@ -51,7 +51,7 @@ const CAPABILITIES = [
     title: "Bills, Payments & Catalogs in One Chat",
     description: "Share catalogs, collect payments, and confirm orders — all without leaving the conversation.",
     href: "#features",
-    tagColor: "#00C48F",
+    tagColor: "var(--brand-bright)",
     image: "/images/interakt-clone/Launch-WhatsApp-Store-Payments-1.webp",
   },
   {
@@ -59,7 +59,7 @@ const CAPABILITIES = [
     title: "Campaign & Team Analytics",
     description: "Track team performance, measure impact, and optimize campaigns with real-time insights.",
     href: "#features",
-    tagColor: "#00C48F",
+    tagColor: "var(--brand-bright)",
     image: "/images/interakt-clone/Campaign-Team-Analytics-3.webp",
   },
 ];
@@ -73,7 +73,7 @@ export default function CapabilitiesGridSection() {
             <a
               key={item.label}
               href={item.href}
-              className="rounded-full px-4 py-1.5 text-[13px] font-semibold text-white/60 transition-colors hover:bg-[#00926B]/15 hover:text-[#00b384]"
+              className="rounded-full px-4 py-1.5 text-[13px] font-semibold text-white/60 transition-colors hover:bg-brand/15 hover:text-brand-soft"
             >
               {item.label}
             </a>
@@ -90,7 +90,7 @@ export default function CapabilitiesGridSection() {
             <Link
               key={title}
               href={href}
-              className="group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-[#00926B]/40 hover:bg-white/[0.06]"
+              className="group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/40 hover:bg-white/[0.06]"
             >
               <div className="p-6 pb-0">
                 <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: tagColor }}>

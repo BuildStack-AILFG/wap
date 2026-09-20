@@ -97,7 +97,7 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer id="contact" className="bg-[#1D4B3E] text-white">
+    <footer id="contact" className="theme-fixed bg-[#1D4B3E] text-white">
       <div className={`${MARKETING.containerWide} py-14 lg:py-16`}>
         <div className="flex flex-col gap-12 lg:flex-row lg:justify-between">
           <div className="max-w-xs">
@@ -155,7 +155,7 @@ export default function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={s.label}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition-transform hover:scale-105 hover:bg-[#00926B]"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition-transform hover:scale-105 hover:bg-brand"
                 >
                   <Icon className="h-4 w-4" style={{ color: s.color }} />
                 </a>

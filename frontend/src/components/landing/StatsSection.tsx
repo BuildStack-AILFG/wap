@@ -20,7 +20,7 @@ export default function StatsSection() {
           {STATS.map((stat) => (
             <div key={stat.label} className="text-center">
               <p
-                className="text-[2.25rem] font-extrabold tracking-[-0.03em] text-[#00926B] sm:text-[2.75rem]"
+                className="text-[2.25rem] font-extrabold tracking-[-0.03em] text-brand sm:text-[2.75rem]"
                 style={{ fontFamily: "var(--font-plus-jakarta)" }}
               >
                 {stat.value}

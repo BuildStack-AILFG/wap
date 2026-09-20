@@ -187,7 +187,7 @@ function Builder({ initial, id, canSubmit, onClose, onSaved }: { initial: Templa
 
         <div>
           <div className="sticky top-0"><div className="mb-2 text-[12px] font-medium uppercase tracking-wide text-white/40">Live preview</div>
-            <div className="rounded-2xl bg-[#0b141a] p-4"><div className="max-w-[270px] rounded-xl rounded-tl-none bg-[#202c33] p-2.5 text-[13px] text-white shadow">
+            <div className="theme-fixed rounded-2xl bg-[#0b141a] p-4"><div className="max-w-[270px] rounded-xl rounded-tl-none bg-[#202c33] p-2.5 text-[13px] text-white shadow">
               {auth ? <div><span className="font-medium">123456</span> is your verification code. For your security, do not share this code.<div className="mt-2 rounded-md bg-white/10 py-1.5 text-center text-sky-300">Copy code</div></div> : <>
                 {t.header_type === "text" && t.header_text && <div className="mb-1 font-semibold">{t.header_text}</div>}
                 {["image", "video", "document"].includes(t.header_type) && <div className="mb-1.5 flex h-28 items-center justify-center rounded-lg bg-white/10 text-[11px] text-white/45">{t.header_type} preview</div>}

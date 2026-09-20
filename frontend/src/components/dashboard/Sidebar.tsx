@@ -6,19 +6,20 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { QUICK_LINKS, NAV_GROUPS, RAIL_LINKS, SIDEBAR_WIDTH, type NavItem, type NavGroup } from "./navConfig";
 
-// Full black + glass theme, accent #00926B — per the user's explicit direction (Vercel-style
-// dark dashboard). Row layout/spacing (16px/500 Inter, 8px padding/gap, 4px radius) is kept from
-// the earlier verified-against-Interakt pass; only colors changed here.
-const ACCENT = "#00926B";
-const ACCENT_SOFT = "rgba(0,146,107,0.18)";
-const TEXT_DEFAULT = "rgba(255,255,255,0.7)";
-const TEXT_ACTIVE = "#FFFFFF";
-const ROW_HOVER_BG = "rgba(255,255,255,0.07)";
-const SECTION_TITLE_COLOR = "rgba(255,255,255,0.4)";
-const SUBSECTION_TITLE_COLOR = "rgba(255,255,255,0.3)";
+// Black + glass in the dark theme, cream + green in the light one — every colour below is a theme variable
+// (see globals.css), so this file doesn't care which is active. Row layout/spacing (16px/500 Inter, 8px
+// padding/gap, 4px radius) is kept from the earlier verified-against-Interakt pass; only colors changed here.
+const mix = (v: string, pct: number) => `color-mix(in srgb, var(${v}) ${pct}%, transparent)`;
+const ACCENT = "var(--brand)";
+const ACCENT_SOFT = mix("--brand", 18);
+const TEXT_DEFAULT = mix("--foreground", 70);
+const TEXT_ACTIVE = "var(--foreground)";
+const ROW_HOVER_BG = mix("--foreground", 7);
+const SECTION_TITLE_COLOR = "var(--ink-faint)";
+const SUBSECTION_TITLE_COLOR = "var(--ink-fainter)";
 
-const GLASS_BG = "rgba(10,10,10,0.7)";
-const GLASS_BORDER = "rgba(255,255,255,0.08)";
+const GLASS_BG = mix("--sidebar", 82);
+const GLASS_BORDER = mix("--foreground", 10);
 
 function isItemActive(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === "/dashboard";
@@ -85,13 +86,13 @@ function RailButton({
     onHoverChange?.(false);
   };
 
-  const content = <Icon className="h-5 w-5" style={{ color: active ? "#FFFFFF" : TEXT_DEFAULT }} strokeWidth={1.75} />;
+  const content = <Icon className="h-5 w-5" style={{ color: active ? "#F8F9F2" : TEXT_DEFAULT }} strokeWidth={1.75} />;
   const sharedProps = {
     title: label,
     onMouseEnter: handleEnter,
     onMouseLeave: handleLeave,
     className: "flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
-    style: { backgroundColor: active ? ACCENT : hovered ? "rgba(255,255,255,0.08)" : "transparent" },
+    style: { backgroundColor: active ? ACCENT : hovered ? ROW_HOVER_BG : "transparent" },
   };
 
   if (href) {
@@ -163,8 +164,8 @@ export default function Sidebar() {
   };
 
   const rail = (
-    <div className="flex h-full w-[72px] shrink-0 flex-col items-center border-r py-4" style={{ backgroundColor: "#000000", borderColor: GLASS_BORDER }}>
-      <Link href="/dashboard" className="mb-4 flex h-8 w-8 items-center justify-center rounded-lg text-white" style={{ backgroundColor: ACCENT }}>
+    <div className="flex h-full w-[72px] shrink-0 flex-col items-center border-r py-4" style={{ backgroundColor: "var(--sidebar)", borderColor: GLASS_BORDER }}>
+      <Link href="/dashboard" className="mb-4 flex h-8 w-8 items-center justify-center rounded-lg text-white btn-accent" style={{ backgroundColor: ACCENT }}>
         <span className="text-[13px] font-extrabold">W</span>
       </Link>
 
@@ -226,7 +227,7 @@ export default function Sidebar() {
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-lg text-white shadow-md"
+            className="fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-lg text-white shadow-md btn-accent"
             style={{ backgroundColor: ACCENT }}
             aria-label="Open menu"
           >

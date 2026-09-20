@@ -96,7 +96,7 @@ export default function RotatePasswordForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="flex w-full items-center justify-center rounded-xl bg-[#00926B] px-4 py-3 text-[14.5px] font-semibold text-white transition-opacity hover:bg-[#007A59] disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex w-full items-center justify-center rounded-xl bg-brand px-4 py-3 text-[14.5px] font-semibold text-white transition-opacity hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
       >
         {submitting ? "Updating…" : "Update password"}
       </button>

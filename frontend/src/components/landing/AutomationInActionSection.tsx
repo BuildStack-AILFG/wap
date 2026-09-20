@@ -22,7 +22,7 @@ const WORKFLOW_STEPS = [
 
 export default function AutomationInActionSection() {
   return (
-    <section className="relative w-full bg-[#050505] py-16 sm:py-20">
+    <section className="relative w-full bg-alt py-16 sm:py-20">
       <div className="mx-auto mb-10 w-full max-w-3xl px-4 text-center sm:px-6">
         <h2
           className="text-3xl font-extrabold tracking-[-0.03em] text-white sm:text-4xl"
@@ -37,7 +37,7 @@ export default function AutomationInActionSection() {
 
       <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center gap-8 px-4 sm:px-6 md:flex-row md:items-center md:justify-center md:gap-14">
         <div className="mx-auto h-[420px] w-[210px] shrink-0">
-          <div className="flex h-full flex-col rounded-[1.75rem] border-[3px] border-white/15 bg-[#0a0a0a] p-[3px] shadow-[0_20px_50px_rgba(15,23,42,0.22)]">
+          <div className="theme-fixed flex h-full flex-col rounded-[1.75rem] border-[3px] border-white/15 bg-[#0a0a0a] p-[3px] shadow-[0_20px_50px_rgba(15,23,42,0.22)]">
             <div className="flex h-full flex-col overflow-hidden rounded-[1.35rem] bg-black">
               <div className="flex h-5 shrink-0 items-end justify-center bg-black pb-0.5">
                 <div className="h-1.5 w-14 rounded-full bg-[#2a2a2a]" />
@@ -77,7 +77,7 @@ export default function AutomationInActionSection() {
                     </p>
                     <p className="mt-0.5 text-right text-[9px] text-[#8696A0]">10:25</p>
                   </div>
-                  <p className="mt-1 flex items-center gap-1 text-[9px] font-medium text-[#00926B]">
+                  <p className="mt-1 flex items-center gap-1 text-[9px] font-medium text-brand">
                     <CheckCircle2 className="h-2.5 w-2.5" /> Replied automatically
                   </p>
                 </div>
@@ -87,18 +87,18 @@ export default function AutomationInActionSection() {
         </div>
 
         <div className="flex max-w-xs flex-col gap-3">
-          <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[#00926B]">The workflow</p>
+          <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-brand">The workflow</p>
           <div className="flex flex-wrap gap-1.5">
             {WORKFLOW_STEPS.map((step) => (
               <span
                 key={step}
-                className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-[11px] font-medium text-[#00926B] shadow-sm"
+                className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-[11px] font-medium text-brand shadow-sm"
               >
                 ✓ {step}
               </span>
             ))}
           </div>
-          <p className="mt-2 text-[14px] leading-relaxed text-[#E9EDEF]/60">
+          <p className="mt-2 text-[14px] leading-relaxed text-white/60">
             From the first message to a resolved conversation — all without an agent lifting a finger.
           </p>
         </div>

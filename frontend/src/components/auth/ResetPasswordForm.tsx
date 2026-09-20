@@ -23,7 +23,7 @@ export default function ResetPasswordForm() {
       <div className="space-y-4">
         <h1 className="text-[26px] font-bold text-white">This link isn&apos;t valid</h1>
         <p className="text-[14px] text-white/60">The reset link is missing its token. Request a new one.</p>
-        <Link href="/forgot-password" className="inline-block text-[14px] font-semibold text-[#00926B] hover:underline">
+        <Link href="/forgot-password" className="inline-block text-[14px] font-semibold text-brand hover:underline">
           Send a new link
         </Link>
       </div>
@@ -89,7 +89,7 @@ export default function ResetPasswordForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="flex w-full items-center justify-center rounded-xl bg-[#00926B] px-4 py-3 text-[14.5px] font-semibold text-white hover:bg-[#007A59] disabled:opacity-60"
+        className="flex w-full items-center justify-center rounded-xl bg-brand px-4 py-3 text-[14.5px] font-semibold text-white hover:bg-brand-hover disabled:opacity-60"
       >
         {submitting ? "Updating…" : "Update password"}
       </button>

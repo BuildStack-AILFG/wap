@@ -26,7 +26,7 @@ export default function ConversationAnalyticsPage() {
             <Stat label="Avg. first response" value={fmtDuration(a.first_response.avg_seconds)} sub={`${a.first_response.conversations} conversations measured`} />
             <Stat label="Open conversations" value={a.conversations.open} sub={`${a.conversations.unassigned} unassigned · ${a.conversations.human_handled} with a human`} tone={a.conversations.unassigned > 10 ? "red" : undefined} />
           </div>
-          <Card className="p-5"><h3 className="mb-4 text-[14.5px] font-semibold text-white">Messages per day</h3><BarChart data={a.messages} series={[{ key: "inbound", label: "Received", color: "#38bdf8" }, { key: "outbound", label: "Sent", color: "#00926B" }]} /></Card>
+          <Card className="p-5"><h3 className="mb-4 text-[14.5px] font-semibold text-white">Messages per day</h3><BarChart data={a.messages} series={[{ key: "inbound", label: "Received", color: "#38bdf8" }, { key: "outbound", label: "Sent", color: "var(--brand)" }]} /></Card>
           <div className="grid gap-5 lg:grid-cols-2">
             <Card className="p-5"><h3 className="mb-4 text-[14.5px] font-semibold text-white">New conversations</h3><BarChart height={140} data={a.conversations_started} series={[{ key: "count", label: "Conversations", color: "#a78bfa" }]} /></Card>
             <Card className="p-5"><h3 className="mb-4 text-[14.5px] font-semibold text-white">New contacts</h3><BarChart height={140} data={a.new_contacts} series={[{ key: "count", label: "Contacts", color: "#fbbf24" }]} /></Card>

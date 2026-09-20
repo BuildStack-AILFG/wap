@@ -9,6 +9,7 @@ import { ArrowLeft, CheckCircle2, ListChecks, Loader2, Play, Rocket, Undo2 } fro
 import { Alert, Badge, Button, cx, Field, Input, Modal, Select, Spinner, statusTone, timeAgo, useUi } from "@/components/ui/kit";
 import { errorMessage, flows as api, team, templates as tplApi, type FlowExecution, type FlowFull, type Member, type Template } from "@/lib/api";
 import Inspector from "@/components/flow/Inspector";
+import { useTheme } from "@/lib/theme";
 import { STEP_META, TRIGGERS, defaultData, outputsFor, summarize, uid } from "@/components/flow/model";
 
 type StepData = { stepType: string; config: Record<string, unknown>; invalid?: boolean; running?: number };
@@ -19,14 +20,14 @@ function StepNodeView({ data, selected }: NodeProps<StepNode>) {
   const outs = outputsFor({ type: data.stepType, data: data.config });
   const multi = outs.length > 1;
   return (
-    <div className={cx("min-w-[220px] max-w-[260px] rounded-xl border bg-zinc-900 shadow-lg transition", selected ? "border-white/60 ring-2 ring-white/20" : data.invalid ? "border-red-500/60" : "border-white/15")}>
-      {data.stepType !== "start" && <Handle type="target" position={Position.Left} className="!h-3 !w-3 !border-2 !border-zinc-900 !bg-white/70" />}
+    <div className={cx("min-w-[220px] max-w-[260px] rounded-xl border bg-surface shadow-lg transition", selected ? "border-white/60 ring-2 ring-white/20" : data.invalid ? "border-red-500/60" : "border-white/15")}>
+      {data.stepType !== "start" && <Handle type="target" position={Position.Left} className="!h-3 !w-3 !border-2 !border-surface !bg-white/70" />}
       <div className="flex items-center gap-2 rounded-t-xl px-3 py-2 text-[12px] font-semibold text-white" style={{ background: meta?.color ?? "#444" }}>
         {meta?.label ?? data.stepType}{!!data.running && <span className="ml-auto rounded-full bg-white/25 px-1.5 text-[10px]">{data.running} waiting</span>}
       </div>
       <div className="px-3 py-2.5 text-[12px] leading-snug text-white/70">{summarize({ type: data.stepType, data: data.config })}</div>
-      {multi && <div className="border-t border-white/10 py-1">{outs.map(([id, label]) => <div key={id} className="relative px-3 py-1 text-right text-[11px] text-white/60">{label}<Handle id={id} type="source" position={Position.Right} className="!h-3 !w-3 !border-2 !border-zinc-900 !bg-emerald-400" style={{ top: "50%" }} /></div>)}</div>}
-      {!multi && outs.length === 1 && <Handle id={outs[0][0]} type="source" position={Position.Right} className="!h-3 !w-3 !border-2 !border-zinc-900 !bg-emerald-400" />}
+      {multi && <div className="border-t border-white/10 py-1">{outs.map(([id, label]) => <div key={id} className="relative px-3 py-1 text-right text-[11px] text-white/60">{label}<Handle id={id} type="source" position={Position.Right} className="!h-3 !w-3 !border-2 !border-surface !bg-emerald-400" style={{ top: "50%" }} /></div>)}</div>}
+      {!multi && outs.length === 1 && <Handle id={outs[0][0]} type="source" position={Position.Right} className="!h-3 !w-3 !border-2 !border-surface !bg-emerald-400" />}
     </div>
   );
 }
@@ -46,6 +47,7 @@ export default function FlowEditorPage() {
 }
 
 function Editor() {
+  const { isDark } = useTheme();
   const { id } = useParams<{ id: string }>();
   const { toast } = useUi();
   const rf = useReactFlow();
@@ -174,12 +176,12 @@ function Editor() {
         </aside>
 
         <div className="relative min-w-0 flex-1">
-          <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.3, maxZoom: 1 }} minZoom={0.2} colorMode="dark" deleteKeyCode={["Backspace", "Delete"]}
+          <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.3, maxZoom: 1 }} minZoom={0.2} colorMode={isDark ? "dark" : "light"} deleteKeyCode={["Backspace", "Delete"]}
             onNodesChange={(c) => { onNodesChange(c); if (c.some((x) => x.type === "position" && x.dragging === false) || c.some((x) => x.type === "remove")) markDirty(); }}
             onEdgesChange={(c) => { onEdgesChange(c); if (c.some((x) => x.type === "remove")) markDirty(); }} onConnect={onConnect}
             onNodeClick={(_, n) => setSelected(n.id)} onPaneClick={() => setSelected(null)} onNodesDelete={(ns) => { if (ns.some((n) => n.data.stepType === "start")) { setNodes((cur) => (cur.some((n) => n.data.stepType === "start") ? cur : [...cur, ns.find((n) => n.data.stepType === "start")!])); } }}>
-            <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} color="rgba(255,255,255,0.12)" />
-            <Controls showInteractive={false} /><MiniMap pannable zoomable nodeColor={(n) => STEP_META[(n as StepNode).data.stepType]?.color ?? "#555"} maskColor="rgba(0,0,0,0.6)" className="!hidden lg:!block" />
+            <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} color="color-mix(in srgb, var(--foreground) 14%, transparent)" />
+            <Controls showInteractive={false} /><MiniMap pannable zoomable nodeColor={(n) => STEP_META[(n as StepNode).data.stepType]?.color ?? "#555"} maskColor="color-mix(in srgb, var(--background) 65%, transparent)" className="!hidden lg:!block" />
           </ReactFlow>
           {trig && <div className="pointer-events-none absolute left-3 top-3 max-w-xs rounded-lg bg-black/60 px-3 py-2 text-[11.5px] text-white/55 backdrop-blur"><ListChecks size={12} className="mr-1 inline" />{trig.hint}</div>}
         </div>

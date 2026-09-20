@@ -46,7 +46,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen flex-col items-center justify-center gap-4 bg-black px-6 text-center">
         <p className="text-[15px] font-medium text-white">We couldn&apos;t load your workspace</p>
         <p className="max-w-sm text-[13px] text-white/50">{failed}</p>
-        <button onClick={load} className="rounded-lg bg-[#00926B] px-4 py-2 text-[13.5px] font-medium text-white hover:brightness-110">Try again</button>
+        <button onClick={load} className="rounded-lg bg-brand px-4 py-2 text-[13.5px] font-medium text-white hover:brightness-110">Try again</button>
       </div>
     );
   }

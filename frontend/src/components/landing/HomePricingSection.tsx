@@ -38,7 +38,7 @@ export default function HomePricingSection() {
   return (
     <section id="pricing" className="relative bg-black py-14 sm:py-16 lg:py-20">
       <div className="mx-auto max-w-2xl px-4 sm:px-6 text-center">
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#00926B]">Pricing</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand">Pricing</p>
         <h2
           className="mt-3 text-[1.75rem] font-extrabold leading-[1.12] tracking-[-0.03em] text-white sm:text-[2.15rem]"
           style={{ fontFamily: "var(--font-plus-jakarta)" }}
@@ -55,11 +55,11 @@ export default function HomePricingSection() {
           <div
             key={plan.name}
             className={`relative flex flex-col rounded-2xl border p-7 ${
-              plan.highlighted ? "border-[#00926B] bg-[#00926B]/10 text-white shadow-xl" : "border-white/10 bg-white/[0.03] backdrop-blur-xl"
+              plan.highlighted ? "border-brand bg-brand/10 text-white shadow-xl" : "border-white/10 bg-white/[0.03] backdrop-blur-xl"
             }`}
           >
             {plan.highlighted && (
-              <span className="absolute -top-3 left-7 rounded-full bg-[#00926B] px-3 py-1 text-[11px] font-bold text-white">
+              <span className="absolute -top-3 left-7 rounded-full bg-brand px-3 py-1 text-[11px] font-bold text-white">
                 Most popular
               </span>
             )}
@@ -79,7 +79,7 @@ export default function HomePricingSection() {
                 <li key={f} className={`flex items-center gap-2.5 text-[13.5px] ${plan.highlighted ? "text-white/70" : "text-white/70"}`}>
                   <span
                     className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-                      plan.highlighted ? "bg-white/10 text-[#00C48F]" : "bg-[#00926B]/15 text-[#00926B]"
+                      plan.highlighted ? "bg-white/10 text-brand-bright" : "bg-brand/15 text-brand"
                     }`}
                   >
                     <Check className="h-3 w-3" strokeWidth={3} />
@@ -92,7 +92,7 @@ export default function HomePricingSection() {
             <Link
               href="#get-started"
               className={`mt-8 flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[14px] font-bold transition-transform hover:-translate-y-0.5 ${
-                plan.highlighted ? "bg-[#00926B]/150 text-[#0B1712]" : "bg-[#00926B] text-white"
+                plan.highlighted ? "bg-brand/150 text-[#0B1712]" : "bg-brand text-white"
               }`}
             >
               Choose {plan.name}

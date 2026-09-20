@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { AlertTriangle, Bot, Check, CheckCheck, Clock, FileText, Inbox as InboxIcon, Paperclip, Search, Send, StickyNote, UserRound, X, Zap } from "lucide-react";
-import { ACCENT, Alert, Badge, Button, cx, EmptyState, Field, fmtDateTime, Input, Modal, Select, Spinner, timeAgo, Toggle, useDebounced, usePoll, useUi } from "@/components/ui/kit";
+import { ACCENT, accentTint, Alert, Badge, Button, cx, EmptyState, Field, fmtDateTime, Input, Modal, Select, Spinner, timeAgo, Toggle, useDebounced, usePoll, useUi } from "@/components/ui/kit";
 import {
   contacts as contactsApi, errorMessage, getSettings, inbox, templates as templatesApi, whatsapp, team,
   type ChatMessage, type ConversationDetail, type ConversationSummary, type Member, type Template,
@@ -85,7 +85,7 @@ function Inbox() {
           </div>
           <div className="mt-3 flex gap-1 overflow-x-auto">
             {tabs.map((t) => (
-              <button key={t.id} onClick={() => setFilter(t.id)} className={cx("shrink-0 rounded-full px-3 py-1 text-[12.5px] transition", filter === t.id ? "text-white" : "text-white/50 hover:text-white/80")} style={filter === t.id ? { background: `${ACCENT}33`, color: "#fff" } : undefined}>
+              <button key={t.id} onClick={() => setFilter(t.id)} className={cx("shrink-0 rounded-full px-3 py-1 text-[12.5px] transition", filter === t.id ? "text-white" : "text-white/50 hover:text-white/80")} style={filter === t.id ? { background: accentTint(20), color: "var(--foreground)" } : undefined}>
                 {t.label}{t.count ? <span className="ml-1.5 text-white/40">{t.count}</span> : null}
               </button>
             ))}
@@ -105,7 +105,7 @@ function Inbox() {
                 </div>
                 <div className="mt-0.5 flex items-center justify-between gap-2">
                   <span className="truncate text-[12.5px] text-white/45">{c.last_message_preview ?? "No messages yet"}</span>
-                  {c.unread_count > 0 && <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-bold text-white" style={{ background: ACCENT }}>{c.unread_count}</span>}
+                  {c.unread_count > 0 && <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-bold text-white btn-accent" style={{ background: ACCENT }}>{c.unread_count}</span>}
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {c.inbox_status === "intervened" && <Badge tone="blue"><UserRound size={10} /> Human</Badge>}
@@ -270,7 +270,7 @@ function Thread({ id, members, userId, onBack, onChanged }: { id: string; member
             </div>
             <div className="relative">
               {shortcutMatches.length > 0 && (
-                <div className="absolute bottom-full mb-2 w-full overflow-hidden rounded-lg border border-white/10 bg-zinc-950 shadow-xl">
+                <div className="absolute bottom-full mb-2 w-full overflow-hidden rounded-lg border border-white/10 bg-surface shadow-xl">
                   {shortcutMatches.map((q) => (
                     <button key={q.id} onClick={() => setText(q.text)} className="flex w-full items-start gap-3 px-3 py-2 text-left hover:bg-white/[0.06]">
                       <Zap size={13} className="mt-1 text-amber-300" /><span className="min-w-0"><span className="text-[12.5px] font-medium text-white">/{q.shortcut}</span><span className="block truncate text-[12px] text-white/45">{q.text}</span></span>
@@ -335,7 +335,7 @@ function Bubble({ m, prev, members }: { m: ChatMessage; prev?: ChatMessage; memb
     <>
       {newDay && <div className="my-3 text-center text-[11px] text-white/30">{new Date(m.created_at).toLocaleDateString([], { weekday: "long", day: "numeric", month: "short" })}</div>}
       <div className={cx("mb-1.5 flex", out ? "justify-end" : "justify-start")}>
-        <div className={cx("max-w-[78%] rounded-2xl px-3 py-2 text-[13.5px] shadow-sm", m.is_internal ? "border border-amber-500/30 bg-amber-500/10 text-amber-100" : out ? "rounded-br-md text-white" : "rounded-bl-md bg-white/[0.08] text-white")}
+        <div className={cx("max-w-[78%] rounded-2xl px-3 py-2 text-[13.5px] shadow-sm", m.is_internal ? "border border-amber-500/30 bg-amber-500/10 text-amber-100" : out ? "theme-fixed rounded-br-md text-white" : "rounded-bl-md bg-white/[0.08] text-white")}
           style={out && !m.is_internal ? { background: "#005c4b" } : undefined}>
           {m.is_internal && <div className="mb-0.5 flex items-center gap-1 text-[11px] font-medium text-amber-300"><StickyNote size={11} /> Private note</div>}
           {out && !m.is_internal && sender && <div className="mb-0.5 text-[11px] font-medium text-emerald-200/70">{sender}</div>}

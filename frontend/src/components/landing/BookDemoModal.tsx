@@ -37,7 +37,7 @@ export default function BookDemoModal({ open, onClose }: BookDemoModalProps) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
       <button
         type="button"
-        className="absolute inset-0 bg-[#00926B]/55 backdrop-blur-sm"
+        className="absolute inset-0 bg-brand/55 backdrop-blur-sm"
         onClick={onClose}
         aria-label="Close"
       />
@@ -46,7 +46,7 @@ export default function BookDemoModal({ open, onClose }: BookDemoModalProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="book-demo-title"
-        className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0A0A0A] p-6 shadow-2xl sm:p-8"
+        className="relative w-full max-w-md rounded-2xl border border-white/10 bg-surface p-6 shadow-2xl sm:p-8"
       >
         <button
           type="button"
@@ -57,7 +57,7 @@ export default function BookDemoModal({ open, onClose }: BookDemoModalProps) {
           <X className="h-5 w-5" />
         </button>
 
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#00926B]">Book a demo</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand">Book a demo</p>
         <h3
           id="book-demo-title"
           className="mt-2 pr-8 text-xl font-extrabold tracking-tight text-white"
@@ -72,7 +72,7 @@ export default function BookDemoModal({ open, onClose }: BookDemoModalProps) {
         <button
           type="button"
           onClick={goToContact}
-          className="group mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#00926B] px-6 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#007A59]"
+          className="group mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-6 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-brand-hover"
         >
           Contact us
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

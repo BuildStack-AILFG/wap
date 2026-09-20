@@ -19,16 +19,16 @@ export function BarChart({ data, series, height = 180 }: { data: ({ date: string
       <div className="relative" style={{ height }}>
         {empty && <div className="absolute inset-0 flex items-center justify-center text-[12.5px] text-white/35">No activity in this period</div>}
         <svg viewBox={`0 0 100 ${height / 4}`} preserveAspectRatio="none" className="h-full w-full" role="img" aria-label="Bar chart">
-          {[0.25, 0.5, 0.75, 1].map((f) => <line key={f} x1="0" x2="100" y1={(height / 4) * (1 - f)} y2={(height / 4) * (1 - f)} stroke="rgba(255,255,255,0.06)" strokeWidth="0.3" />)}
+          {[0.25, 0.5, 0.75, 1].map((f) => <line key={f} x1="0" x2="100" y1={(height / 4) * (1 - f)} y2={(height / 4) * (1 - f)} stroke="color-mix(in srgb, var(--foreground) 8%, transparent)" strokeWidth="0.3" />)}
           {data.map((d, i) => (
             <g key={d.date} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
-              <rect x={i * w} y={0} width={w} height={height / 4} fill={hover === i ? "rgba(255,255,255,0.04)" : "transparent"} />
+              <rect x={i * w} y={0} width={w} height={height / 4} fill={hover === i ? "color-mix(in srgb, var(--foreground) 5%, transparent)" : "transparent"} />
               {series.map((s, si) => { const v = Number(d[s.key]) || 0; const h = (v / max) * (height / 4 - 2); return <rect key={s.key} x={i * w + w * 0.1 + si * bw} y={height / 4 - h} width={Math.max(bw - 0.15, 0.2)} height={h} rx={0.3} fill={s.color} opacity={hover === null || hover === i ? 1 : 0.5} />; })}
             </g>
           ))}
         </svg>
         {hover !== null && (
-          <div className="pointer-events-none absolute top-0 z-10 rounded-lg border border-white/10 bg-zinc-950/95 px-3 py-2 text-[12px] shadow-xl" style={{ left: `${Math.min(Math.max((hover + 0.5) * w, 12), 80)}%`, transform: "translateX(-50%)" }}>
+          <div className="pointer-events-none absolute top-0 z-10 rounded-lg border border-white/10 bg-surface/95 px-3 py-2 text-[12px] shadow-xl" style={{ left: `${Math.min(Math.max((hover + 0.5) * w, 12), 80)}%`, transform: "translateX(-50%)" }}>
             <div className="mb-1 font-medium text-white">{fmtDate(data[hover].date)}</div>{series.map((s) => <div key={s.key} className="flex items-center gap-2 text-white/70"><span className="h-2 w-2 rounded-sm" style={{ background: s.color }} />{s.label}: <b className="text-white">{Number(data[hover][s.key]) || 0}</b></div>)}
           </div>
         )}
@@ -44,7 +44,7 @@ export function Funnel({ steps }: { steps: { label: string; value: number; color
   return (
     <div className="space-y-3">{steps.map((s) => (
       <div key={s.label}><div className="mb-1 flex justify-between text-[12.5px]"><span className="text-white/70">{s.label}</span><span className="text-white/50"><b className="text-white">{s.value.toLocaleString()}</b> · {Math.round((s.value / top) * 100)}%</span></div>
-        <div className="h-2.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full transition-all" style={{ width: `${(s.value / top) * 100}%`, background: s.color ?? "#00926B" }} /></div></div>))}
+        <div className="h-2.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full transition-all" style={{ width: `${(s.value / top) * 100}%`, background: s.color ?? "var(--brand)" }} /></div></div>))}
     </div>
   );
 }

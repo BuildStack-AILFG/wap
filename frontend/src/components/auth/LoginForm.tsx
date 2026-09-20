@@ -62,7 +62,7 @@ export default function LoginForm() {
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
       <div>
         <h1 className="text-[26px] font-bold tracking-tight text-white sm:text-[28px]">
-          Welcome to <span className="text-[#00926B]">LeadForGrow</span>
+          Welcome to <span className="text-brand">LeadForGrow</span>
         </h1>
         <p className="mt-2 text-[14px] text-white/50">
           Automate WhatsApp conversations, broadcasts, and your team inbox — all in one place.
@@ -96,7 +96,7 @@ export default function LoginForm() {
         icon={<Lock className="h-4 w-4" />}
         showPasswordToggle
         rightSlot={
-          <Link href="/forgot-password" className="text-[12.5px] font-medium text-[#00926B] hover:text-[#00b384]">
+          <Link href="/forgot-password" className="text-[12.5px] font-medium text-brand hover:text-brand-soft">
             Forgot password?
           </Link>
         }
@@ -112,7 +112,7 @@ export default function LoginForm() {
           type="checkbox"
           checked={remember}
           onChange={(e) => setRemember(e.target.checked)}
-          className="h-4 w-4 rounded border-white/20 bg-white/5 text-[#00926B] focus:ring-[#00926B]"
+          className="h-4 w-4 rounded border-white/20 bg-white/5 text-brand focus:ring-brand"
         />
         Keep me logged in
       </label>
@@ -120,7 +120,7 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="flex w-full items-center justify-center rounded-xl bg-[#00926B] px-4 py-3 text-[14.5px] font-semibold text-white transition-opacity hover:bg-[#007A59] disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex w-full items-center justify-center rounded-xl bg-brand px-4 py-3 text-[14.5px] font-semibold text-white transition-opacity hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
       >
         {submitting ? "Logging in…" : "Log in"}
       </button>

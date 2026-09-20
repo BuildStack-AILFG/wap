@@ -39,7 +39,7 @@ export default function ForgotPasswordForm() {
           If an account exists for <b className="text-white">{email}</b>, we&apos;ve sent a link to reset your password. It expires in 1 hour.
         </p>
         <p className="text-[13px] text-white/40">Nothing arrived? Check spam, or try again in a few minutes.</p>
-        <Link href="/login" className="inline-block text-[14px] font-semibold text-[#00926B] hover:underline">
+        <Link href="/login" className="inline-block text-[14px] font-semibold text-brand hover:underline">
           Back to log in
         </Link>
       </div>
@@ -69,7 +69,7 @@ export default function ForgotPasswordForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="flex w-full items-center justify-center rounded-xl bg-[#00926B] px-4 py-3 text-[14.5px] font-semibold text-white hover:bg-[#007A59] disabled:opacity-60"
+        className="flex w-full items-center justify-center rounded-xl bg-brand px-4 py-3 text-[14.5px] font-semibold text-white hover:bg-brand-hover disabled:opacity-60"
       >
         {submitting ? "Sending…" : "Send reset link"}
       </button>

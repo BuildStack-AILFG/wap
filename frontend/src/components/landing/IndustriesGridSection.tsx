@@ -42,7 +42,7 @@ export default function IndustriesGridSection() {
               <div className="min-w-0 flex-1 p-5">
                 <h3 className="text-[15px] font-bold text-white">{title}</h3>
                 <p className="mt-1 text-[13px] leading-snug text-white/60">{description}</p>
-                <span className="mt-2 inline-flex items-center gap-1 text-[13px] font-semibold text-[#00926B]">
+                <span className="mt-2 inline-flex items-center gap-1 text-[13px] font-semibold text-brand">
                   Learn More
                   <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                 </span>

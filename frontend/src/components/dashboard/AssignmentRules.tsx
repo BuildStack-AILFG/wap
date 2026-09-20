@@ -31,7 +31,7 @@ export default function AssignmentRules() {
     <div className="space-y-4">
       {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
       <div className="grid gap-3 md:grid-cols-3">{MODES.map((m) => (
-        <button key={m.id} onClick={() => setMode(m.id)} className={`rounded-2xl border p-4 text-left transition ${mode === m.id ? "border-[#00926B] bg-[#00926B]/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"}`}>
+        <button key={m.id} onClick={() => setMode(m.id)} className={`rounded-2xl border p-4 text-left transition ${mode === m.id ? "border-brand bg-brand/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"}`}>
           <div className="text-[14px] font-semibold text-white">{m.title}</div><p className="mt-1 text-[12.5px] text-white/50">{m.desc}</p></button>))}</div>
       {mode !== "none" && (
         <Card className="p-5"><div className="mb-3 text-[14px] font-semibold text-white">Who can receive new chats</div><p className="mb-3 text-[12.5px] text-white/50">Owners, admins and agents take part. Turn someone off to skip them (holiday, or a manager who only supervises).</p>

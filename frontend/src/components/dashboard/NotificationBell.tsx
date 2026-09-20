@@ -58,7 +58,7 @@ export default function NotificationBell() {
       {open && (
         <>
           <button type="button" aria-label="Close notifications" onClick={toggle} className="fixed inset-0 z-40 cursor-default" />
-          <div className="absolute right-0 top-full z-50 mt-2 w-[360px] max-w-[92vw] overflow-hidden rounded-xl border border-white/10 bg-zinc-950/95 shadow-2xl backdrop-blur-xl">
+          <div className="absolute right-0 top-full z-50 mt-2 w-[360px] max-w-[92vw] overflow-hidden rounded-xl border border-white/10 bg-surface/95 shadow-2xl backdrop-blur-xl">
             <div className="border-b border-white/10 px-4 py-3 text-[13.5px] font-semibold text-white">Notifications</div>
             <div className="max-h-[420px] overflow-y-auto">
               {(data?.unread_conversations ?? 0) > 0 && (

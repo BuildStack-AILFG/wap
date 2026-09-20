@@ -3,7 +3,10 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { AlertCircle, CheckCircle2, Info, Loader2, X } from "lucide-react";
 
-export const ACCENT = "#00926B";
+export const ACCENT = "var(--brand)";
+/** Translucent brand tint that follows the theme (a CSS variable can't take a hex-alpha suffix like `${ACCENT}22`). */
+export const accentTint = (pct: number) => `color-mix(in srgb, var(--brand) ${pct}%, transparent)`;
+export const inkTint = (pct: number) => `color-mix(in srgb, var(--foreground) ${pct}%, transparent)`;
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
 
 // ---- formatting --------------------------------------------------------------------------------------------------------------------------------
@@ -65,8 +68,8 @@ export function usePoll(fn: () => void | Promise<void>, ms: number, deps: unknow
 type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "danger" | "soft"; size?: "sm" | "md"; loading?: boolean };
 export function Button({ variant = "primary", size = "md", loading, className, children, disabled, ...rest }: BtnProps) {
   const styles = {
-    primary: "text-white hover:brightness-110",
-    ghost: "border border-white/10 bg-white/[0.03] text-white/80 hover:bg-white/[0.07]",
+    primary: "btn-accent text-white hover:brightness-110",
+    ghost: "border border-white/10 bg-card text-white/80 hover:bg-white/[0.07]",
     soft: "bg-white/[0.06] text-white hover:bg-white/[0.1]",
     danger: "border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20",
   }[variant];
@@ -84,7 +87,7 @@ export function Button({ variant = "primary", size = "md", loading, className, c
 }
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cx("rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl", className)}>{children}</div>;
+  return <div className={cx("rounded-2xl border border-white/10 bg-card backdrop-blur-xl", className)}>{children}</div>;
 }
 
 const TONES = {
@@ -108,7 +111,7 @@ export function PageHeader({ title, subtitle, actions, icon }: { title: string; 
   return (
     <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div className="flex items-start gap-3">
-        {icon && <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: `${ACCENT}22`, color: ACCENT }}>{icon}</div>}
+        {icon && <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: accentTint(13), color: ACCENT }}>{icon}</div>}
         <div>
           <h1 className="text-[22px] font-semibold tracking-tight text-white">{title}</h1>
           {subtitle && <p className="mt-1 max-w-2xl text-[13.5px] text-white/55">{subtitle}</p>}
@@ -123,7 +126,7 @@ export function Page({ children, wide }: { children: ReactNode; wide?: boolean }
   return <div className={cx("mx-auto w-full px-6 py-8", wide ? "max-w-[1400px]" : "max-w-6xl")}>{children}</div>;
 }
 
-const fieldCls = "w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-[13.5px] text-white placeholder:text-white/30 focus:border-[#00926B] focus:outline-none focus:ring-1 focus:ring-[#00926B] disabled:opacity-50";
+const fieldCls = "w-full rounded-lg border border-white/10 bg-field px-3 py-2 text-[13.5px] text-white placeholder:text-white/30 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-50";
 export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={cx(fieldCls, props.className)} />;
 }
@@ -131,7 +134,7 @@ export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return <textarea {...props} className={cx(fieldCls, "min-h-[84px] resize-y", props.className)} />;
 }
 export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={cx(fieldCls, "[&>option]:bg-zinc-900", props.className)} />;
+  return <select {...props} className={cx(fieldCls, "[&>option]:bg-surface", props.className)} />;
 }
 export function Field({ label, hint, error, children, className }: { label?: string; hint?: string; error?: string | null; children: ReactNode; className?: string }) {
   return (
@@ -147,8 +150,8 @@ export function Field({ label, hint, error, children, className }: { label?: str
 export function Toggle({ checked, onChange, disabled, label }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean; label?: string }) {
   return (
     <button type="button" role="switch" aria-checked={checked} aria-label={label} disabled={disabled} onClick={() => onChange(!checked)}
-      className="relative h-6 w-11 shrink-0 rounded-full transition disabled:opacity-50" style={{ background: checked ? ACCENT : "rgba(255,255,255,0.15)" }}>
-      <span className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all" style={{ left: checked ? 22 : 2 }} />
+      className="relative h-6 w-11 shrink-0 rounded-full transition disabled:opacity-50" style={{ background: checked ? ACCENT : inkTint(18) }}>
+      <span className="absolute top-0.5 h-5 w-5 rounded-full bg-[#f8f9f2] transition-all" style={{ left: checked ? 22 : 2 }} />
     </button>
   );
 }
@@ -208,7 +211,7 @@ export function Modal({ open, onClose, title, children, footer, width = 560 }: {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div role="dialog" aria-modal="true" aria-label={title} className="flex max-h-[90vh] w-full flex-col rounded-2xl border border-white/10 bg-zinc-950 shadow-2xl" style={{ maxWidth: width }}>
+      <div role="dialog" aria-modal="true" aria-label={title} className="flex max-h-[90vh] w-full flex-col rounded-2xl border border-white/10 bg-surface shadow-2xl" style={{ maxWidth: width }}>
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <h2 className="text-[16px] font-semibold text-white">{title}</h2>
           <button onClick={onClose} aria-label="Close" className="rounded-md p-1 text-white/50 hover:bg-white/10 hover:text-white"><X size={18} /></button>

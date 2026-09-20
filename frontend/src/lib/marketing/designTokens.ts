@@ -30,7 +30,7 @@ export const MARKETING = {
   container: 'max-w-7xl mx-auto px-6 lg:px-8',
   containerNarrow: 'max-w-4xl mx-auto px-6 lg:px-8',
   containerWide: 'max-w-[1280px] mx-auto px-6 lg:px-8',
-  overline: 'text-[11px] font-semibold uppercase tracking-[0.14em] text-[#00926B]',
+  overline: 'text-[11px] font-semibold uppercase tracking-[0.14em] text-brand',
   h1: 'font-[family-name:var(--font-plus-jakarta)] text-[2.25rem] sm:text-[2.75rem] lg:text-[3.25rem] font-bold tracking-[-0.02em] text-white leading-[1.08]',
   h2: 'font-[family-name:var(--font-plus-jakarta)] text-[1.75rem] sm:text-[2.25rem] font-bold tracking-[-0.02em] text-white leading-tight',
   h3: 'font-[family-name:var(--font-plus-jakarta)] text-xl font-semibold text-white',
@@ -38,15 +38,15 @@ export const MARKETING = {
   bodyLarge: 'text-lg sm:text-xl text-white/60 leading-relaxed',
   card: 'rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]',
   cardHover:
-    'transition-all duration-300 hover:bg-white/[0.06] hover:border-[#00926B]/40 hover:-translate-y-0.5',
+    'transition-all duration-300 hover:bg-white/[0.06] hover:border-brand/40 hover:-translate-y-0.5',
   btnPrimary:
-    'inline-flex items-center justify-center gap-2 rounded-xl bg-[#00926B] px-6 py-3 text-[15px] font-semibold text-white hover:bg-[#007A59] transition-all duration-200 shadow-lg shadow-[#00926B]/20',
+    'inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-6 py-3 text-[15px] font-semibold text-white hover:bg-brand-hover transition-all duration-200 shadow-lg shadow-brand/20',
   btnGreen:
-    'inline-flex items-center justify-center gap-2 rounded-xl bg-[#00926B] px-6 py-3 text-[15px] font-semibold text-white hover:bg-[#007A59] transition-all duration-200 shadow-lg shadow-[#00926B]/20',
+    'inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-6 py-3 text-[15px] font-semibold text-white hover:bg-brand-hover transition-all duration-200 shadow-lg shadow-brand/20',
   btnOutline:
-    'inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-6 py-3 text-[15px] font-semibold text-white hover:bg-white/[0.08] hover:border-[#00926B]/50 transition-all duration-200',
-  link: 'text-[#00926B] font-medium hover:text-[#00b384] transition-colors',
+    'inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-6 py-3 text-[15px] font-semibold text-white hover:bg-white/[0.08] hover:border-brand/50 transition-all duration-200',
+  link: 'text-brand font-medium hover:text-brand-soft transition-colors',
   gradientHero: 'bg-black',
-  gradientDark: 'bg-gradient-to-br from-black via-[#001a12] to-[#00926B]/30',
+  gradientDark: 'bg-gradient-to-br from-black via-[#001a12] to-brand/30',
   glass: 'bg-white/[0.04] backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)]',
 };

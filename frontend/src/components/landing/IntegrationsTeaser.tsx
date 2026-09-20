@@ -67,17 +67,17 @@ const INTEGRATIONS = [
 
 export default function IntegrationsTeaser() {
   return (
-    <section id="integrations" style={{ backgroundColor: "#000000" }}>
+    <section id="integrations" style={{ backgroundColor: "var(--background)" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14 sm:py-16">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
-            Unifying Your Workflow with <span style={{ color: "#05A68B" }}>{INTEGRATIONS.length}+</span> Plug &amp;
+            Unifying Your Workflow with <span style={{ color: "var(--brand-soft)" }}>{INTEGRATIONS.length}+</span> Plug &amp;
             Play Integrations
           </h2>
           <Link
             href="#get-started"
-            className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white shrink-0 transition-opacity hover:opacity-90"
-            style={{ backgroundColor: "#05A68B" }}
+            className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white btn-accent shrink-0 transition-opacity hover:opacity-90"
+            style={{ backgroundColor: "var(--brand)" }}
           >
             Explore Integrations
             <ArrowRight className="w-4 h-4" />

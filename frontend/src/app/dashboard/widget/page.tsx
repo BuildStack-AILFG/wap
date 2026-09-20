@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Code2, ExternalLink, LayoutGrid, MessageCircle, Plus, Trash2 } from "lucide-react";
-import { Alert, Badge, Button, Card, CopyField, EmptyState, Field, Input, Page, PageHeader, Select, Spinner, Tabs, Textarea, Toggle, useUi } from "@/components/ui/kit";
+import { Alert, Badge, Button, Card, CopyField, EmptyState, Field, Input, Modal, Page, PageHeader, Select, Spinner, Tabs, Textarea, Toggle, useUi } from "@/components/ui/kit";
 import { errorMessage, widgets as api, type Widget, type WidgetInput } from "@/lib/api";
 
 const COLORS = ["#00926B", "#25D366", "#2563EB", "#7C3AED", "#DB2777", "#DC2626", "#D97706", "#111827"];
@@ -17,7 +17,9 @@ export default function WidgetPage() {
   const load = useCallback(async () => { try { const l = await api.list(); setList(l); setActiveId((c) => c ?? l[0]?.id ?? null); } catch (e) { setError(errorMessage(e, "Couldn't load widgets.")); } }, []);
   useEffect(() => { void load(); }, [load]);
 
-  const create = async () => { try { const w = await api.create({}); toast("Widget created"); await load(); setActiveId(w.id); } catch (e) { setError(errorMessage(e)); } };
+  const [creating, setCreating] = useState(false);
+  const create = () => setCreating(true);
+  const onCreated = async (w: Widget) => { setCreating(false); toast("Widget created"); await load(); setActiveId(w.id); };
   const active = list?.find((w) => w.id === activeId);
 
   return (
@@ -25,6 +27,7 @@ export default function WidgetPage() {
       <PageHeader icon={<LayoutGrid size={20} />} title="Website widget" subtitle="Add a WhatsApp chat button to your website. Visitors tap it to start a conversation with your number — optionally leaving their details first."
         actions={<Button onClick={create}><Plus size={15} /> New widget</Button>} />
       {error && <Alert onClose={() => setError(null)}>{error}</Alert>}
+      <CreateWidgetDialog open={creating} onClose={() => setCreating(false)} onCreated={onCreated} />
       {!list ? <Spinner /> : list.length === 0 ? <EmptyState icon={<MessageCircle size={22} />} title="No widget yet" body="Create one, style it, and paste one line of code into your site." action={<Button onClick={create}><Plus size={15} /> Create widget</Button>} /> : (
         <>
           {list.length > 1 && <div className="mb-4 flex flex-wrap gap-2">{list.map((w) => <button key={w.id} onClick={() => setActiveId(w.id)} className={`rounded-full px-4 py-1.5 text-[13px] ${w.id === activeId ? "bg-white/15 text-white" : "bg-white/[0.05] text-white/55 hover:text-white"}`}>{w.name}</button>)}</div>}
@@ -33,6 +36,36 @@ export default function WidgetPage() {
         </>
       )}
     </Page>
+  );
+}
+
+/** Asks for the number up front. Blank is allowed — the API then falls back to the connected WhatsApp number, or says so if there isn't one. */
+function CreateWidgetDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (w: Widget) => void }) {
+  const [name, setName] = useState("Website widget");
+  const [phone, setPhone] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const digits = phone.replace(/\D/g, "");
+  const phoneError = digits.length > 0 && (digits.length < 8 || digits.length > 15) ? "Enter the full number with country code, e.g. +91 98765 43210." : null;
+
+  const submit = async () => {
+    if (phoneError) return;
+    setBusy(true); setErr(null);
+    try { onCreated(await api.create({ name: name.trim() || "Website widget", phone_number: digits })); setPhone(""); } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="New website widget" width={480}
+      footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button loading={busy} disabled={!!phoneError} onClick={submit}>Create widget</Button></>}>
+      <form onSubmit={(e) => { e.preventDefault(); void submit(); }} className="space-y-4">
+        {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
+        <Field label="Widget name"><Input value={name} onChange={(e) => setName(e.target.value)} maxLength={200} /></Field>
+        <Field label="WhatsApp number to open" error={phoneError} hint="With country code. Leave blank to use your connected WhatsApp number.">
+          <Input type="tel" inputMode="tel" autoFocus value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 98765 43210" />
+        </Field>
+        <button type="submit" className="hidden" aria-hidden tabIndex={-1} />
+      </form>
+    </Modal>
   );
 }
 
@@ -87,7 +120,7 @@ function EditorPanel({ widget, onSaved, onDelete }: { widget: Widget; onSaved: (
           <Card className="space-y-5 p-5">
             <p className="text-[12.5px] text-white/50">No website? Share this click-to-chat link or QR code on social media, posters, packaging or email signatures.</p>
             <CopyField label="Click-to-chat link" value={link} />
-            <div className="flex flex-wrap items-center gap-6"><div className="rounded-xl bg-white p-3">{digits.length >= 8 ? <img src={api.qrUrl(link)} alt="QR code that opens WhatsApp chat" width={180} height={180} /> : <div className="flex h-[180px] w-[180px] items-center justify-center text-[12px] text-black/50">Enter a number first</div>}</div>
+            <div className="flex flex-wrap items-center gap-6"><div className="theme-fixed rounded-xl bg-white p-3">{digits.length >= 8 ? <img src={api.qrUrl(link)} alt="QR code that opens WhatsApp chat" width={180} height={180} /> : <div className="flex h-[180px] w-[180px] items-center justify-center text-[12px] text-black/50">Enter a number first</div>}</div>
               <div className="space-y-2 text-[12.5px] text-white/50"><p>Scan with a phone camera to open a chat.</p>{digits.length >= 8 && <a href={api.qrUrl(link)} download="whatsapp-qr.svg" className="inline-flex items-center gap-1 text-sky-300 hover:underline">Download QR (SVG) <ExternalLink size={12} /></a>}</div></div>
           </Card>
         )}
@@ -103,7 +136,7 @@ function Preview({ f }: { f: WidgetInput }) {
   const side = f.position === "left" ? "left-4" : "right-4";
   const bubble = useMemo(() => f.welcome_message || "…", [f.welcome_message]);
   return (
-    <div className="relative h-[520px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-800 to-zinc-900">
+    <div className="theme-fixed relative h-[520px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-800 to-zinc-900">
       <div className="p-5"><div className="mb-3 h-3 w-32 rounded bg-white/10" /><div className="mb-2 h-2 w-full rounded bg-white/[0.06]" /><div className="mb-2 h-2 w-4/5 rounded bg-white/[0.06]" /><div className="h-2 w-3/5 rounded bg-white/[0.06]" /></div>
       {open && (
         <div className={`absolute bottom-20 ${side} w-[300px] max-w-[calc(100%-32px)] overflow-hidden rounded-2xl bg-white text-black shadow-2xl`} style={{ bottom: f.bottom_offset + 62 }}>

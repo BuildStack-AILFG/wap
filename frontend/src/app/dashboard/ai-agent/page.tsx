@@ -55,7 +55,7 @@ function Config({ cfg, onSaved }: { cfg: AiConfig; onSaved: (c: AiConfig) => voi
       </Card>
 
       <div className="grid gap-3 md:grid-cols-3">{AGENTS.map((a) => (
-        <button key={a.id} onClick={() => set("agent_type", a.id)} className={cx("rounded-2xl border p-4 text-left transition", f.agent_type === a.id ? "border-[#00926B] bg-[#00926B]/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]")}>
+        <button key={a.id} onClick={() => set("agent_type", a.id)} className={cx("rounded-2xl border p-4 text-left transition", f.agent_type === a.id ? "border-brand bg-brand/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]")}>
           <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: `${a.color}25`, color: a.color }}><a.icon size={18} /></div>
           <div className="text-[14px] font-semibold text-white">{a.name}</div><p className="mt-1 text-[12.5px] text-white/50">{a.desc}</p></button>))}</div>
 
@@ -78,7 +78,7 @@ function Config({ cfg, onSaved }: { cfg: AiConfig; onSaved: (c: AiConfig) => voi
           <Field label="Message when handing over"><Textarea value={f.handoff_message} onChange={(e) => set("handoff_message", e.target.value)} className="!min-h-[72px]" /></Field>
           <Field label="Message when unsure (optional)" hint="Used when confidence is low; falls back to the hand-over message"><Textarea value={f.fallback_message} onChange={(e) => set("fallback_message", e.target.value)} className="!min-h-[72px]" /></Field>
         </div>
-        <Field label={`Minimum confidence: ${Math.round(f.min_confidence * 100)}%`} hint="Below this the agent hands over instead of guessing. Higher = safer, more hand-overs."><input type="range" min={0} max={90} step={5} value={Math.round(f.min_confidence * 100)} onChange={(e) => set("min_confidence", Number(e.target.value) / 100)} className="w-full accent-[#00926B]" /></Field>
+        <Field label={`Minimum confidence: ${Math.round(f.min_confidence * 100)}%`} hint="Below this the agent hands over instead of guessing. Higher = safer, more hand-overs."><input type="range" min={0} max={90} step={5} value={Math.round(f.min_confidence * 100)} onChange={(e) => set("min_confidence", Number(e.target.value) / 100)} className="w-full accent-brand" /></Field>
       </Card>
 
       <Card className="space-y-3 p-5">
@@ -165,7 +165,7 @@ function Playground({ cfg }: { cfg: AiConfig }) {
     <Card className="p-5">
       <p className="mb-4 text-[13px] text-white/55">Ask the agent a question exactly as a customer would. Nothing is sent on WhatsApp{cfg.has_own_key || cfg.platform_key_available ? "" : " — add an API key in Configuration first"}.</p>
       <div className="mb-4 max-h-[420px] space-y-4 overflow-y-auto">{log.map((m, i) => (
-        <div key={i}><div className="ml-auto w-fit max-w-[80%] rounded-2xl rounded-br-md bg-[#005c4b] px-3.5 py-2 text-[13.5px] text-white">{m.q}</div>
+        <div key={i}><div className="ml-auto w-fit max-w-[80%] theme-fixed rounded-2xl rounded-br-md bg-[#005c4b] px-3.5 py-2 text-[13.5px] text-white">{m.q}</div>
           {"error" in m.r ? <div className="mt-2"><Alert>{m.r.error}</Alert></div> : <div className="mt-2 max-w-[85%]"><div className="w-fit rounded-2xl rounded-bl-md bg-white/[0.08] px-3.5 py-2 text-[13.5px] whitespace-pre-wrap text-white">{m.r.reply}</div>
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11.5px] text-white/40"><Badge tone={m.r.confidence >= 0.6 ? "green" : "yellow"}>confidence {Math.round(m.r.confidence * 100)}%</Badge>{m.r.handoff && <Badge tone="blue">would hand over to a human</Badge>}{m.r.sources.length > 0 ? `${m.r.sources.length} knowledge passage(s) used` : "no knowledge matched"}</div></div>}</div>))}
         {log.length === 0 && <div className="py-10 text-center text-[13px] text-white/35"><Sparkles size={20} className="mx-auto mb-2" />Try “What are your opening hours?”</div>}</div>

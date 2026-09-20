@@ -44,16 +44,16 @@ export default function ProductHubsSection() {
         <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {HUBS.map((hub) => (
             <div key={hub.tag} className={`${MARKETING.card} ${MARKETING.cardHover} overflow-hidden flex flex-col`}>
-              <div className="h-44 w-full overflow-hidden bg-[#00926B]/15">
+              <div className="h-44 w-full overflow-hidden bg-brand/15">
                 <img src={hub.image} alt={hub.alt} className="h-full w-full object-cover" loading="lazy" />
               </div>
               <div className="flex flex-1 flex-col p-6">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#00926B]">{hub.tag}</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand">{hub.tag}</p>
                 <h3 className={`${MARKETING.h3} mt-2`}>{hub.title}</h3>
                 <p className={`${MARKETING.body} mt-2 flex-1`}>{hub.description}</p>
                 <Link
                   href={hub.href}
-                  className="group mt-4 inline-flex items-center gap-1.5 text-[14px] font-semibold text-[#00926B] hover:text-[#00b384]"
+                  className="group mt-4 inline-flex items-center gap-1.5 text-[14px] font-semibold text-brand hover:text-brand-soft"
                 >
                   Learn More
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

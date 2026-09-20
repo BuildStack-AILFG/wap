@@ -24,7 +24,7 @@ export default function AuthShell({ mode, children }: AuthShellProps) {
             className="hidden shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[13px] font-medium text-white/70 transition-colors hover:bg-white/[0.08] sm:inline-flex"
           >
             {isLogin ? "Don't have an account?" : "Already have an account?"}
-            <span className="font-semibold text-[#00926B]">{isLogin ? "Sign up" : "Log in"}</span>
+            <span className="font-semibold text-brand">{isLogin ? "Sign up" : "Log in"}</span>
           </Link>
         </div>
 
@@ -35,7 +35,7 @@ export default function AuthShell({ mode, children }: AuthShellProps) {
         <div className="flex flex-col items-center gap-4 pt-4 text-center sm:hidden">
           <Link href={isLogin ? "/signup" : "/login"} className="text-[13.5px] text-white/60">
             {isLogin ? "Don't have an account? " : "Already have an account? "}
-            <span className="font-semibold text-[#00926B]">{isLogin ? "Sign up" : "Log in"}</span>
+            <span className="font-semibold text-brand">{isLogin ? "Sign up" : "Log in"}</span>
           </Link>
         </div>
 
@@ -45,8 +45,8 @@ export default function AuthShell({ mode, children }: AuthShellProps) {
       </div>
 
       <div className="relative hidden flex-1 items-center justify-center overflow-hidden bg-black p-12 lg:flex xl:p-16">
-        <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-[#00926B]/15 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-[#00926B]/10 blur-3xl" />
+        <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-brand/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-brand/10 blur-3xl" />
         <AuthIllustration />
       </div>
     </div>

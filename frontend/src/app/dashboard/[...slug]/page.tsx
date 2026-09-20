@@ -9,7 +9,7 @@ export default function DashboardNotFound() {
       </div>
       <h1 className="text-[20px] font-semibold text-white">This page doesn&apos;t exist</h1>
       <p className="mt-2 text-[13.5px] text-white/50">The link may be out of date. Head back to your dashboard to pick up where you left off.</p>
-      <Link href="/dashboard" className="mt-6 rounded-lg bg-[#00926B] px-4 py-2 text-[13.5px] font-medium text-white hover:brightness-110">
+      <Link href="/dashboard" className="mt-6 rounded-lg bg-brand px-4 py-2 text-[13.5px] font-medium text-white hover:brightness-110">
         Back to dashboard
       </Link>
     </div>

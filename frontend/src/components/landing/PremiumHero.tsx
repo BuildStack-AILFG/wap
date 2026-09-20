@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { Anton } from "next/font/google";
 import { ArrowUpRight, CheckCircle2, Megaphone, MousePointer2, Zap } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/BrandIcons";
+import { useTheme } from "@/lib/theme";
 import { MetaIcon, ZapierIcon, ShopifyIcon, SlackColorIcon } from "@/components/icons/IntegrationBrandIcons";
 
 const anton = Anton({ subsets: ["latin"], weight: "400" });
@@ -102,12 +102,12 @@ function RightCardStack() {
 }
 
 function DesktopHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; onBookDemo?: () => void }) {
-  const [isDark, setIsDark] = useState(true);
+  const { isDark, toggle } = useTheme();
 
   return (
     <div
-      onClick={() => setIsDark((v) => !v)}
-      className={`relative mx-auto hidden max-w-[1200px] cursor-pointer overflow-hidden rounded-[32px] border-[6px] border-white/10 transition-colors duration-500 md:block sm:border-[8px] ${
+      onClick={toggle}
+      className={`theme-fixed relative mx-auto hidden max-w-[1200px] cursor-pointer overflow-hidden rounded-[32px] border-[6px] border-white/10 transition-colors duration-500 md:block sm:border-[8px] ${
         isDark ? "bg-black" : "bg-[#00926B]"
       }`}
       style={{ containerType: "inline-size" }}
@@ -159,7 +159,7 @@ function DesktopHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; 
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            setIsDark((v) => !v);
+            toggle();
           }}
           aria-pressed={isDark}
           aria-label="Toggle preview theme"
@@ -229,7 +229,7 @@ function DesktopHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; 
 }
 
 function MobileHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; onBookDemo?: () => void }) {
-  const [isDark, setIsDark] = useState(true);
+  const { isDark, toggle } = useTheme();
 
   const mobileCards: CardSpec[] = [
     { key: "meta", left: "0%", top: "6%", rotate: -10, color: "#1877F2", icon: <MetaIcon className="h-full w-full" /> },
@@ -241,8 +241,8 @@ function MobileHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; o
 
   return (
     <div
-      onClick={() => setIsDark((v) => !v)}
-      className={`relative mx-auto cursor-pointer overflow-hidden rounded-[28px] border-[5px] border-white/10 px-6 py-10 transition-colors duration-500 md:hidden ${
+      onClick={toggle}
+      className={`theme-fixed relative mx-auto cursor-pointer overflow-hidden rounded-[28px] border-[5px] border-white/10 px-6 py-10 transition-colors duration-500 md:hidden ${
         isDark ? "bg-black" : "bg-[#00926B]"
       }`}
     >
@@ -250,7 +250,7 @@ function MobileHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; o
         type="button"
         onClick={(e) => {
           e.stopPropagation();
-          setIsDark((v) => !v);
+          toggle();
         }}
         aria-pressed={isDark}
         aria-label="Toggle preview theme"

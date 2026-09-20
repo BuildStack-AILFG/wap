@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, BarChart3, Bot, CheckCircle2, Circle, ClipboardCheck, FileText, Inbox, LayoutGrid, Megaphone, Smartphone, Workflow } from "lucide-react";
-import { ACCENT, Card, cx, fmtDuration, Page, Spinner, Stat } from "@/components/ui/kit";
+import { ACCENT, accentTint, Card, cx, fmtDuration, Page, Spinner, Stat } from "@/components/ui/kit";
 import { BarChart } from "@/components/ui/charts";
 import { useWorkspace } from "@/components/dashboard/WorkspaceContext";
 import { ai, analytics, broadcasts, contacts, flows, inbox, templates, whatsapp, widgets, type Analytics } from "@/lib/api";
@@ -52,10 +52,10 @@ export default function DashboardHome() {
       ) : null}
 
       {!s ? <Spinner /> : doneCount < steps.length && (
-        <div className="relative mt-5 overflow-hidden rounded-2xl border border-white/10 p-6" style={{ backgroundImage: `linear-gradient(90deg, #000000, ${ACCENT}33)` }}>
+        <div className="relative mt-5 overflow-hidden rounded-2xl border border-white/10 p-6" style={{ backgroundImage: `linear-gradient(90deg, var(--background), ${accentTint(20)})` }}>
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div><p className="text-[16px] font-bold text-white">Setup progress · {doneCount} of {steps.length}</p><p className="mt-1 text-[13px] text-white/50">{next ? `Next: ${next.title}` : ""}</p></div>
-            {next && <Link href={next.href} className="flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold text-white" style={{ background: ACCENT }}>{next.title} <ArrowRight size={14} /></Link>}
+            {next && <Link href={next.href} className="flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold text-white btn-accent" style={{ background: ACCENT }}>{next.title} <ArrowRight size={14} /></Link>}
           </div>
           <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full transition-all" style={{ width: `${(doneCount / steps.length) * 100}%`, background: ACCENT }} /></div>
         </div>
@@ -79,7 +79,7 @@ export default function DashboardHome() {
             <Stat label="Messages received" value={week("inbound").toLocaleString()} /><Stat label="Messages sent" value={week("outbound").toLocaleString()} sub={`${a.delivery.delivered_pct}% delivered`} />
             <Stat label="Avg. first response" value={fmtDuration(a.first_response.avg_seconds)} /><Stat label="Contacts" value={a.contacts.total.toLocaleString()} sub={`${a.contacts.opted_out} opted out`} />
           </div>
-          <Card className="mt-4 p-5"><BarChart height={150} data={a.messages} series={[{ key: "inbound", label: "Received", color: "#38bdf8" }, { key: "outbound", label: "Sent", color: "#00926B" }]} /></Card>
+          <Card className="mt-4 p-5"><BarChart height={150} data={a.messages} series={[{ key: "inbound", label: "Received", color: "#38bdf8" }, { key: "outbound", label: "Sent", color: "var(--brand)" }]} /></Card>
         </div>
       )}
     </Page>

@@ -36,11 +36,11 @@ export default function FAQSection({ onBookDemo }: { onBookDemo?: () => void }) 
 
   return (
     <section id="faq" className="relative overflow-hidden bg-black py-14 sm:py-16 lg:py-20">
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black via-[#050505] to-black" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black via-alt to-black" />
 
       <div className="relative mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <div className="mb-10 text-center sm:mb-12">
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#00926B]">FAQ</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand">FAQ</p>
           <h2
             className="mt-3 text-[1.75rem] font-extrabold leading-[1.12] tracking-[-0.03em] text-white sm:text-[2.15rem]"
             style={{ fontFamily: "var(--font-plus-jakarta)" }}
@@ -65,7 +65,7 @@ export default function FAQSection({ onBookDemo }: { onBookDemo?: () => void }) 
                   <span className="pr-4 text-[15px] font-semibold text-white">{faq.q}</span>
                   <div
                     className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${
-                      isOpen ? "bg-[#00926B] text-white" : "bg-[#00926B]/15 text-[#00926B]"
+                      isOpen ? "bg-brand text-white" : "bg-brand/15 text-brand"
                     }`}
                   >
                     {isOpen ? <Minus className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
@@ -84,11 +84,11 @@ export default function FAQSection({ onBookDemo }: { onBookDemo?: () => void }) 
         <p className="mt-8 text-center text-[15px] text-white/60">
           Still have questions?{" "}
           {onBookDemo ? (
-            <button type="button" onClick={onBookDemo} className="font-semibold text-[#00926B] transition-colors hover:text-[#00b384]">
+            <button type="button" onClick={onBookDemo} className="font-semibold text-brand transition-colors hover:text-brand-soft">
               Book a demo
             </button>
           ) : (
-            <Link href="#contact" className="font-semibold text-[#00926B] transition-colors hover:text-[#00b384]">
+            <Link href="#contact" className="font-semibold text-brand transition-colors hover:text-brand-soft">
               Book a demo
             </Link>
           )}

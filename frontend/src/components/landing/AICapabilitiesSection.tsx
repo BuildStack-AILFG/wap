@@ -37,12 +37,12 @@ export default function AICapabilitiesSection({
                     onMouseEnter={() => setActive(i)}
                     onClick={() => setActive(i)}
                     className={`flex w-full items-start gap-3 rounded-lg px-2 py-1.5 text-left transition-colors ${
-                      active === i ? "bg-[#00926B]/15" : "hover:bg-[#00926B]/10"
+                      active === i ? "bg-brand/15" : "hover:bg-brand/10"
                     }`}
                   >
                     <span
                       className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-                        active === i ? "bg-[#00926B] text-white" : "bg-[#00926B]/20 text-[#00926B]"
+                        active === i ? "bg-brand text-white" : "bg-brand/20 text-brand"
                       }`}
                     >
                       <Check className="h-3.5 w-3.5" strokeWidth={3} />

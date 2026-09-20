@@ -50,7 +50,7 @@ export default function FormField({
         className={`flex items-center gap-2 rounded-xl border bg-white/[0.04] px-3.5 py-2.5 transition-colors ${
           showError
             ? "border-red-500/50 ring-1 ring-red-500/20"
-            : "border-white/10 focus-within:border-[#00926B] focus-within:ring-2 focus-within:ring-[#00926B]/20"
+            : "border-white/10 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20"
         }`}
       >
         {icon && <span className="shrink-0 text-white/40">{icon}</span>}

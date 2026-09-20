@@ -107,7 +107,7 @@ export default function LandingNavbar() {
           </a>
           <a
             href="/signup"
-            className="inline-flex items-center justify-center rounded-lg bg-[#00926B] px-5 py-2 text-[14px] font-semibold text-white hover:bg-[#007A59] transition-colors"
+            className="inline-flex items-center justify-center rounded-lg bg-brand px-5 py-2 text-[14px] font-semibold text-white hover:bg-brand-hover transition-colors"
           >
             Start free trial
           </a>
@@ -154,7 +154,7 @@ export default function LandingNavbar() {
               <a href="/login" className="flex-1 text-center rounded-xl bg-white/[0.06] border border-white/15 px-4 py-2.5 text-sm font-medium" onClick={() => setIsMenuOpen(false)}>
                 Log in
               </a>
-              <a href="/signup" className="flex-1 text-center rounded-xl bg-[#00926B] text-white px-4 py-2.5 text-sm font-semibold" onClick={() => setIsMenuOpen(false)}>
+              <a href="/signup" className="flex-1 text-center rounded-xl bg-brand text-white px-4 py-2.5 text-sm font-semibold" onClick={() => setIsMenuOpen(false)}>
                 Start trial
               </a>
             </div>

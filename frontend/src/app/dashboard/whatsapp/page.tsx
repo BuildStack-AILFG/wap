@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, ExternalLink, Facebook, KeyRound, RefreshCw, Send, Smartphone, Unplug } from "lucide-react";
-import { ACCENT, Alert, Badge, Button, Card, CopyField, Field, Input, Modal, PageHeader, Page, Spinner, statusTone, timeAgo, useUi } from "@/components/ui/kit";
+import { ACCENT, accentTint, Alert, Badge, Button, Card, CopyField, Field, Input, Modal, PageHeader, Page, Spinner, statusTone, timeAgo, useUi } from "@/components/ui/kit";
 import { errorMessage, whatsapp, type WaAccount, type WaConfig } from "@/lib/api";
 
 declare global {
@@ -127,7 +127,7 @@ export default function WhatsAppPage() {
             {!config.embedded_signup.enabled && <p className="mt-2 text-[11.5px] text-white/40">Not enabled on this server yet — the platform owner needs to set META_APP_ID, META_APP_SECRET and META_CONFIG_ID. Use manual connect below in the meantime.</p>}
           </Card>
           <Card className="flex flex-col p-6">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: `${ACCENT}22`, color: ACCENT }}><KeyRound size={20} /></div>
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: accentTint(13), color: ACCENT }}><KeyRound size={20} /></div>
             <h3 className="text-[16px] font-semibold text-white">Connect manually</h3>
             <p className="mt-1.5 flex-1 text-[13px] text-white/55">Already have a Meta app and a WhatsApp Business Account? Paste your WABA ID, phone number ID and a permanent access token from the Meta developer console.</p>
             <Button className="mt-5" variant="ghost" onClick={() => setShowManual(true)}>Enter credentials</Button>

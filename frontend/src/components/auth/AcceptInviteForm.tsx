@@ -34,7 +34,7 @@ export default function AcceptInviteForm() {
       <div className="space-y-4">
         <h1 className="text-[26px] font-bold text-white">Invitation unavailable</h1>
         <p className="text-[14px] text-white/60">{loadError}</p>
-        <Link href="/login" className="inline-block text-[14px] font-semibold text-[#00926B] hover:underline">
+        <Link href="/login" className="inline-block text-[14px] font-semibold text-brand hover:underline">
           Go to log in
         </Link>
       </div>
@@ -48,7 +48,7 @@ export default function AcceptInviteForm() {
         <p className="text-[14px] text-white/60">
           {info.email} is already registered, and an account can currently belong to one workspace. Ask {info.workspace} to invite a different email address, or sign in to your existing account.
         </p>
-        <Link href="/login" className="inline-block text-[14px] font-semibold text-[#00926B] hover:underline">
+        <Link href="/login" className="inline-block text-[14px] font-semibold text-brand hover:underline">
           Log in
         </Link>
       </div>
@@ -86,7 +86,7 @@ export default function AcceptInviteForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="flex w-full items-center justify-center rounded-xl bg-[#00926B] px-4 py-3 text-[14.5px] font-semibold text-white hover:bg-[#007A59] disabled:opacity-60"
+        className="flex w-full items-center justify-center rounded-xl bg-brand px-4 py-3 text-[14.5px] font-semibold text-white hover:bg-brand-hover disabled:opacity-60"
       >
         {submitting ? "Creating account…" : "Accept invitation"}
       </button>

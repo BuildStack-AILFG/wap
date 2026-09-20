@@ -91,7 +91,7 @@ function Detail({ id, onClose, onChanged }: { id: string | null; onClose: () => 
           {b.error && <Alert tone={b.status === "failed" ? "red" : "yellow"}>{b.error}</Alert>}
           <div className="grid gap-3 sm:grid-cols-4">{funnel.map(([l, n, t]) => (
             <div key={l} className="rounded-xl bg-white/[0.04] p-3"><div className="text-[12px] text-white/45">{l}</div><div className="text-[22px] font-semibold text-white">{n.toLocaleString()}</div>
-              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full" style={{ width: `${t ? (n / t) * 100 : 0}%`, background: "#00926B" }} /></div>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full" style={{ width: `${t ? (n / t) * 100 : 0}%`, background: "var(--brand)" }} /></div>
               <div className="mt-1 text-[11px] text-white/35">{t ? Math.round((n / t) * 100) : 0}%</div></div>))}</div>
           {b.failed > 0 && <div className="text-[13px] text-red-300">{b.failed} failed</div>}
           <div>
@@ -183,7 +183,7 @@ function Wizard({ onClose, onCreated }: { onClose: () => void; onCreated: (b: Br
     <Modal open onClose={onClose} title="New campaign" width={720}
       footer={<>{step > 0 && <Button variant="ghost" onClick={() => setStep(step - 1)}>Back</Button>}
         {step < 3 ? <Button disabled={!canNext} onClick={() => { setErr(null); setStep(step + 1); }}>Continue</Button> : <Button loading={busy} disabled={!canNext} onClick={create}><Send size={14} /> {when === "now" ? "Send campaign" : when === "later" ? "Schedule" : "Save draft"}</Button>}</>}>
-      <div className="mb-5 flex items-center gap-2">{steps.map((s, i) => <div key={s} className="flex flex-1 items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold" style={{ background: i <= step ? "#00926B" : "rgba(255,255,255,0.1)" }}>{i + 1}</span><span className={`text-[12px] ${i === step ? "text-white" : "text-white/40"}`}>{s}</span></div>)}</div>
+      <div className="mb-5 flex items-center gap-2">{steps.map((s, i) => <div key={s} className="flex flex-1 items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold" style={{ background: i <= step ? "var(--brand)" : "color-mix(in srgb, var(--foreground) 10%, transparent)" }}>{i + 1}</span><span className={`text-[12px] ${i === step ? "text-white" : "text-white/40"}`}>{s}</span></div>)}</div>
       {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
 
       {step === 0 && (!tpls ? <Spinner /> : tpls.length === 0 ? <Alert tone="yellow">You don&apos;t have any approved templates yet. <Link href="/dashboard/templates" className="underline">Create or sync templates</Link> — campaigns can only use templates Meta has approved.</Alert> : (
@@ -220,7 +220,7 @@ function Wizard({ onClose, onCreated }: { onClose: () => void; onCreated: (b: Br
       {step === 3 && (
         <div className="space-y-4">
           <div className="grid gap-2 sm:grid-cols-3">{([["now", "Send now", "Starts immediately"], ["later", "Schedule", "Pick a date & time"], ["draft", "Save as draft", "Send it later from here"]] as const).map(([k, t, s]) => (
-            <button key={k} onClick={() => setWhen(k)} className={`rounded-xl border p-3 text-left ${when === k ? "border-[#00926B] bg-[#00926B]/10" : "border-white/10 hover:bg-white/[0.04]"}`}><div className="text-[13.5px] font-medium text-white">{t}</div><div className="text-[12px] text-white/45">{s}</div></button>))}</div>
+            <button key={k} onClick={() => setWhen(k)} className={`rounded-xl border p-3 text-left ${when === k ? "border-brand bg-brand/10" : "border-white/10 hover:bg-white/[0.04]"}`}><div className="text-[13.5px] font-medium text-white">{t}</div><div className="text-[12px] text-white/45">{s}</div></button>))}</div>
           {when === "later" && <Field label="Send at (your local time)"><Input type="datetime-local" value={at} min={minAt} onChange={(e) => setAt(e.target.value)} /></Field>}
           <div className="rounded-xl bg-white/[0.04] p-4 text-[13px] text-white/70"><b className="text-white">{name}</b><br />Template: {tpl?.name} · Audience: {count?.count.toLocaleString() ?? "—"} people<br /><span className="text-[12px] text-white/40">Messages are paced automatically. If WhatsApp rate-limits the number, sending pauses and resumes on its own.</span></div>
         </div>

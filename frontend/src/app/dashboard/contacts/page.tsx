@@ -98,7 +98,7 @@ export default function ContactsPage() {
           <table className="w-full text-left text-[13px]">
             <thead className="border-b border-white/10 text-[11.5px] uppercase tracking-wide text-white/40">
               <tr>
-                <th className="w-10 px-4 py-3"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Select all on this page" className="accent-[#00926B]" /></th>
+                <th className="w-10 px-4 py-3"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Select all on this page" className="accent-brand" /></th>
                 <th className="px-2 py-3">Name</th><th className="px-2 py-3">Phone</th><th className="hidden px-2 py-3 md:table-cell">Tags</th><th className="hidden px-2 py-3 lg:table-cell">Source</th>
                 <th className="hidden px-2 py-3 lg:table-cell">Last contacted</th><th className="px-2 py-3">Consent</th>
               </tr>
@@ -106,7 +106,7 @@ export default function ContactsPage() {
             <tbody>
               {rows.map((c) => (
                 <tr key={c.id} onClick={() => setDetail(c.id)} className="cursor-pointer border-b border-white/5 hover:bg-white/[0.04]">
-                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={selected.has(c.id)} onChange={() => setSelected((s) => { const n = new Set(s); if (n.has(c.id)) n.delete(c.id); else n.add(c.id); return n; })} aria-label={`Select ${c.name}`} className="accent-[#00926B]" /></td>
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={selected.has(c.id)} onChange={() => setSelected((s) => { const n = new Set(s); if (n.has(c.id)) n.delete(c.id); else n.add(c.id); return n; })} aria-label={`Select ${c.name}`} className="accent-brand" /></td>
                   <td className="px-2 py-3 font-medium text-white">{c.name}{c.email && <div className="text-[11.5px] font-normal text-white/40">{c.email}</div>}</td>
                   <td className="px-2 py-3 text-white/70">+{c.phone}</td>
                   <td className="hidden px-2 py-3 md:table-cell"><div className="flex flex-wrap gap-1">{c.tags.slice(0, 3).map((t) => <Badge key={t}>{t}</Badge>)}{c.tags.length > 3 && <Badge>+{c.tags.length - 3}</Badge>}</div></td>

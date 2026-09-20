@@ -16,7 +16,7 @@ import {
 type Touched = { name?: boolean; companyName?: boolean; email?: boolean; password?: boolean; confirm?: boolean; agreed?: boolean };
 
 const strengthLabels = ["Weak", "Weak", "Fair", "Good", "Strong"];
-const strengthColors = ["bg-red-500", "bg-red-500", "bg-amber-400", "bg-[#00b384]", "bg-[#00926B]"];
+const strengthColors = ["bg-red-500", "bg-red-500", "bg-amber-400", "bg-brand-soft", "bg-brand"];
 
 export default function SignupForm() {
   const router = useRouter();
@@ -69,7 +69,7 @@ export default function SignupForm() {
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
       <div>
         <h1 className="text-[26px] font-bold tracking-tight text-white sm:text-[28px]">
-          Create your <span className="text-[#00926B]">LeadForGrow</span> account
+          Create your <span className="text-brand">LeadForGrow</span> account
         </h1>
         <p className="mt-2 text-[14px] text-white/50">
           Start automating WhatsApp conversations in minutes. No credit card required.
@@ -168,15 +168,15 @@ export default function SignupForm() {
               setAgreed(e.target.checked);
               markTouched("agreed");
             }}
-            className="mt-0.5 h-4 w-4 rounded border-white/20 bg-white/5 text-[#00926B] focus:ring-[#00926B]"
+            className="mt-0.5 h-4 w-4 rounded border-white/20 bg-white/5 text-brand focus:ring-brand"
           />
           <span>
             I agree to the{" "}
-            <a href="#" className="font-medium text-[#00926B] hover:text-[#00b384]">
+            <a href="#" className="font-medium text-brand hover:text-brand-soft">
               Terms of Service
             </a>{" "}
             and{" "}
-            <a href="#" className="font-medium text-[#00926B] hover:text-[#00b384]">
+            <a href="#" className="font-medium text-brand hover:text-brand-soft">
               Privacy Policy
             </a>
           </span>
@@ -189,7 +189,7 @@ export default function SignupForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="flex w-full items-center justify-center rounded-xl bg-[#00926B] px-4 py-3 text-[14.5px] font-semibold text-white transition-opacity hover:bg-[#007A59] disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex w-full items-center justify-center rounded-xl bg-brand px-4 py-3 text-[14.5px] font-semibold text-white transition-opacity hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
       >
         {submitting ? "Creating account…" : "Register"}
       </button>

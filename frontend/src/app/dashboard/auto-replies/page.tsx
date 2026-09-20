@@ -52,7 +52,7 @@ export default function AutoRepliesPage() {
           const e = auto[k.id];
           return (
             <Card key={k.id} className="p-5">
-              <div className="flex items-start justify-between gap-4"><div className="flex items-start gap-3"><div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-[#00926B]/15 text-[#00926B]"><k.icon size={18} /></div><div><div className="text-[14.5px] font-semibold text-white">{k.title}</div><div className="text-[12.5px] text-white/50">{k.desc}</div></div></div>
+              <div className="flex items-start justify-between gap-4"><div className="flex items-start gap-3"><div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-brand/15 text-brand"><k.icon size={18} /></div><div><div className="text-[14.5px] font-semibold text-white">{k.title}</div><div className="text-[12.5px] text-white/50">{k.desc}</div></div></div>
                 <Toggle checked={e.enabled} onChange={(v) => set(k.id, { enabled: v })} label={`${k.title} enabled`} /></div>
               <Textarea className="mt-4" value={e.message} onChange={(ev) => set(k.id, { message: ev.target.value })} placeholder={k.ph} maxLength={1000} aria-label={`${k.title} text`} />
               {k.id === "delayed" && <Field className="mt-3 max-w-xs" label="Send after (minutes without a reply)"><Input type="number" min={1} max={1440} value={e.minutes ?? 5} onChange={(ev) => set("delayed", { minutes: Number(ev.target.value) })} /></Field>}

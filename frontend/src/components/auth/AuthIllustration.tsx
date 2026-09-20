@@ -62,8 +62,8 @@ export default function AuthIllustration() {
           key={i}
           className={`absolute grid place-items-center rounded-2xl shadow-[0_6px_20px_rgba(0,0,0,0.4)] ${
             variant === "solid"
-              ? "bg-[#00926B] text-white"
-              : "border-2 border-white/10 bg-white/[0.04] text-[#00926B] backdrop-blur-xl"
+              ? "bg-brand text-white"
+              : "border-2 border-white/10 bg-white/[0.04] text-brand backdrop-blur-xl"
           }`}
           style={{
             top,
@@ -80,7 +80,7 @@ export default function AuthIllustration() {
       {accents.map(({ Icon, top, left, size }, i) => (
         <Icon
           key={i}
-          className="absolute text-[#00926B]"
+          className="absolute text-brand"
           style={{ top, left, width: size, height: size, transform: "translate(-50%, -50%)" }}
           strokeWidth={2.5}
         />

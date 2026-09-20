@@ -5,12 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut, Settings } from "lucide-react";
 import NotificationBell from "./NotificationBell";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 import { WhatsAppIcon } from "@/components/icons/BrandIcons";
 import { clearSession, getRefreshToken, logout } from "@/lib/api";
 import { useWorkspace } from "./WorkspaceContext";
 
-const ACCENT = "#00926B";
-const GLASS_BORDER = "rgba(255,255,255,0.08)";
+const ACCENT = "var(--brand)";
+const GLASS_BORDER = "color-mix(in srgb, var(--foreground) 10%, transparent)";
 
 function useTrialBanner() {
   const { workspace } = useWorkspace();
@@ -64,7 +65,7 @@ export default function TopBar() {
       )}
       <div
         className="flex h-14 items-center justify-between px-4 backdrop-blur-xl sm:px-6"
-        style={{ backgroundColor: "rgba(0,0,0,0.85)", borderBottom: `1px solid ${GLASS_BORDER}` }}
+        style={{ backgroundColor: "color-mix(in srgb, var(--background) 85%, transparent)", borderBottom: `1px solid ${GLASS_BORDER}` }}
       >
         <Link href="/dashboard" className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#25D366] text-white">
@@ -75,6 +76,7 @@ export default function TopBar() {
 
         <div className="flex items-center gap-1">
           <NotificationBell />
+          <ThemeToggle />
           <Link
             href="/dashboard/settings"
             className="flex h-9 w-9 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
@@ -86,7 +88,7 @@ export default function TopBar() {
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-semibold text-white"
+              className="btn-accent flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-semibold text-white"
               style={{ backgroundColor: ACCENT }}
             >
               {initial}
@@ -101,7 +103,7 @@ export default function TopBar() {
                 />
                 <div
                   className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl p-3 shadow-2xl backdrop-blur-xl"
-                  style={{ backgroundColor: "rgba(15,15,15,0.9)", border: `1px solid ${GLASS_BORDER}` }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--surface) 94%, transparent)", border: `1px solid ${GLASS_BORDER}` }}
                 >
                   <p className="truncate text-[13.5px] font-semibold text-white">{workspace.name}</p>
                   <p className="truncate text-[12px] text-white/50">{workspace.plan_name} plan</p>

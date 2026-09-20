@@ -48,7 +48,7 @@ function Usage({ label, used, limit }: { label: string; used: number; limit: num
   const pct = unlimited ? 0 : Math.min(100, (used / Math.max(limit, 1)) * 100);
   return (
     <div><div className="mb-1 flex justify-between text-[12.5px]"><span className="text-white/70">{label}</span><span className="text-white/50">{used.toLocaleString()} / {unlimited ? "unlimited" : limit.toLocaleString()}</span></div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct > 90 ? "#ef4444" : "#00926B" }} /></div></div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct > 90 ? "#ef4444" : "var(--brand)" }} /></div></div>
   );
 }
 
@@ -88,7 +88,7 @@ function WorkspaceTab({ manager }: { manager: boolean }) {
         <h3 className="mb-1 text-[15px] font-semibold text-white">Plans</h3>
         <p className="mb-4 text-[12.5px] text-white/50">Online checkout isn&apos;t switched on yet — <a className="text-sky-300 underline" href="https://wa.me/918810873052?text=I%27d%20like%20to%20upgrade%20my%20plan" target="_blank" rel="noreferrer">message us on WhatsApp</a> and we&apos;ll upgrade your workspace right away.</p>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{plans.filter((p) => p.id !== "trial").map((p) => (
-          <div key={p.id} className={cx("rounded-xl border p-4", p.id === d.plan.id ? "border-[#00926B] bg-[#00926B]/10" : "border-white/10")}><div className="flex items-baseline justify-between"><span className="text-[14px] font-semibold text-white">{p.name}</span><span className="text-[13px] text-white/60">{money(p.price_monthly)}</span></div>
+          <div key={p.id} className={cx("rounded-xl border p-4", p.id === d.plan.id ? "border-brand bg-brand/10" : "border-white/10")}><div className="flex items-baseline justify-between"><span className="text-[14px] font-semibold text-white">{p.name}</span><span className="text-[13px] text-white/60">{money(p.price_monthly)}</span></div>
             <ul className="mt-2 space-y-0.5 text-[12px] text-white/50"><li>{p.quotas.max_contacts?.toLocaleString()} contacts</li><li>{p.quotas.max_team_members} team member{p.quotas.max_team_members === 1 ? "" : "s"}</li><li>{p.quotas.max_automation_flows} flows</li><li>{p.quotas.ai_replies_included_per_month?.toLocaleString()} AI replies / mo</li></ul></div>))}</div>
       </Card>
     </div>
@@ -222,7 +222,7 @@ function DeveloperTab() {
         footer={<><Button variant="ghost" onClick={() => setHookForm(null)}>Cancel</Button><Button disabled={!/^https?:\/\//.test(hookForm?.url ?? "")} onClick={async () => { try { const h = await developer.createWebhook(hookForm!); setHookForm(null); await load(); if (h.secret) setNewSecret({ url: h.url, secret: h.secret }); } catch (e) { setErr(errorMessage(e)); setHookForm(null); } }}>Add endpoint</Button></>}>
         <Field label="Endpoint URL" hint="Must be a public https address"><Input value={hookForm?.url ?? ""} onChange={(e) => setHookForm({ ...hookForm!, url: e.target.value })} placeholder="https://api.example.com/webhooks/whatsapp" autoFocus /></Field>
         <div className="mt-4"><div className="mb-2 text-[12.5px] font-medium text-white/70">Events {hookForm?.events.length ? "" : "(none selected = all)"}</div>
-          <div className="grid grid-cols-2 gap-1.5">{events.map((e) => <label key={e} className="flex items-center gap-2 text-[12.5px] text-white/70"><input type="checkbox" className="accent-[#00926B]" checked={hookForm?.events.includes(e) ?? false} onChange={(ev) => setHookForm({ ...hookForm!, events: ev.target.checked ? [...hookForm!.events, e] : hookForm!.events.filter((x) => x !== e) })} />{e}</label>)}</div></div>
+          <div className="grid grid-cols-2 gap-1.5">{events.map((e) => <label key={e} className="flex items-center gap-2 text-[12.5px] text-white/70"><input type="checkbox" className="accent-brand" checked={hookForm?.events.includes(e) ?? false} onChange={(ev) => setHookForm({ ...hookForm!, events: ev.target.checked ? [...hookForm!.events, e] : hookForm!.events.filter((x) => x !== e) })} />{e}</label>)}</div></div>
       </Modal>
     </div>
   );
