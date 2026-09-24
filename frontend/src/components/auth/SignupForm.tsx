@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { User, Mail, Lock, Building2 } from "lucide-react";
 import FormField from "./FormField";
 import { ApiError, register, safeNextPath, storeSession } from "@/lib/api";
+import GoogleSignInButton from "./GoogleSignInButton";
 import {
   getNameError,
   getEmailError,
@@ -193,6 +194,8 @@ export default function SignupForm() {
       >
         {submitting ? "Creating account…" : "Register"}
       </button>
+
+      <GoogleSignInButton mode="signup" companyName={companyName} />
     </form>
   );
 }

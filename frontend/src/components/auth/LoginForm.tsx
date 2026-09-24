@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, Lock } from "lucide-react";
 import FormField from "./FormField";
+import GoogleSignInButton from "./GoogleSignInButton";
 import { ApiError, login, safeNextPath, storeSession } from "@/lib/api";
 import { getEmailError, getPasswordError } from "@/lib/validation";
 
@@ -124,6 +125,8 @@ export default function LoginForm() {
       >
         {submitting ? "Logging in…" : "Log in"}
       </button>
+
+      <GoogleSignInButton mode="login" />
     </form>
   );
 }

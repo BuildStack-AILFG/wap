@@ -17,6 +17,11 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class GoogleAuthRequest(BaseModel):
+    credential: str = Field(min_length=1, max_length=4096)  # the ID token Google Identity Services hands the browser
+    company_name: str | None = Field(default=None, max_length=200)  # used only when this creates a new account
+
+
 class RefreshRequest(BaseModel):
     refresh_token: str
 

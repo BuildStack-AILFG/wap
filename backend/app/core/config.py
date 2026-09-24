@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     anthropic_api_base: str = "https://api.anthropic.com"
     ai_model: str = "claude-sonnet-5"
 
+    # "Continue with Google" sign-in. The OAuth *Web* client id from Google Cloud Console; the button is hidden when unset.
+    google_client_id: str = ""
+
     # Transactional email (invites, password reset). Optional — without it, invite/reset links are returned to the caller.
     resend_api_key: str = ""
     email_from: str = "LeadForGrow <no-reply@leadforgrow.com>"

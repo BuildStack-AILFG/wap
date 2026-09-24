@@ -16,6 +16,7 @@ from app.models.tenant import Tenant, TenantMembership, User
 from app.schemas.auth import (
     AuthResponse,
     ForgotPasswordRequest,
+    GoogleAuthRequest,
     LoginRequest,
     LogoutRequest,
     RefreshRequest,
@@ -103,6 +104,34 @@ async def login(payload: LoginRequest, request: Request, response: Response, db:
         refresh_token=tokens.refresh_token,
         expires_in_minutes=tokens.expires_in_minutes,
         must_rotate_password=must_rotate,
+    )
+
+
+@router.post("/google", response_model=AuthResponse)
+async def google(payload: GoogleAuthRequest, request: Request, response: Response, db: AsyncSession = Depends(get_db)):
+    ratelimit.limit(request, "google-ip", 20, 60)
+    user_agent, ip_address = _client_meta(request)
+    user, tenant, membership, tokens, created = await auth_service.google_sign_in(
+        db, credential=payload.credential, company_name=payload.company_name, user_agent=user_agent, ip_address=ip_address
+    )
+    if created:
+        response.status_code = status.HTTP_201_CREATED
+    _set_access_cookie(response, tokens.access_token, tokens.expires_in_minutes)
+    return AuthResponse(
+        user_id=user.id,
+        email=user.email,
+        role=membership.role,
+        workspace=WorkspaceOut(
+            id=tenant.id,
+            name=tenant.name,
+            slug=tenant.slug,
+            plan_id=tenant.plan_id,
+            trial_ends_at=tenant.trial_ends_at.isoformat() if tenant.trial_ends_at else None,
+        ),
+        access_token=tokens.access_token,
+        refresh_token=tokens.refresh_token,
+        expires_in_minutes=tokens.expires_in_minutes,
+        must_rotate_password=user.must_rotate_password,
     )
 
 

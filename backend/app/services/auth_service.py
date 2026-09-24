@@ -16,6 +16,7 @@ import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 
+import httpx
 from fastapi import HTTPException, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -137,6 +138,15 @@ async def login_user(
             user.must_rotate_password = True
             must_rotate = True
 
+    tenant, membership, tokens = await _open_session(db, user, user_agent=user_agent, ip_address=ip_address)
+    await db.commit()
+    return user, tenant, membership, tokens, must_rotate
+
+
+async def _open_session(
+    db: AsyncSession, user: User, *, user_agent: str | None, ip_address: str | None
+) -> tuple[Tenant, TenantMembership, TokenPair]:
+    """Shared tail of every sign-in: stamp the login, check the workspace, issue + store a token pair. Caller commits."""
     user.last_login_at = datetime.now(timezone.utc)
 
     membership = await _get_primary_membership(db, user)
@@ -148,9 +158,88 @@ async def login_user(
 
     tokens = issue_token_pair(user_id=user.id, tenant_id=tenant.id, role=membership.role, plan_id=tenant.plan_id)
     await _store_refresh_token(db, user_id=user.id, tokens=tokens, user_agent=user_agent, ip_address=ip_address)
+    return tenant, membership, tokens
+
+
+_GOOGLE_TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo"
+_GOOGLE_ISSUERS = {"accounts.google.com", "https://accounts.google.com"}
+
+
+async def _verify_google_credential(credential: str) -> dict:
+    """Validates a Google Identity Services ID token via Google's tokeninfo endpoint (signature + expiry), then checks
+    it was minted for *our* client id and carries a verified email. Returns the token claims."""
+    client_id = get_settings().google_client_id
+    if not client_id:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail={"error": "Google sign-in is not configured."})
+
+    invalid = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={"error": "Google sign-in failed. Please try again."})
+    try:
+        async with httpx.AsyncClient(timeout=10) as http:
+            resp = await http.get(_GOOGLE_TOKENINFO_URL, params={"id_token": credential})
+    except httpx.HTTPError:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail={"error": "Couldn't reach Google. Please try again."})
+    if resp.status_code != 200:
+        raise invalid
+
+    claims = resp.json()
+    if claims.get("aud") != client_id or claims.get("iss") not in _GOOGLE_ISSUERS:
+        raise invalid
+    if str(claims.get("email_verified")).lower() != "true" or not claims.get("email"):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={"error": "Your Google account's email isn't verified."})
+    return claims
+
+
+async def google_sign_in(
+    db: AsyncSession,
+    *,
+    credential: str,
+    company_name: str | None,
+    user_agent: str | None,
+    ip_address: str | None,
+) -> tuple[User, Tenant, TenantMembership, TokenPair, bool]:
+    """Signs in with a Google ID token. An existing account with the same (Google-verified) email is signed in;
+    otherwise a new user + trial workspace is created, same as register. The last item is True when it created one."""
+    claims = await _verify_google_credential(credential)
+    email = claims["email"].strip().lower()
+    full_name = (claims.get("name") or "").strip()[:200] or None
+
+    user = (await db.execute(select(User).where(User.email == email))).scalars().first()
+    if user is not None:
+        if not user.is_active:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail={"error": "This account has been deactivated."})
+        if not user.full_name and full_name:
+            user.full_name = full_name
+        tenant, membership, tokens = await _open_session(db, user, user_agent=user_agent, ip_address=ip_address)
+        await db.commit()
+        return user, tenant, membership, tokens, False
+
+    trial_plan = await db.get(Plan, "trial")
+    if trial_plan is None:
+        raise HTTPException(status_code=500, detail="No trial plan configured. Run the plan seed script first.")
+
+    workspace_name = (company_name or "").strip() or (f"{full_name.split()[0]}'s workspace" if full_name else email.split("@")[0])
+    user = User(email=email, password_hash=None, full_name=full_name, auth_provider="google", last_login_at=datetime.now(timezone.utc))
+    db.add(user)
+    await db.flush()
+
+    tenant = Tenant(
+        name=workspace_name,
+        slug=_slugify(workspace_name),
+        plan_id=trial_plan.id,
+        trial_ends_at=datetime.now(timezone.utc) + timedelta(days=await entitlements.trial_days(db)),
+    )
+    db.add(tenant)
+    await db.flush()
+
+    membership = TenantMembership(tenant_id=tenant.id, user_id=user.id, role="owner")
+    db.add(membership)
+    await db.flush()
+
+    tokens = issue_token_pair(user_id=user.id, tenant_id=tenant.id, role=membership.role, plan_id=tenant.plan_id)
+    await _store_refresh_token(db, user_id=user.id, tokens=tokens, user_agent=user_agent, ip_address=ip_address)
 
     await db.commit()
-    return user, tenant, membership, tokens, must_rotate
+    return user, tenant, membership, tokens, True
 
 
 async def _store_refresh_token(
