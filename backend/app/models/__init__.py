@@ -2,6 +2,7 @@ from app.models.automation_execution import AutomationExecution
 from app.models.automation_flow import AutomationFlow
 from app.models.billing import Payment, PaymentLink
 from app.models.broadcast import Broadcast, BroadcastRecipient
+from app.models.commerce import CommerceSettings, Order, Product
 from app.models.contact import Contact
 from app.models.contact_event import ContactEvent
 from app.models.conversation import Conversation, Message
@@ -27,6 +28,7 @@ __all__ = [
     "AutomationFlow",
     "Broadcast",
     "BroadcastRecipient",
+    "CommerceSettings",
     "Contact",
     "ContactMessage",
     "ContactEvent",
@@ -39,11 +41,13 @@ __all__ = [
     "KnowledgeSource",
     "Message",
     "NewsletterSubscriber",
+    "Order",
     "OutboundWebhook",
     "Payment",
     "PaymentLink",
     "PipelineStage",
     "Plan",
+    "Product",
     "PlatformSetting",
     "RefreshToken",
     "Segment",

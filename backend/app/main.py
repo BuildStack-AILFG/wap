@@ -13,6 +13,7 @@ from app.api.auth import router as auth_router
 from app.api.billing import payments as payments_router
 from app.api.billing import router as billing_router
 from app.api.broadcasts import router as broadcasts_router
+from app.api.commerce import router as commerce_router
 from app.api.contacts import router as contacts_router
 from app.api.custom_replies import router as custom_replies_router
 from app.api.developer import router as developer_router
@@ -71,7 +72,7 @@ app.add_middleware(
 )
 
 for r in (auth_router, contacts_router, templates_router, broadcasts_router, flows_router, custom_replies_router, settings_router, workspace_router, whatsapp_router,
-          inbox_router, segments_router, ai_router, widgets_router, developer_router, integrations_router, team_router, analytics_router, pipeline_router, billing_router, payments_router, admin_router):
+          inbox_router, segments_router, ai_router, widgets_router, developer_router, integrations_router, team_router, analytics_router, pipeline_router, billing_router, payments_router, commerce_router, admin_router):
     app.include_router(r, prefix="/api")
 # Public surfaces (no login): Meta webhooks, provider hooks, widget script/beacons, and the API-key REST API.
 for r in (webhooks_router, hooks_router, public_router, public_api_router, site_router):
