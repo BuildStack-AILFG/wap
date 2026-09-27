@@ -19,6 +19,10 @@ import {
   FileText,
   Handshake,
   TrendingUp,
+  ShoppingBag,
+  Store,
+  Package,
+  ScrollText,
 } from "lucide-react";
 
 export type NavItem = {
@@ -107,6 +111,22 @@ export const NAV_GROUPS: NavGroup[] = [
           { id: "flow-builder", label: "Flow Builder", href: "/dashboard/flow-builder", icon: Workflow },
           { id: "intent-matching", label: "Intent Matching", href: "/dashboard/intent-matching", icon: Target },
           { id: "ai-agent", label: "AI Agent", href: "/dashboard/ai-agent", icon: Bot },
+        ],
+      },
+    ],
+  },
+  {
+    id: "commerce",
+    label: "WhatsApp Commerce",
+    icon: ShoppingBag,
+    badge: "new",
+    sections: [
+      {
+        items: [
+          { id: "commerce-settings", label: "Commerce Settings", href: "/dashboard/commerce-settings", icon: Store },
+          { id: "catalog", label: "Catalog", href: "/dashboard/catalog", icon: Package },
+          { id: "checkout-bot", label: "Checkout Bot", href: "/dashboard/checkout-bot", icon: Bot },
+          { id: "order-panel", label: "Order Panel", href: "/dashboard/order-panel", icon: ScrollText },
         ],
       },
     ],

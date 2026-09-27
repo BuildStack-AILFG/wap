@@ -601,3 +601,49 @@ export const admin = {
   users: (p?: { q?: string; limit?: number; offset?: number }) => request<{ total: number; items: AdminUser[] }>(`/admin/users${qs(p)}`),
   updateUser: (id: string, is_active: boolean) => request<{ id: string; is_active: boolean }>(`/admin/users/${id}`, { method: "PATCH", body: { is_active } }),
 };
+
+// ---- WhatsApp Commerce -----------------------------------------------------------------------------------------------
+
+export type CheckoutMode = "manual" | "cod" | "razorpay" | "external";
+export type CommerceConfig = {
+  welcome_message: string; collect_address: boolean; collect_email: boolean; confirmation_message: string; payment_instructions: string;
+  checkout_live: boolean; payment_mode: "cod" | "online" | "both"; free_shipping: boolean;
+  proceed_message: string; address_message: string; payment_message: string; order_placed_message: string;
+};
+export type CommerceSettings = {
+  catalog_enabled: boolean; cart_enabled: boolean; meta_catalog_id: string | null; currency: string;
+  checkout_mode: CheckoutMode; external_checkout_url: string | null; config: CommerceConfig;
+};
+export type Product = {
+  id: string; retailer_id: string | null; name: string; description: string | null; price: number; currency: string;
+  image_url: string | null; category: string | null; availability: "in_stock" | "out_of_stock"; is_visible: boolean; synced: boolean; created_at: string | null;
+};
+export type OrderItem = { product_id?: string | null; retailer_id?: string | null; name: string; price: number; quantity: number };
+export type OrderStatus = "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
+export type PaymentStatus = "unpaid" | "paid" | "refunded";
+export type Order = {
+  id: string; order_number: string; customer_name: string | null; customer_phone: string | null; items: OrderItem[];
+  subtotal: number; total: number; currency: string; status: OrderStatus; payment_status: PaymentStatus;
+  payment_method: string | null; shipping_address: Record<string, string> | null; note: string | null; source: string; created_at: string | null;
+};
+export type CommerceStats = { products: number; orders: number; paid_revenue: number; pending_orders: number };
+
+export const commerce = {
+  settings: () => request<CommerceSettings>("/commerce/settings"),
+  updateSettings: (body: Partial<Omit<CommerceSettings, "config">> & { config?: Partial<CommerceConfig> }) =>
+    request<CommerceSettings>("/commerce/settings", { method: "PUT", body }),
+  stats: () => request<CommerceStats>("/commerce/stats"),
+  // catalog
+  products: (p?: { search?: string; availability?: string }) => request<Product[]>(`/commerce/products${qs(p)}`),
+  createProduct: (body: Partial<Product>) => request<Product>("/commerce/products", { method: "POST", body }),
+  updateProduct: (id: string, body: Partial<Product>) => request<Product>(`/commerce/products/${id}`, { method: "PATCH", body }),
+  deleteProduct: (id: string) => request<void>(`/commerce/products/${id}`, { method: "DELETE" }),
+  syncCatalog: () => request<{ synced: number }>("/commerce/products/sync", { method: "POST" }),
+  importProducts: (file: File) => { const fd = new FormData(); fd.append("file", file); return request<{ added: number; skipped: number }>("/commerce/products/import", { method: "POST", form: fd }); },
+  // orders
+  orders: (p?: { status?: string }) => request<Order[]>(`/commerce/orders${qs(p)}`),
+  createOrder: (body: { customer_name?: string; customer_phone?: string; items: OrderItem[]; currency?: string; payment_method?: string; note?: string; shipping_address?: Record<string, string> }) =>
+    request<Order>("/commerce/orders", { method: "POST", body }),
+  updateOrder: (id: string, body: { status?: OrderStatus; payment_status?: PaymentStatus; payment_method?: string; note?: string }) =>
+    request<Order>(`/commerce/orders/${id}`, { method: "PATCH", body }),
+};
