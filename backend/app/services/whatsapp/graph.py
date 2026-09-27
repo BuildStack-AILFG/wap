@@ -103,6 +103,10 @@ class GraphClient:
             if not (last.status >= 500 or last.status == 0) or attempt == retries:
                 break
         assert last is not None
+        log.warning(
+            "Graph API call failed: %s %s -> status=%s code=%s subcode=%s message=%s details=%s",
+            method, url, last.status, last.code, last.subcode, last.message, last.details,
+        )
         raise last
 
     # ---- messages ---------------------------------------------------------------------------------------------
