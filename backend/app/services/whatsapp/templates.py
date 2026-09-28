@@ -260,8 +260,9 @@ async def submit_template(db: AsyncSession, account: WhatsAppAccount, tpl: Whats
     await db.commit()
 
 
-def _is_bad_waba_id_error(exc: GraphError) -> bool:
-    """Meta returns this when the node id we called isn't a WABA (e.g. a stale/incorrect waba_id on the account)."""
+def _is_missing_management_permission(exc: GraphError) -> bool:
+    """Meta returns this generic-looking error when the token can authenticate but lacks whatsapp_business_management
+    (or the system user isn't assigned this WABA) — it hides the real cause behind a fake 'field doesn't exist'."""
     return exc.code == 100 and "message_templates" in (exc.message or "") and "nonexisting field" in (exc.message or "").lower()
 
 
@@ -271,14 +272,14 @@ async def sync_templates(db: AsyncSession, account: WhatsAppAccount) -> dict[str
     try:
         remote = await client.list_templates(account.waba_id)
     except GraphError as exc:
-        if not _is_bad_waba_id_error(exc):
-            raise
-        correct_waba_id = await client.get_whatsapp_business_account(account.phone_number_id)
-        if not correct_waba_id or correct_waba_id == account.waba_id:
-            raise
-        account.waba_id = correct_waba_id
-        await db.commit()
-        remote = await client.list_templates(account.waba_id)
+        if _is_missing_management_permission(exc):
+            raise GraphError(
+                "Your access token can't manage templates. In Meta Business Settings, generate a new permanent "
+                "token for this System User with the whatsapp_business_management permission (and confirm the "
+                "System User is assigned this WhatsApp Business Account), then paste it in Update token and sync again.",
+                status=exc.status, code=exc.code, subcode=exc.subcode, details=exc.details,
+            ) from exc
+        raise
     existing = {
         (t.name, t.language): t
         for t in (await db.execute(select(WhatsAppTemplate).where(WhatsAppTemplate.tenant_id == account.tenant_id))).scalars()
