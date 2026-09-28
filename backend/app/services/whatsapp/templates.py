@@ -260,10 +260,25 @@ async def submit_template(db: AsyncSession, account: WhatsAppAccount, tpl: Whats
     await db.commit()
 
 
+def _is_bad_waba_id_error(exc: GraphError) -> bool:
+    """Meta returns this when the node id we called isn't a WABA (e.g. a stale/incorrect waba_id on the account)."""
+    return exc.code == 100 and "message_templates" in (exc.message or "") and "nonexisting field" in (exc.message or "").lower()
+
+
 async def sync_templates(db: AsyncSession, account: WhatsAppAccount) -> dict[str, int]:
     """Pull every template from Meta and upsert by (name, language). Local drafts not on Meta are left alone."""
     client = client_for(account)
-    remote = await client.list_templates(account.waba_id)
+    try:
+        remote = await client.list_templates(account.waba_id)
+    except GraphError as exc:
+        if not _is_bad_waba_id_error(exc):
+            raise
+        correct_waba_id = await client.get_whatsapp_business_account(account.phone_number_id)
+        if not correct_waba_id or correct_waba_id == account.waba_id:
+            raise
+        account.waba_id = correct_waba_id
+        await db.commit()
+        remote = await client.list_templates(account.waba_id)
     existing = {
         (t.name, t.language): t
         for t in (await db.execute(select(WhatsAppTemplate).where(WhatsAppTemplate.tenant_id == account.tenant_id))).scalars()

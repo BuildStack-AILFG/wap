@@ -170,6 +170,11 @@ class GraphClient:
         fields = "display_phone_number,verified_name,quality_rating,name_status,messaging_limit_tier,code_verification_status"
         return await self._request("GET", phone_number_id, params={"fields": fields}, retries=1)
 
+    async def get_whatsapp_business_account(self, phone_number_id: str) -> str | None:
+        """Look up the WABA a phone number actually belongs to (used to self-heal a stale/incorrect stored waba_id)."""
+        data = await self._request("GET", phone_number_id, params={"fields": "whatsapp_business_account"}, retries=1)
+        return (data.get("whatsapp_business_account") or {}).get("id")
+
     async def list_phone_numbers(self, waba_id: str) -> list[dict]:
         data = await self._request("GET", f"{waba_id}/phone_numbers", params={"fields": "id,display_phone_number,verified_name,quality_rating"})
         return data.get("data", [])

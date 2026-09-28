@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timedelta, timezone
 
+import httpx
 from sqlalchemy import select, update
 
 from app.services import broadcasts as bsvc
@@ -32,6 +33,31 @@ async def _wait_done(ws, bid, timeout=10):
             return b
         await asyncio.sleep(0.1)
     raise AssertionError(f"broadcast still {b['status']}")
+
+
+async def test_sync_templates_self_heals_stale_waba_id(wsa, meta):
+    """If the stored waba_id is stale/wrong, Meta answers with 'nonexisting field (message_templates)' — we should
+    look up the phone number's real WABA and retry instead of just failing the sync."""
+    bad_waba_id = wsa.account["waba_id"]
+    good_waba_id = "9" + str(int(bad_waba_id) + 1).zfill(12)[-12:]
+    meta.templates.append(approved_template("hello_tpl", "Hi there!", "UTILITY"))
+
+    def override(request: httpx.Request):
+        path = request.url.path
+        if request.method == "GET" and path.endswith(f"{bad_waba_id}/message_templates"):
+            return httpx.Response(400, json={"error": {"message": "Tried accessing nonexisting field (message_templates)", "code": 100}})
+        if request.method == "GET" and path.endswith(wsa.phone_number_id) and request.url.params.get("fields") == "whatsapp_business_account":
+            return httpx.Response(200, json={"id": wsa.phone_number_id, "whatsapp_business_account": {"id": good_waba_id}})
+        return None
+
+    meta.override = override
+    r = await wsa.post(f"/whatsapp/accounts/{wsa.account['id']}/sync-templates")
+    assert r.status_code == 200, r.text
+    assert r.json()["total"] == 1
+
+    accounts = (await wsa.get("/whatsapp/accounts")).json()
+    acct = next(a for a in accounts if a["id"] == wsa.account["id"])
+    assert acct["waba_id"] == good_waba_id
 
 
 # ---- templates -------------------------------------------------------------------------------------------------------------------
