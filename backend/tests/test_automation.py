@@ -450,10 +450,13 @@ def _mock_provider(monkeypatch, response: dict, seen: list):
     ("gateway", "https://ai-gateway.vercel.sh/v1/messages", ("x-api-key", "k1"), "system"),
     ("openai", "https://api.openai.com/v1/responses", ("authorization", "Bearer k1"), "instructions"),
     ("xai", "https://api.x.ai/v1/responses", ("authorization", "Bearer k1"), "instructions"),
+    ("groq", "https://api.groq.com/openai/v1/chat/completions", ("authorization", "Bearer k1"), None),
 ])
 async def test_each_ai_provider_gets_its_own_request_shape(monkeypatch, provider, url, auth, body_key):
     seen: list = []
-    if provider in ("openai", "xai"):
+    if provider == "groq":
+        resp = {"choices": [{"message": {"role": "assistant", "content": "Hello from groq"}}]}
+    elif provider in ("openai", "xai"):
         resp = {"output": [{"type": "reasoning", "content": []}, {"type": "message", "content": [{"type": "output_text", "text": "Hello from " + provider}]}]}
     else:
         resp = {"content": [{"type": "text", "text": "Hello from " + provider}]}
@@ -462,8 +465,11 @@ async def test_each_ai_provider_gets_its_own_request_shape(monkeypatch, provider
     assert out == "Hello from " + provider
     req = seen[0]
     assert req["url"] == url and req["headers"][auth[0]] == auth[1]
-    assert req["body"][body_key] == "Be brief." and req["body"]["model"] == "m-1"
-    assert req["body"].get("messages", req["body"].get("input")) == [{"role": "user", "content": "hi"}]
+    assert req["body"]["model"] == "m-1"
+    if body_key:
+        assert req["body"][body_key] == "Be brief." and req["body"].get("messages", req["body"].get("input")) == [{"role": "user", "content": "hi"}]
+    else:  # Chat Completions: the system prompt is the first message
+        assert req["body"]["messages"] == [{"role": "system", "content": "Be brief."}, {"role": "user", "content": "hi"}]
 
 
 async def test_ai_provider_choice_key_and_model_are_saved_and_used(wsa, monkeypatch):

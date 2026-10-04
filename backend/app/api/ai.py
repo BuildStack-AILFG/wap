@@ -36,7 +36,7 @@ class AIConfigIn(BaseModel):
     fallback_message: str = Field(default="", max_length=500)
     qualification_fields: list[str] = Field(default_factory=list, max_length=15)
     min_confidence: float = Field(default=0.35, ge=0, le=1)
-    provider: Literal["anthropic", "openai", "xai", "gateway"] = "anthropic"
+    provider: Literal["anthropic", "openai", "xai", "groq", "gateway"] = "anthropic"
     model: str = Field(default="", max_length=120, pattern=r"^([A-Za-z0-9][A-Za-z0-9\-\._:/]*)?$")
     api_key: str | None = Field(default=None, max_length=300, description="Bring-your-own key for the chosen provider. Send '' to remove the stored key.")
 
@@ -66,8 +66,8 @@ async def put_config(body: AIConfigIn, ctx: Ctx = Depends(require_manager), db: 
     current = dict((tenant.settings or {}).get("ai") or {})
     new = {**body.model_dump(exclude={"api_key"}), "handoff_keywords": [k.strip() for k in body.handoff_keywords if k.strip()],
            "qualification_fields": [f.strip() for f in body.qualification_fields if f.strip()]}
-    if body.model and (body.provider == "gateway") != ("/" in body.model):
-        raise HTTPException(status_code=422, detail={"error": "AI Gateway models look like provider/model (e.g. openai/gpt-6-luna); other providers use the plain model name."})
+    if body.model and ((body.provider == "gateway" and "/" not in body.model) or (body.provider in ("anthropic", "openai", "xai") and "/" in body.model)):
+        raise HTTPException(status_code=422, detail={"error": "AI Gateway models look like provider/model (e.g. openai/gpt-6-luna); Claude, OpenAI and Grok use the plain model name."})
     switched = (current.get("provider") or "anthropic") != body.provider
     if body.api_key is None and not switched:  # untouched — a key for one provider never carries over to another
         for k in ("api_key_enc", "api_key_hint"):

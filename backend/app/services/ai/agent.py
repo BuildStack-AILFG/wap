@@ -1,4 +1,4 @@
-"""AI agent: knowledge-grounded WhatsApp replies via Claude, OpenAI, Grok or Vercel AI Gateway, with human handoff and lead qualification."""
+"""AI agent: knowledge-grounded WhatsApp replies via Claude, OpenAI, Grok, Groq or Vercel AI Gateway, with human handoff and lead qualification."""
 
 from __future__ import annotations
 
@@ -28,8 +28,8 @@ AGENT_TYPES = {"support", "leads", "sales"}
 DEFAULT_HANDOFF_WORDS = ["human", "agent", "representative", "real person", "talk to someone", "speak to someone", "customer care"]
 HISTORY_LIMIT = 12
 # provider -> model used when the workspace doesn't pick one ("" = the ANTHROPIC default from settings). Ids checked against
-# the AI Gateway catalogue (https://ai-gateway.vercel.sh/v1/models) and xAI's model list on 2026-10-05.
-PROVIDERS = {"anthropic": "", "openai": "gpt-6-luna", "xai": "grok-4.7", "gateway": "anthropic/claude-sonnet-5.5"}
+# the AI Gateway catalogue (https://ai-gateway.vercel.sh/v1/models), xAI's model list and a live Groq /models call on 2026-10-05.
+PROVIDERS = {"anthropic": "", "openai": "gpt-6-luna", "xai": "grok-4.7", "groq": "openai/gpt-oss-120b", "gateway": "anthropic/claude-sonnet-5.5"}
 
 
 class AIUnavailable(Exception):
@@ -117,9 +117,13 @@ async def _meter(db: AsyncSession, tenant: Tenant, own_key: bool) -> None:
 
 async def complete(api_key: str, *, system: str, messages: list[dict], model: str | None = None, max_tokens: int = 700, provider: str = "anthropic") -> str:
     """One model call. Claude and AI Gateway speak the Anthropic Messages API (the gateway translates it for every provider's
-    models); OpenAI and xAI are called through their Responses API."""
+    models); OpenAI and xAI are called through their Responses API, Groq through its OpenAI-compatible Chat Completions."""
     settings = get_settings()
-    if provider in ("openai", "xai"):
+    if provider == "groq":
+        url = f"{settings.groq_api_base.rstrip('/')}/v1/chat/completions"
+        payload = {"model": model or PROVIDERS["groq"], "messages": [{"role": "system", "content": system}, *messages], "max_tokens": max(max_tokens * 4, 2000)}
+        headers = {"Authorization": f"Bearer {api_key}", "content-type": "application/json"}
+    elif provider in ("openai", "xai"):
         base = settings.openai_api_base if provider == "openai" else settings.xai_api_base
         # reasoning models spend output tokens thinking before they answer, so leave headroom for the visible reply
         url = f"{base.rstrip('/')}/v1/responses"
@@ -143,6 +147,8 @@ async def complete(api_key: str, *, system: str, messages: list[dict], model: st
             msg = ""
         raise AIUnavailable(f"AI provider error {resp.status_code}: {msg[:200]}")
     data = resp.json()
+    if provider == "groq":
+        return str(((data.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
     if provider in ("openai", "xai"):
         if isinstance(data.get("output_text"), str):
             return data["output_text"].strip()

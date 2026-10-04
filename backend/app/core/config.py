@@ -56,6 +56,7 @@ class Settings(BaseSettings):
     # A platform AI_GATEWAY_API_KEY, when set, is the metered fallback instead of ANTHROPIC_API_KEY.
     openai_api_base: str = "https://api.openai.com"
     xai_api_base: str = "https://api.x.ai"
+    groq_api_base: str = "https://api.groq.com/openai"
     ai_gateway_api_base: str = "https://ai-gateway.vercel.sh"
     ai_gateway_api_key: str = ""
     ai_gateway_model: str = "anthropic/claude-sonnet-5.5"

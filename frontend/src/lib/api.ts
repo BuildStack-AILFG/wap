@@ -369,7 +369,7 @@ export const patchSettings = (settings: Record<string, unknown>) => request<{ se
 
 // ---- AI ------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-export type AiProvider = "anthropic" | "openai" | "xai" | "gateway";
+export type AiProvider = "anthropic" | "openai" | "xai" | "groq" | "gateway";
 export type AiConfig = {
   enabled: boolean; agent_type: "support" | "leads" | "sales"; business_name: string; persona_name: string; tone: string; language: string; instructions: string;
   handoff_keywords: string[]; handoff_message: string; fallback_message: string; qualification_fields: string[]; min_confidence: number; model: string; provider: AiProvider;

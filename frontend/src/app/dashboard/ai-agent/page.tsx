@@ -34,6 +34,7 @@ const PROVIDERS: { id: AiProvider; name: string; keyLabel: string; placeholder: 
   { id: "anthropic", name: "Claude", keyLabel: "Anthropic API key", placeholder: "sk-ant-…", where: "console.anthropic.com", models: ["claude-sonnet-5-5", "claude-opus-5-5", "claude-haiku-4-5-20251001"] },
   { id: "openai", name: "OpenAI", keyLabel: "OpenAI API key", placeholder: "sk-…", where: "platform.openai.com", models: ["gpt-6-luna", "gpt-6-sol", "gpt-5.4-mini"] },
   { id: "xai", name: "Grok (xAI)", keyLabel: "xAI API key", placeholder: "xai-…", where: "console.x.ai", models: ["grok-4.7", "grok-4.6", "grok-4.5"] },
+  { id: "groq", name: "Groq", keyLabel: "Groq API key", placeholder: "gsk_…", where: "console.groq.com", models: ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"] },
   { id: "gateway", name: "Vercel AI Gateway", keyLabel: "AI Gateway API key", placeholder: "vck_…", where: "vercel.com → AI Gateway → API keys", models: ["anthropic/claude-sonnet-5.5", "openai/gpt-6-luna", "spacexai/grok-4.7", "moonshotai/kimi-k3", "google/gemini-3.8-flash"] },
 ];
 
@@ -95,7 +96,7 @@ function Config({ cfg, onSaved }: { cfg: AiConfig; onSaved: (c: AiConfig) => voi
         return <Card className="space-y-3 p-5">
           <h3 className="text-[14px] font-semibold text-white">AI provider</h3>
           <p className="text-[12.5px] text-white/50">{cfg.platform_key_available ? "Your plan includes AI replies on our shared key. To go beyond them, connect your own provider below — usage then bills to your account with that provider, not ours." : "Connect an AI provider with your own API key to power the agent."}</p>
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">{PROVIDERS.map((x) => (
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-5">{PROVIDERS.map((x) => (
             <button key={x.id} type="button" onClick={() => setF((s) => ({ ...s, provider: x.id, model: "", api_key: "" }))}
               className={cx("rounded-xl border px-3 py-2.5 text-left text-[13px] transition", f.provider === x.id ? "border-brand bg-brand/10 text-white" : "border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]")}>
               <div className="font-semibold">{x.name}</div>{cfg.has_own_key && cfg.provider === x.id && <div className="text-[11px] text-emerald-300/80">connected</div>}</button>))}</div>
