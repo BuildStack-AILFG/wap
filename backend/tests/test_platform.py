@@ -162,6 +162,14 @@ async def test_invite_without_email_provider_returns_a_shareable_link_and_respec
     assert len((await wsa.get("/team/invites")).json()) == 2
 
 
+
+def test_user_links_follow_the_allowed_origin_the_request_came_from():
+    from app.core.config import get_settings
+    s = get_settings().model_copy(update={"cors_origins": ["https://www.talkforgrow.in"], "frontend_url": "https://old.example.com"})
+    assert s.app_url("https://www.talkforgrow.in/") == "https://www.talkforgrow.in"
+    assert s.app_url("https://evil.example") == "https://old.example.com"  # never trust an unlisted origin
+    assert s.app_url(None) == "https://old.example.com"
+
 @pytest.mark.paid
 async def test_auto_assignment_round_robin(wsa):
     from app.core.security import hash_password

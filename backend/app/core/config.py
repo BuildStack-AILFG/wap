@@ -1,4 +1,5 @@
 import json
+import re
 from functools import lru_cache
 from typing import Annotated
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -111,6 +112,14 @@ class Settings(BaseSettings):
         if not self.database_url_sync:
             self.database_url_sync = _rewrite_driver(self.database_url, "psycopg")
         return self
+
+    def app_url(self, origin: str | None = None) -> str:
+        """Base URL for links we hand to users. Prefers the site the request came from (when it's an allowed
+        CORS origin) so links follow a domain change without redeploying; otherwise FRONTEND_URL."""
+        origin = (origin or "").strip().rstrip("/")
+        if origin and (origin in self.cors_origins or (self.cors_origin_regex and re.fullmatch(self.cors_origin_regex, origin))):
+            return origin
+        return self.frontend_url.rstrip("/")
 
     @property
     def is_production(self) -> bool:

@@ -158,7 +158,7 @@ async def forgot_password(payload: ForgotPasswordRequest, request: Request, db: 
     ratelimit.limit(request, "forgot-acct", 3, 3600, payload.email.lower())
     reset_token = await auth_service.request_password_reset(db, email=payload.email)
     if reset_token:
-        link = f"{get_settings().frontend_url.rstrip('/')}/reset-password?token={reset_token}"
+        link = f"{get_settings().app_url(request.headers.get('origin'))}/reset-password?token={reset_token}"
         await mailer.send(payload.email, "Reset your TalkForGrow password",
                           mailer.button_html("Reset your password", "We received a request to reset your password. This link expires in 1 hour. If this wasn't you, ignore this email.", "Choose a new password", link))
     # Always respond the same way regardless of whether the email existed,

@@ -34,8 +34,8 @@ def _hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def _link(token: str) -> str:
-    return f"{get_settings().frontend_url.rstrip('/')}/accept-invite?token={token}"
+def _link(token: str, origin: str | None = None) -> str:
+    return f"{get_settings().app_url(origin)}/accept-invite?token={token}"
 
 
 @router.get("/members")
@@ -107,7 +107,7 @@ async def list_invites(ctx: Ctx = Depends(require_manager), db: AsyncSession = D
 
 
 @router.post("/invites", status_code=status.HTTP_201_CREATED)
-async def invite(body: InviteIn, ctx: Ctx = Depends(require_manager), db: AsyncSession = Depends(get_db)) -> dict:
+async def invite(body: InviteIn, request: Request, ctx: Ctx = Depends(require_manager), db: AsyncSession = Depends(get_db)) -> dict:
     if ctx.role != "owner" and body.role == "admin":
         raise HTTPException(status_code=403, detail={"error": "Only the workspace owner can invite admins."})
     email = body.email.lower()
@@ -129,7 +129,7 @@ async def invite(body: InviteIn, ctx: Ctx = Depends(require_manager), db: AsyncS
     await db.refresh(row)
 
     tenant = await db.get(Tenant, ctx.tenant_id)
-    link = _link(token)
+    link = _link(token, request.headers.get("origin"))
     sent = await mailer.send(email, f"You're invited to {tenant.name} on TalkForGrow",
                              mailer.button_html("Join your team", f"You've been invited to join <b>{tenant.name}</b> as {body.role}. This link expires in 7 days.", "Accept invitation", link))
     # When email isn't configured the inviter gets the link to share manually — never silently lose the invite.

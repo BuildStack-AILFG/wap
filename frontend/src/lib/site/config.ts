@@ -5,7 +5,7 @@ const env = (v: string | undefined, fallback: string) => (v && v.trim() ? v.trim
 export const SITE = {
   name: "TalkForGrow",
   legalName: "ScaleDesk Technology Pvt Ltd",
-  url: env(process.env.NEXT_PUBLIC_SITE_URL, "https://whatsapp.leadforgrow.com").replace(/\/$/, ""),
+  url: env(process.env.NEXT_PUBLIC_SITE_URL, "https://www.talkforgrow.in").replace(/\/$/, ""),
   tagline: "WhatsApp Business automation for growing teams",
   description:
     "Run sales, support and marketing on WhatsApp: a shared team inbox, no-code chat flows, broadcasts, an AI agent trained on your knowledge base, a sales pipeline and payment links — on the official WhatsApp Business Platform.",
