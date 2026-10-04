@@ -19,7 +19,7 @@ export const metadata = pageMetadata({
 // NEXT_PUBLIC_HOME_WIDGET_SRC; it must be a URL the visitor's browser can reach (not localhost in production).
 const HOME_WIDGET_SRC =
   process.env.NEXT_PUBLIC_HOME_WIDGET_SRC?.trim() ||
-  "https://wap-production-ce44.up.railway.app/api/public/widget/CCLRD35UNiEob6j1.js";
+  "https://wap-production-ce44.up.railway.app/api/public/widget/aoKcB7o8hvlpGaQt.js";
 
 // Re-render every 5 minutes so price changes made in the admin console reach the home page without a redeploy.
 export const revalidate = 300;
