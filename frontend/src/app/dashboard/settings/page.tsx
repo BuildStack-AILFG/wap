@@ -127,7 +127,7 @@ function TeamTab({ manager, isOwner }: { manager: boolean; isOwner: boolean }) {
             <Field label="Role"><Select value={role} onChange={(e) => setRole(e.target.value)} className="!w-40"><option value="agent">Agent</option><option value="viewer">Viewer</option>{isOwner && <option value="admin">Admin</option>}</Select></Field>
             <Button loading={busy} disabled={!/^\S+@\S+\.\S+$/.test(email)} onClick={invite}><Mail size={14} /> Send invite</Button></div>
           <p className="mt-3 text-[12px] text-white/40"><b>Admin</b>: everything except ownership. <b>Agent</b>: inbox, contacts, campaigns, flows. <b>Viewer</b>: read-only.</p>
-          {link && <div className="mt-4"><Alert tone="blue">Email delivery isn&apos;t configured on this server, so share this link with them yourself (valid 7 days):</Alert><CopyField value={link} /></div>}
+          {link && <div className="mt-4"><Alert tone="blue">We couldn&apos;t email this invitation, so share this link with them yourself (valid 7 days):</Alert><CopyField value={link} /></div>}
         </Card>
       )}
       <Card className="overflow-hidden">
