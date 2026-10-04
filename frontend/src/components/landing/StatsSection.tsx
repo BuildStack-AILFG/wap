@@ -32,7 +32,7 @@ export default function StatsSection() {
 
         <p className="mx-auto mt-8 max-w-2xl text-center text-[12px] leading-relaxed text-white/40">
           *Typical results reported by businesses running WhatsApp-first conversational automation — shared here as
-          an industry benchmark, not an audited LeadForGrow customer result.
+          an industry benchmark, not an audited TalkForGrow customer result.
         </p>
 
         <p className={`${MARKETING.body} mx-auto mt-6 max-w-2xl text-center`}>

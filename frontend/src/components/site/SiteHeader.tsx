@@ -31,7 +31,7 @@ export default function SiteHeader({ groups }: { groups: Group[] }) {
   return (
     <header className="fixed left-0 right-0 top-0 z-50 px-4 pt-4 sm:px-6 sm:pt-5">
       <div ref={bar} className="relative mx-auto flex max-w-[1180px] items-center justify-between gap-4 rounded-xl border border-white/10 bg-black/70 px-4 py-2.5 shadow-[0_4px_24px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:px-5">
-        <Link href="/" className="ml-1 shrink-0" aria-label="LeadForGrow home"><span className="landing-logo text-[17px] sm:text-[18px]">LeadForGrow</span></Link>
+        <Link href="/" className="ml-1 flex shrink-0 items-center gap-2" aria-label="TalkForGrow home"><img src="/logo.png" alt="" className="h-8 w-8 object-contain" /><span className="landing-logo text-[17px] sm:text-[18px]">TalkForGrow</span></Link>
 
         <nav aria-label="Main" className="hidden flex-1 items-center justify-center gap-6 lg:flex xl:gap-8">
           {groups.map((g) => (

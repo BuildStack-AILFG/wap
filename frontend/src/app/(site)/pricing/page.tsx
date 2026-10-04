@@ -19,7 +19,7 @@ const faqs = (days: number): Faq[] => [
   { q: "What's the difference between Starter and Growth?", a: "Only volume. Both plans include every feature. Growth gives you more WhatsApp numbers, team members, contacts, campaign recipients, automation flows and AI replies, so you never have to choose between features and price." },
   { q: "Are the prices inclusive of GST?", a: "No. Prices are shown before GST. 18% GST is added at checkout and shown on your invoice with a CGST/SGST or IGST breakup." },
   { q: "Do plans renew automatically?", a: "No. Plans are prepaid and don't auto-debit. We email you before your plan ends so you can renew when you're ready." },
-  { q: "Does the plan price include WhatsApp message charges?", a: "No. Meta charges for certain WhatsApp message categories under its own pricing, billed separately by Meta. LeadForGrow's plans cover the software: inbox, automation, campaigns, AI, pipeline and payments." },
+  { q: "Does the plan price include WhatsApp message charges?", a: "No. Meta charges for certain WhatsApp message categories under its own pricing, billed separately by Meta. TalkForGrow's plans cover the software: inbox, automation, campaigns, AI, pipeline and payments." },
   { q: "What payment methods can I use?", a: "UPI, credit and debit cards, netbanking and wallets through Razorpay. You'll get a GST invoice for every payment." },
   { q: "Can I change plans later?", a: "Yes. Upgrade or switch any time; the unused time on your current plan is credited toward the new one, shown before you pay." },
   { q: "Is there a money-back guarantee?", a: "If you're unhappy within 7 days of your first paid purchase, contact us and we'll refund it in full. See the refund policy for details." },

@@ -65,7 +65,7 @@ export const organizationLd = () => ({
   name: SITE.name,
   legalName: SITE.legalName,
   url: SITE.url,
-  logo: absoluteUrl("/logo-mark.png"),
+  logo: absoluteUrl("/logo.png"),
   description: SITE.description,
   email: SITE.supportEmail,
   sameAs: Object.values(SITE.social),

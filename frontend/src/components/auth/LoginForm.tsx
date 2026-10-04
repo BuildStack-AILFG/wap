@@ -63,7 +63,7 @@ export default function LoginForm() {
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
       <div>
         <h1 className="text-[26px] font-bold tracking-tight text-white sm:text-[28px]">
-          Welcome to <span className="text-brand">LeadForGrow</span>
+          Welcome to <span className="text-brand">TalkForGrow</span>
         </h1>
         <p className="mt-2 text-[14px] text-white/50">
           Automate WhatsApp conversations, broadcasts, and your team inbox — all in one place.

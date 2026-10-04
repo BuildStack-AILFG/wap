@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import AdminShell from "@/components/admin/AdminShell";
 
 export const metadata: Metadata = {
-  title: "Admin console — LeadForGrow",
+  title: "Admin console — TalkForGrow",
   robots: { index: false, follow: false },
 };
 

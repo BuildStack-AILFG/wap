@@ -14,20 +14,20 @@ export const LEGAL: LegalDoc[] = [
   {
     slug: "privacy",
     title: "Privacy Policy",
-    metaDescription: `How ${CO} collects, uses, shares and protects personal data when you use LeadForGrow, and the choices and rights you have.`,
+    metaDescription: `How ${CO} collects, uses, shares and protects personal data when you use TalkForGrow, and the choices and rights you have.`,
     summary: "What we collect, why we collect it, who we share it with and how you can control it.",
     body: [
-      { type: "p", text: `This policy explains how **${CO}** ("**${SITE.name}**", "we", "us") handles personal data when you visit our website or use the LeadForGrow service. It applies under India's Digital Personal Data Protection Act, 2023, the Information Technology Act, 2000 and, where relevant, the EU/UK GDPR.` },
+      { type: "p", text: `This policy explains how **${CO}** ("**${SITE.name}**", "we", "us") handles personal data when you visit our website or use the TalkForGrow service. It applies under India's Digital Personal Data Protection Act, 2023, the Information Technology Act, 2000 and, where relevant, the EU/UK GDPR.` },
       { type: "h2", text: "1. Two roles: our data and your customers' data" },
-      { type: "ul", items: ["**Account data** — information about you and your team members that we collect to run your account. For this we decide why and how it is used.", "**Workspace data** — contacts, conversations, templates and files your business puts into LeadForGrow. For this we process data **on your behalf** and under your instructions; you decide why it is collected and are responsible for having a lawful basis and consent to message your customers."] },
+      { type: "ul", items: ["**Account data** — information about you and your team members that we collect to run your account. For this we decide why and how it is used.", "**Workspace data** — contacts, conversations, templates and files your business puts into TalkForGrow. For this we process data **on your behalf** and under your instructions; you decide why it is collected and are responsible for having a lawful basis and consent to message your customers."] },
       { type: "h2", text: "2. What we collect" },
       { type: "table", head: ["Category", "Examples", "Why"], rows: [["Account", "Name, work email, company name, role, hashed password, login times", "Create and secure your account; communicate with you"], ["Workspace data", "Contact names and phone numbers, WhatsApp messages and media, tags, deals, templates, knowledge-base content", "Provide the service you asked for"], ["Billing", "Business name, GSTIN, address, invoices, payment status and Razorpay identifiers. Card, UPI and bank details are entered on Razorpay and never reach us", "Take payment, issue GST invoices, meet tax obligations"], ["Technical", "IP address, browser type, timestamps and error logs", "Keep the service secure, reliable and abuse-free"], ["Website forms", "Name, email, phone, company and message from the contact form; email for the newsletter", "Respond to enquiries and send updates you asked for"]] },
       { type: "h2", text: "3. How we use it" },
-      { type: "ul", items: ["To provide, maintain and improve LeadForGrow", "To authenticate you and prevent fraud and abuse", "To process payments and send invoices and service notices", "To provide support", "To comply with legal obligations", "To send product news you have opted into — you can unsubscribe at any time"] },
+      { type: "ul", items: ["To provide, maintain and improve TalkForGrow", "To authenticate you and prevent fraud and abuse", "To process payments and send invoices and service notices", "To provide support", "To comply with legal obligations", "To send product news you have opted into — you can unsubscribe at any time"] },
       { type: "p", text: "We do not sell personal data, and we do not use the content of your customers' conversations for advertising." },
       { type: "h2", text: "4. Who we share data with (sub-processors)" },
       { type: "p", text: "We use trusted providers to run the service. They may process data outside India and are bound by contractual obligations appropriate to their role." },
-      { type: "table", head: ["Provider", "Purpose"], rows: [["Meta Platforms (WhatsApp Business Platform)", "Sending and receiving WhatsApp messages through your connected number"], ["Razorpay", "Payment processing for LeadForGrow plans, and for payment links if you connect your own Razorpay account"], ["Anthropic", "Generating AI replies, only when your workspace enables the AI agent or an AI step"], ["Vercel", "Hosting the website and dashboard front end"], ["Railway", "Hosting the application servers and database"], ["Resend", "Sending transactional email such as invitations, password resets and receipts"]] },
+      { type: "table", head: ["Provider", "Purpose"], rows: [["Meta Platforms (WhatsApp Business Platform)", "Sending and receiving WhatsApp messages through your connected number"], ["Razorpay", "Payment processing for TalkForGrow plans, and for payment links if you connect your own Razorpay account"], ["Anthropic", "Generating AI replies, only when your workspace enables the AI agent or an AI step"], ["Vercel", "Hosting the website and dashboard front end"], ["Railway", "Hosting the application servers and database"], ["Resend", "Sending transactional email such as invitations, password resets and receipts"]] },
       { type: "p", text: "We may also disclose information if required by law, to protect rights and safety, or in connection with a business transfer, in which case we will tell you and the acquirer must honour this policy." },
       { type: "h2", text: "5. Retention" },
       { type: "p", text: "We keep account and workspace data while your account is active. After you delete your workspace we remove workspace data within a reasonable period, except records we must keep by law (for example tax invoices, kept for the period required under Indian law). Server logs are kept for a limited period." },
@@ -38,7 +38,7 @@ export const LEGAL: LegalDoc[] = [
       { type: "h2", text: "8. Cookies" },
       { type: "p", text: "See our [Cookie Policy](/cookies)." },
       { type: "h2", text: "9. Children" },
-      { type: "p", text: "LeadForGrow is for businesses and is not directed at children. We do not knowingly collect personal data from children." },
+      { type: "p", text: "TalkForGrow is for businesses and is not directed at children. We do not knowingly collect personal data from children." },
       { type: "h2", text: "10. Changes" },
       { type: "p", text: "We will post updates here and, for material changes, notify account holders by email or in the dashboard." },
       { type: "h2", text: "11. Contact and grievance redressal" },
@@ -48,12 +48,12 @@ export const LEGAL: LegalDoc[] = [
   {
     slug: "terms",
     title: "Terms of Service",
-    metaDescription: `The agreement between ${CO} and customers who use LeadForGrow: accounts, acceptable use, fees, data, AI features, liability and more.`,
-    summary: "The rules for using LeadForGrow, what you can expect from us and what we expect from you.",
+    metaDescription: `The agreement between ${CO} and customers who use TalkForGrow: accounts, acceptable use, fees, data, AI features, liability and more.`,
+    summary: "The rules for using TalkForGrow, what you can expect from us and what we expect from you.",
     body: [
-      { type: "p", text: `These terms are an agreement between **${CO}** ("we", "us") and the business or person who creates a LeadForGrow account ("you"). By creating an account or using the service you accept them. If you accept on behalf of a company, you confirm you are authorised to do so.` },
+      { type: "p", text: `These terms are an agreement between **${CO}** ("we", "us") and the business or person who creates a TalkForGrow account ("you"). By creating an account or using the service you accept them. If you accept on behalf of a company, you confirm you are authorised to do so.` },
       { type: "h2", text: "1. The service" },
-      { type: "p", text: "LeadForGrow is software for managing WhatsApp Business conversations, automation, campaigns, sales and payments. It works with the WhatsApp Business Platform provided by Meta. We are an independent company and are **not affiliated with, endorsed by or sponsored by WhatsApp or Meta**." },
+      { type: "p", text: "TalkForGrow is software for managing WhatsApp Business conversations, automation, campaigns, sales and payments. It works with the WhatsApp Business Platform provided by Meta. We are an independent company and are **not affiliated with, endorsed by or sponsored by WhatsApp or Meta**." },
       { type: "h2", text: "2. Your account" },
       { type: "ul", items: ["Provide accurate information and keep it up to date", "Keep credentials confidential and tell us promptly about unauthorised use", "You are responsible for activity under your workspace, including by team members you invite"] },
       { type: "h2", text: "3. Using WhatsApp responsibly" },
@@ -89,7 +89,7 @@ export const LEGAL: LegalDoc[] = [
   {
     slug: "refund-policy",
     title: "Refund & Cancellation Policy",
-    metaDescription: "How to cancel LeadForGrow, when refunds apply, how failed or duplicate payments are handled and how long refunds take.",
+    metaDescription: "How to cancel TalkForGrow, when refunds apply, how failed or duplicate payments are handled and how long refunds take.",
     summary: "Plans are prepaid and don't auto-renew. Here's how cancellation and refunds work.",
     body: [
       { type: "h2", text: "Cancellation" },
@@ -105,10 +105,10 @@ export const LEGAL: LegalDoc[] = [
   {
     slug: "cookies",
     title: "Cookie Policy",
-    metaDescription: `What cookies and similar storage ${CO} uses on the LeadForGrow website and dashboard, and how to control them.`,
+    metaDescription: `What cookies and similar storage ${CO} uses on the TalkForGrow website and dashboard, and how to control them.`,
     summary: "We keep this simple: only what's needed to sign you in and remember your preferences.",
     body: [
-      { type: "p", text: "Cookies and similar technologies (such as your browser's local storage) are small pieces of data stored on your device. Here is what LeadForGrow uses." },
+      { type: "p", text: "Cookies and similar technologies (such as your browser's local storage) are small pieces of data stored on your device. Here is what TalkForGrow uses." },
       { type: "table", head: ["Purpose", "What we store", "Duration"], rows: [["Sign-in (essential)", "Session tokens that keep you signed in to the dashboard", "Until you sign out or the session expires"], ["Preferences (essential)", "Your light or dark theme choice", "Until you clear it"], ["Security (essential)", "Short-lived data used to protect forms and rate-limit abuse", "Short"]] },
       { type: "p", text: "We do not use advertising cookies. If we add analytics or other optional technologies in future, we will update this page and ask for your consent where the law requires it." },
       { type: "h2", text: "Third-party content" },
@@ -120,7 +120,7 @@ export const LEGAL: LegalDoc[] = [
   {
     slug: "security",
     title: "Security",
-    metaDescription: `How ${CO} protects LeadForGrow customer data: encryption, access control, webhook verification, tenant isolation and responsible disclosure.`,
+    metaDescription: `How ${CO} protects TalkForGrow customer data: encryption, access control, webhook verification, tenant isolation and responsible disclosure.`,
     summary: "The practical measures we take to protect your workspace and your customers' data.",
     body: [
       { type: "p", text: "Your conversations and contacts are among your business's most sensitive data. This page describes the controls we operate today." },
@@ -132,7 +132,7 @@ export const LEGAL: LegalDoc[] = [
       { type: "ul", items: ["Inbound WhatsApp and integration webhooks are accepted only if their **signature verifies**", "Outbound webhooks are signed with HMAC-SHA256, and requests to private or internal network addresses are blocked", "Rate limiting on sign-in, forms and APIs", "Input validation and constrained file uploads", "CSV exports neutralise spreadsheet formulas"] },
       { type: "h2", text: "Operations" },
       { type: "ul", items: ["Hosted on reputable cloud providers that maintain their own certifications", "Managed database with backups", "Health monitoring and a public [status page](/status)"] },
-      { type: "callout", tone: "info", title: "Independent audits", text: "We have not yet completed an independent certification such as SOC 2 or ISO 27001 for LeadForGrow itself. If your organisation needs a security questionnaire or a data processing agreement, contact us." },
+      { type: "callout", tone: "info", title: "Independent audits", text: "We have not yet completed an independent certification such as SOC 2 or ISO 27001 for TalkForGrow itself. If your organisation needs a security questionnaire or a data processing agreement, contact us." },
       { type: "h2", text: "Report a vulnerability" },
       { type: "p", text: `If you believe you've found a security issue, email **${MAIL}** with details. Please give us reasonable time to fix it before disclosing it publicly, and avoid accessing other people's data. We acknowledge reports promptly and appreciate responsible research.` },
     ],
@@ -140,11 +140,11 @@ export const LEGAL: LegalDoc[] = [
   {
     slug: "compliance",
     title: "Compliance",
-    metaDescription: `How LeadForGrow supports compliance with WhatsApp Business policies, India's DPDP Act, GDPR and GST invoicing requirements.`,
+    metaDescription: `How TalkForGrow supports compliance with WhatsApp Business policies, India's DPDP Act, GDPR and GST invoicing requirements.`,
     summary: "How the product helps you meet WhatsApp, data-protection and tax obligations.",
     body: [
       { type: "h2", text: "WhatsApp Business policies" },
-      { type: "p", text: "LeadForGrow uses the official WhatsApp Business Platform. The product is built around its rules: message templates for business-initiated conversations, the 24-hour customer service window, opt-out handling and template category rules. You remain responsible for obtaining opt-in and for what you send." },
+      { type: "p", text: "TalkForGrow uses the official WhatsApp Business Platform. The product is built around its rules: message templates for business-initiated conversations, the 24-hour customer service window, opt-out handling and template category rules. You remain responsible for obtaining opt-in and for what you send." },
       { type: "h2", text: "India — DPDP Act, 2023 and IT Act, 2000" },
       { type: "ul", items: ["We collect personal data for stated purposes and describe them in our [Privacy Policy](/privacy)", "You can ask us to access, correct or erase your data and to withdraw consent", "We take reasonable security safeguards and will report breaches as the law requires", `A grievance channel is available at ${MAIL}`] },
       { type: "h2", text: "GDPR and UK GDPR" },
@@ -160,10 +160,10 @@ export const LEGAL: LegalDoc[] = [
   {
     slug: "accessibility",
     title: "Accessibility",
-    metaDescription: `${CO}'s commitment to making the LeadForGrow website and dashboard usable by everyone, and how to report a problem.`,
+    metaDescription: `${CO}'s commitment to making the TalkForGrow website and dashboard usable by everyone, and how to report a problem.`,
     summary: "We aim for a site and dashboard that everyone can use.",
     body: [
-      { type: "p", text: "We want everyone to be able to use LeadForGrow, including people who use screen readers, keyboards, zoom or high-contrast settings. We aim to follow the Web Content Accessibility Guidelines (WCAG) 2.1 level AA." },
+      { type: "p", text: "We want everyone to be able to use TalkForGrow, including people who use screen readers, keyboards, zoom or high-contrast settings. We aim to follow the Web Content Accessibility Guidelines (WCAG) 2.1 level AA." },
       { type: "h2", text: "What we do" },
       { type: "ul", items: ["Semantic headings, landmarks and labelled form fields", "Keyboard access to menus, dialogs and forms", "Visible focus states and sufficient colour contrast in both the light and dark themes", "Respect for the 'reduce motion' setting", "Text alternatives for meaningful icons"] },
       { type: "h2", text: "Known limitations" },

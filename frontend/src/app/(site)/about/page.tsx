@@ -11,7 +11,7 @@ export const metadata = pageMetadata({
   path: "/about",
   ogTitle: `About ${SITE.name}`,
   ogKind: "Company",
-  keywords: ["ScaleDesk Technology", "LeadForGrow company", "WhatsApp automation company India"],
+  keywords: ["ScaleDesk Technology", "TalkForGrow company", "WhatsApp automation company India"],
 });
 
 export default function AboutPage() {
@@ -30,7 +30,7 @@ export default function AboutPage() {
         <div className="grid gap-10 lg:grid-cols-2">
           <div className={`${M.body} space-y-4`}>
             <p>Most Indian businesses already run on WhatsApp: enquiries, orders, follow-ups, payment reminders. But the tools are often a phone passed between staff and a spreadsheet of numbers.</p>
-            <p>We built LeadForGrow to fix that. One shared inbox for the team, automation that handles the repetitive work, campaigns you can measure, a sales pipeline that lives beside the chat, and payments customers can complete without leaving the conversation.</p>
+            <p>We built TalkForGrow to fix that. One shared inbox for the team, automation that handles the repetitive work, campaigns you can measure, a sales pipeline that lives beside the chat, and payments customers can complete without leaving the conversation.</p>
             <p>We use the official WhatsApp Business Platform, we price in rupees with GST invoices, and we try to be plain about how things work — including their limits.</p>
           </div>
           <dl className="grid grid-cols-2 gap-4">
@@ -52,7 +52,7 @@ export default function AboutPage() {
         ]} />
       </Section>
 
-      <Section overline="Company" title="Who's behind LeadForGrow" alt narrow>
+      <Section overline="Company" title="Who's behind TalkForGrow" alt narrow>
         <div className={`${M.card} space-y-3 p-6 text-[14.5px] text-white/70`}>
           <p className="flex items-start gap-3"><Compass size={18} className="mt-0.5 shrink-0 text-brand" /><span><b className="text-white">{SITE.legalName}</b> is the company that builds and operates {SITE.name}. It is the contracting party on your invoices, our Terms of Service and our Privacy Policy.</span></p>
           {SITE.address && <p><b className="text-white">Registered office:</b> {SITE.address}</p>}

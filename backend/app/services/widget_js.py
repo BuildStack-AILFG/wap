@@ -37,7 +37,7 @@ TEMPLATE = r"""(function () {
       '<div class="bd"><div class="bub">' + esc(C.welcome) + '</div></div>' +
       '<div class="ft">' + (C.lead ? '<input class="nm" placeholder="Your name" autocomplete="name"><input class="ph" placeholder="WhatsApp number (with country code)" inputmode="tel" autocomplete="tel"><div class="err"></div>' : '') +
       '<button class="cta">' + esc(C.cta) + '</button>' +
-      '<a class="pw" href="https://leadforgrow.com" target="_blank" rel="noopener">Powered by <b>LeadForGrow.com</b></a></div></div>' +
+      '<a class="pw" href="https://leadforgrow.com" target="_blank" rel="noopener">Powered by <b>TalkForGrow</b></a></div></div>' +
       '<button class="fab" aria-label="Chat on WhatsApp"><svg width="32" height="32" viewBox="0 0 32 32" fill="#fff"><path d="M16.002 3C9.373 3 4 8.373 4 15c0 2.385.697 4.61 1.9 6.484L4 29l7.7-1.86A11.94 11.94 0 0 0 16.002 27C22.63 27 28 21.627 28 15S22.63 3 16.002 3zm0 21.8c-1.86 0-3.6-.5-5.09-1.38l-.36-.21-4.57 1.1 1.15-4.45-.24-.38A9.78 9.78 0 0 1 6.2 15c0-5.42 4.4-9.8 9.8-9.8s9.8 4.38 9.8 9.8-4.4 9.8-9.8 9.8zm5.4-7.34c-.3-.15-1.75-.86-2.02-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.6-.91-2.2-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.7.63.71.23 1.36.2 1.87.12.57-.08 1.75-.72 2-1.4.25-.7.25-1.29.17-1.4-.07-.12-.27-.2-.57-.35z"/></svg></button>';
     var panel = root.querySelector('.panel'), fab = root.querySelector('.fab'), cta = root.querySelector('.cta'), opened = false;
     function toggle(force) {
@@ -68,7 +68,7 @@ TEMPLATE = r"""(function () {
 })();
 """
 
-NOOP = "/* LeadForGrow widget: not available for this page */"
+NOOP = "/* TalkForGrow widget: not available for this page */"
 
 
 def build(config: dict) -> str:

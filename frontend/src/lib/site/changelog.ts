@@ -56,7 +56,7 @@ export const CHANGELOG: ChangeEntry[] = [
   },
   {
     date: "2026-09-18",
-    title: "LeadForGrow launches",
+    title: "TalkForGrow launches",
     tag: "New",
     summary: "The first public version of the WhatsApp automation site with sign-up and login.",
     items: ["Marketing site and product overview", "Sign-up, login and password reset"],

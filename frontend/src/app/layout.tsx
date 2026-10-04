@@ -27,11 +27,6 @@ export const metadata: Metadata = {
   },
   twitter: { card: "summary_large_image", site: SITE.twitter, creator: SITE.twitter, images: ["/og"] },
   formatDetection: { telephone: false },
-  icons: {
-    icon: "/favicon-green.png",
-    shortcut: "/favicon-green.png",
-    apple: "/favicon-green.png",
-  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

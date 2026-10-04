@@ -18,7 +18,7 @@ export const DOCS: Doc[] = [
     description: "Create a workspace, connect your WhatsApp Business number and send your first automated reply in about fifteen minutes.",
     group: "Get started",
     body: [
-      { type: "p", text: "LeadForGrow gives your team a shared inbox, automation and campaigns on top of the official WhatsApp Business Platform. This page walks you from sign-up to your first automated conversation." },
+      { type: "p", text: "TalkForGrow gives your team a shared inbox, automation and campaigns on top of the official WhatsApp Business Platform. This page walks you from sign-up to your first automated conversation." },
       { type: "h2", text: "1. Create your workspace" },
       { type: "p", text: "[Sign up](/signup) with your work email and company name. You start on a free trial with limits suited to trying every feature. Everything you create — contacts, templates, flows — belongs to your workspace." },
       { type: "h2", text: "2. Connect a WhatsApp Business number" },
@@ -35,10 +35,10 @@ export const DOCS: Doc[] = [
   {
     slug: "connect-whatsapp",
     title: "Connect your WhatsApp number",
-    description: "Link a WhatsApp Business number through Meta's Cloud API and point Meta's webhook at LeadForGrow.",
+    description: "Link a WhatsApp Business number through Meta's Cloud API and point Meta's webhook at TalkForGrow.",
     group: "Get started",
     body: [
-      { type: "p", text: "LeadForGrow uses Meta's **WhatsApp Cloud API**. You keep ownership of your Meta business assets; we send and receive messages on your behalf using credentials you provide." },
+      { type: "p", text: "TalkForGrow uses Meta's **WhatsApp Cloud API**. You keep ownership of your Meta business assets; we send and receive messages on your behalf using credentials you provide." },
       { type: "h2", text: "What you need" },
       { type: "ul", items: ["A Meta Business account and a WhatsApp Business Account (WABA)", "A phone number added to that WABA", "A **permanent access token** for a system user with WhatsApp permissions", "Your Meta app's **App secret** (used to verify incoming webhooks)"] },
       { type: "h2", text: "Steps" },
@@ -90,7 +90,7 @@ export const DOCS: Doc[] = [
       { type: "h2", text: "Collect payments from customers" },
       { type: "ol", items: ["In Razorpay, generate API keys (use test mode first).", "In **Settings → Payments**, paste the Key ID and Secret and connect.", "Use **Request payment** in a chat or a deal. Enter an amount and description; the link is created on your Razorpay account."] },
       { type: "p", text: "Links update to **paid** automatically. For instant updates, add a Razorpay webhook for `payment_link.paid` pointing to your Razorpay integration's hook URL (see [Integrations](/docs/integrations)); otherwise we check open links in the background." },
-      { type: "h2", text: "Your LeadForGrow plan" },
+      { type: "h2", text: "Your TalkForGrow plan" },
       { type: "p", text: "Plans are prepaid for 1, 3 or 12 months in **Settings → Plan & billing**. GST is added at checkout and each payment produces a GST invoice you can print or save as PDF. Changing plan mid-period credits the unused time." },
     ],
   },

@@ -37,7 +37,7 @@ export default function ProductHubsSection() {
           <p className={MARKETING.overline}>Everything You Need</p>
           <h2 className={`${MARKETING.h2} mt-3`}>Everything You Need to Win on WhatsApp</h2>
           <p className={`${MARKETING.body} mt-4`}>
-            LeadForGrow is a full automation engine built only for WhatsApp Business — no bloated CRM, no unrelated channels.
+            TalkForGrow is a full automation engine built only for WhatsApp Business — no bloated CRM, no unrelated channels.
           </p>
         </div>
 

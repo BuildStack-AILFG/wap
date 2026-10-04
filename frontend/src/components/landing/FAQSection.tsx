@@ -6,7 +6,7 @@ import { Plus, Minus } from "lucide-react";
 
 const FAQS = [
   {
-    q: "Does LeadForGrow support the WhatsApp Business API?",
+    q: "Does TalkForGrow support the WhatsApp Business API?",
     a: "Yes. We integrate with the official Meta WhatsApp Business API. Connect your number, use approved templates, and manage team conversations from one unified inbox.",
   },
   {
@@ -48,7 +48,7 @@ export default function FAQSection({ onBookDemo }: { onBookDemo?: () => void }) 
             Questions before you start
           </h2>
           <p className="mt-3 text-[15px] leading-relaxed text-white/60">
-            Common questions about LeadForGrow, onboarding, pricing, and security.
+            Common questions about TalkForGrow, onboarding, pricing, and security.
           </p>
         </div>
 

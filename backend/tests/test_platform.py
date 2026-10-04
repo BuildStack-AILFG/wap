@@ -188,8 +188,8 @@ async def test_auto_assignment_round_robin(wsa):
 # ---- widget ---------------------------------------------------------------------------------------------------------------------------------
 
 async def test_widget_carries_a_fixed_powered_by_credit(wsa):
-    """Every widget shows "Powered by LeadForGrow.com" linking to leadforgrow.com; no workspace setting can change or remove it."""
-    credit = 'href="https://leadforgrow.com" target="_blank" rel="noopener">Powered by <b>LeadForGrow.com</b>'
+    """Every widget shows "Powered by TalkForGrow" linking to leadforgrow.com; no workspace setting can change or remove it."""
+    credit = 'href="https://leadforgrow.com" target="_blank" rel="noopener">Powered by <b>TalkForGrow</b>'
     w = (await wsa.post("/widgets", json={"phone_number": "919876543210", "collect_lead": True, "powered_by": "Evil Co", "powered_by_url": "https://evil.example",
                                           "title": "Powered by <a href='https://evil.example'>x</a>"})).json()
     js = (await wsa.client.get(f"/api/public/widget/{w['public_key']}.js")).text

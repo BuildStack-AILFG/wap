@@ -9,7 +9,7 @@ const STEPS = [
   { id: "business", label: "Business", icon: Building2, title: "Choose your business portfolio", body: "Pick the Meta business portfolio that will own the WhatsApp Business account." },
   { id: "waba", label: "WhatsApp account", icon: MessageCircle, title: "Choose or create a WhatsApp Business account", body: "Select an existing account or create a new one." },
   { id: "phone", label: "Number", icon: Phone, title: "Add and verify your number", body: "Enter the number and confirm the 6-digit code sent by SMS or call." },
-  { id: "allow", label: "Allow", icon: ShieldCheck, title: "Allow LeadForGrow to manage messages", body: "Review the permissions, then finish. We set up webhooks for you." },
+  { id: "allow", label: "Allow", icon: ShieldCheck, title: "Allow TalkForGrow to manage messages", body: "Review the permissions, then finish. We set up webhooks for you." },
 ] as const;
 
 /**
@@ -49,7 +49,7 @@ export default function EmbeddedSignupPreview({ onClose, onManual }: { onClose: 
               <div className="flex flex-col items-center py-4 text-center">
                 <CheckCircle2 size={40} className="text-emerald-500" />
                 <p className="mt-3 text-[16px] font-semibold text-neutral-900">This is where your number gets connected</p>
-                <p className="mt-1 max-w-sm text-[13px] text-neutral-500">With the credentials in place, finishing here links your WhatsApp Business number and returns you to LeadForGrow — no copy-pasting tokens.</p>
+                <p className="mt-1 max-w-sm text-[13px] text-neutral-500">With the credentials in place, finishing here links your WhatsApp Business number and returns you to TalkForGrow — no copy-pasting tokens.</p>
               </div>
             ) : (
               <>

@@ -5,10 +5,10 @@ import { formatDate } from "@/lib/site/config";
 import { pageMetadata } from "@/lib/site/seo";
 
 export const metadata = pageMetadata({
-  title: "Product Updates — What's New in LeadForGrow",
-  description: "A running log of what we've shipped in LeadForGrow: new features, improvements and platform updates for WhatsApp Business teams.",
+  title: "Product Updates — What's New in TalkForGrow",
+  description: "A running log of what we've shipped in TalkForGrow: new features, improvements and platform updates for WhatsApp Business teams.",
   path: "/changelog",
-  ogTitle: "What's new in LeadForGrow",
+  ogTitle: "What's new in TalkForGrow",
   ogKind: "Updates",
 });
 
@@ -17,7 +17,7 @@ const TAG = { New: "bg-emerald-500/15 text-emerald-300", Improved: "bg-sky-500/1
 export default function ChangelogPage() {
   return (
     <>
-      <PageHero breadcrumbs={[{ name: "Product updates", path: "/changelog" }]} overline="Changelog" title="What's new in LeadForGrow" lead="We ship in small steps and write down what changed. The newest updates are at the top." />
+      <PageHero breadcrumbs={[{ name: "Product updates", path: "/changelog" }]} overline="Changelog" title="What's new in TalkForGrow" lead="We ship in small steps and write down what changed. The newest updates are at the top." />
       <Section narrow>
         <ol className="relative space-y-10 border-l border-white/10 pl-8">
           {CHANGELOG.map((c) => (

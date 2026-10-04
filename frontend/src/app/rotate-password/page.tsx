@@ -3,7 +3,7 @@ import AuthShell from "@/components/auth/AuthShell";
 import RotatePasswordForm from "@/components/auth/RotatePasswordForm";
 
 export const metadata: Metadata = {
-  title: "Update your password — LeadForGrow",
+  title: "Update your password — TalkForGrow",
 };
 
 export default function RotatePasswordPage() {

@@ -1,4 +1,4 @@
-/** LeadForGrow marketing design system — full black + glass surfaces, brand green #00926B. */
+/** TalkForGrow marketing design system — full black + glass surfaces, brand green #00926B. */
 
 export const BRAND = {
   green: {

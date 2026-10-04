@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { LogOut, Settings, ShieldCheck } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 import ThemeToggle from "@/components/ui/ThemeToggle";
-import { WhatsAppIcon } from "@/components/icons/BrandIcons";
 import { clearSession, getRefreshToken, logout } from "@/lib/api";
 import { useWorkspace } from "./WorkspaceContext";
 
@@ -106,10 +105,8 @@ export default function TopBar() {
         style={{ backgroundColor: "color-mix(in srgb, var(--background) 85%, transparent)", borderBottom: `1px solid ${GLASS_BORDER}` }}
       >
         <Link href="/dashboard" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#25D366] text-white">
-            <WhatsAppIcon className="h-4 w-4" />
-          </span>
-          <span className="text-[16px] font-normal tracking-tight text-white">LeadForGrow</span>
+          <img src="/logo.png" alt="" className="h-8 w-8 object-contain" />
+          <span className="text-[16px] font-normal tracking-tight text-white">TalkForGrow</span>
         </Link>
 
         <div className="flex items-center gap-1">

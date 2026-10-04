@@ -104,9 +104,10 @@ export default function Footer() {
         <div className="flex flex-col gap-12 lg:flex-row lg:justify-between">
           <div className="max-w-xs">
             <Link href="/" className="inline-flex items-center gap-3 mb-4">
-              <img src="/image.png" alt="" className="h-9 w-10 object-contain brightness-0 invert" />
-              <span className="text-xl font-bold font-[family-name:var(--font-plus-jakarta)] text-white">
-                LeadForGrow
+              <img src="/logo.png" alt="" className="h-10 w-10 object-contain" />
+              <span className="flex flex-col">
+                <span className="text-xl font-bold font-[family-name:var(--font-plus-jakarta)] text-white">{SITE.name}</span>
+                <span className="text-[11.5px] font-medium text-white/60">A product of {SITE.legalName}</span>
               </span>
             </Link>
             <p className="text-sm text-white/70 leading-relaxed">
@@ -140,7 +141,7 @@ export default function Footer() {
         <div className="mt-14 flex flex-col gap-6 border-t border-white/10 pt-8 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs text-white/60">
-              © {year} {SITE.legalName}. All rights reserved. {SITE.name} is a product of {SITE.legalName}.
+              © {year} {SITE.legalName}. All rights reserved.
             </p>
             <p className="mt-1 text-xs text-white/40">
               Not affiliated with WhatsApp Inc. or Meta. WhatsApp is a trademark of its respective owner.

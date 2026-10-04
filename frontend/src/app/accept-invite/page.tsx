@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import AuthShell from "@/components/auth/AuthShell";
 import AcceptInviteForm from "@/components/auth/AcceptInviteForm";
 
-export const metadata: Metadata = { title: "Join your team — LeadForGrow" };
+export const metadata: Metadata = { title: "Join your team — TalkForGrow" };
 
 export default function AcceptInvitePage() {
   return (

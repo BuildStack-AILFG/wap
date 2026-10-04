@@ -31,7 +31,7 @@ export default function AutomationInActionSection() {
           Automation in Action
         </h2>
         <p className="mt-2 text-base text-white/60 sm:text-lg">
-          See how LeadForGrow replies to every WhatsApp message, instantly.
+          See how TalkForGrow replies to every WhatsApp message, instantly.
         </p>
       </div>
 

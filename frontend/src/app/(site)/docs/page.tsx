@@ -5,11 +5,11 @@ import { pageMetadata } from "@/lib/site/seo";
 
 export const metadata = pageMetadata({
   title: "Documentation — Guides & REST API Reference",
-  description: "Learn how to connect WhatsApp, build flows, run campaigns, manage your sales pipeline and payments, and integrate with the LeadForGrow REST API and webhooks.",
+  description: "Learn how to connect WhatsApp, build flows, run campaigns, manage your sales pipeline and payments, and integrate with the TalkForGrow REST API and webhooks.",
   path: "/docs",
-  ogTitle: "LeadForGrow documentation",
+  ogTitle: "TalkForGrow documentation",
   ogKind: "Docs",
-  keywords: ["WhatsApp API documentation", "WhatsApp Cloud API guide", "LeadForGrow API"],
+  keywords: ["WhatsApp API documentation", "WhatsApp Cloud API guide", "TalkForGrow API"],
 });
 
 const ICON = { "Get started": Rocket, Build: BookOpen, Developers: Code2, Administer: Settings2 } as const;
@@ -17,7 +17,7 @@ const ICON = { "Get started": Rocket, Build: BookOpen, Developers: Code2, Admini
 export default function DocsHome() {
   return (
     <>
-      <PageHero breadcrumbs={[{ name: "Documentation", path: "/docs" }]} overline="Documentation" title="Everything you need to build on WhatsApp with LeadForGrow" lead="Step-by-step guides for your team and a complete reference for developers." />
+      <PageHero breadcrumbs={[{ name: "Documentation", path: "/docs" }]} overline="Documentation" title="Everything you need to build on WhatsApp with TalkForGrow" lead="Step-by-step guides for your team and a complete reference for developers." />
       {DOC_GROUPS.map((g, i) => (
         <Section key={g} title={g} alt={i % 2 === 0}>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

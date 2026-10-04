@@ -184,7 +184,7 @@ function DesktopHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; 
           }`}
           style={{ left: "50%", top: "67.5%", width: "min(40cqw, 560px)", transform: "translateX(-50%)", fontSize: "1.5cqw" }}
         >
-          The first reply wins the customer. LeadForGrow makes sure it&apos;s always instant.
+          The first reply wins the customer. TalkForGrow makes sure it&apos;s always instant.
         </p>
 
         <div
@@ -304,7 +304,7 @@ function MobileHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; o
           isDark ? "text-white/40" : "text-white/60"
         }`}
       >
-        The first reply wins the customer. LeadForGrow makes sure it&apos;s always instant.
+        The first reply wins the customer. TalkForGrow makes sure it&apos;s always instant.
       </p>
 
       <div className="mt-6 flex flex-col items-center gap-3">

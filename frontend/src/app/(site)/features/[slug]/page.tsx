@@ -38,7 +38,7 @@ export default async function FeaturePage({ params }: Props) {
         actions={<><Link href="/signup" className={M.btnPrimary}>Start free trial <ArrowRight size={16} /></Link><Link href="/contact?topic=demo" className={M.btnOutline}>Book a demo</Link></>}
       />
 
-      <Section overline="What you get" title={`Why teams choose ${f.navLabel.toLowerCase()} in LeadForGrow`} alt>
+      <Section overline="What you get" title={`Why teams choose ${f.navLabel.toLowerCase()} in TalkForGrow`} alt>
         <FeatureGrid items={f.benefits} />
       </Section>
 

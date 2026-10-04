@@ -73,8 +73,9 @@ export default function LandingNavbar() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 px-4 pt-5 sm:px-6">
       <div className="mx-auto flex max-w-[1100px] items-center justify-between gap-4 rounded-xl border border-white/10 bg-black/60 px-4 py-2.5 shadow-[0_4px_24px_rgba(15,23,42,0.06)] backdrop-blur-xl sm:px-5 lg:px-6">
-        <a href="#top" className="shrink-0 ml-1">
-          <span className="landing-logo text-[17px] sm:text-[18px]">LeadForGrow</span>
+        <a href="#top" className="shrink-0 ml-1 flex items-center gap-2">
+          <img src="/logo.png" alt="" className="h-8 w-8 object-contain" />
+          <span className="landing-logo text-[17px] sm:text-[18px]">TalkForGrow</span>
         </a>
 
         <nav className="hidden lg:flex flex-1 items-center justify-center gap-7 xl:gap-9">

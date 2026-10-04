@@ -8,11 +8,11 @@ import { faqLd, pageMetadata } from "@/lib/site/seo";
 
 export const metadata = pageMetadata({
   title: "Help Center — Answers About Accounts, WhatsApp, Billing & More",
-  description: "Find answers about connecting WhatsApp, message templates, campaigns, flows, AI, GST invoices, plans and privacy. Search the LeadForGrow Help Center or contact support.",
+  description: "Find answers about connecting WhatsApp, message templates, campaigns, flows, AI, GST invoices, plans and privacy. Search the TalkForGrow Help Center or contact support.",
   path: "/help",
   ogTitle: "How can we help?",
   ogKind: "Help",
-  keywords: ["LeadForGrow help", "WhatsApp Business help", "WhatsApp template help"],
+  keywords: ["TalkForGrow help", "WhatsApp Business help", "WhatsApp template help"],
 });
 
 export default function HelpPage() {
@@ -25,7 +25,7 @@ export default function HelpPage() {
         <div className="grid gap-4 md:grid-cols-3">
           <LinkCard href="/docs" icon={BookOpen} title="Read the docs" body="Step-by-step guides and the API reference." />
           <LinkCard href="/contact?topic=support" icon={LifeBuoy} title="Contact support" body="Send us the details and we'll get back to you." />
-          <a href={whatsappLink("Hi, I need help with LeadForGrow")} target="_blank" rel="noopener noreferrer" className="flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-brand/40 hover:bg-white/[0.06]">
+          <a href={whatsappLink("Hi, I need help with TalkForGrow")} target="_blank" rel="noopener noreferrer" className="flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-brand/40 hover:bg-white/[0.06]">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/15 text-brand"><MessageCircle size={20} /></span>
             <span className="mt-3 text-[16px] font-semibold text-white">Chat on WhatsApp</span>
             <span className="mt-1.5 flex-1 text-[14px] text-white/60">The fastest way to reach our team.</span>

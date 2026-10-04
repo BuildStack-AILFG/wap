@@ -204,7 +204,7 @@ export default function BillingTab() {
         onSaved={async () => { const then = profileOpen.then; setProfileOpen(null); await load(); toast("Billing details saved"); if (then) void pay(then); }} />}
       <InvoiceModal invoice={invoice} onClose={() => setInvoice(null)} />
       {preview && o.plans.find((x) => x.id === preview)?.quotes[period] && (
-        <CheckoutPreview quote={o.plans.find((x) => x.id === preview)!.quotes[period]!} currency={o.currency} businessName="LeadForGrow" onClose={() => setPreview(null)} />
+        <CheckoutPreview quote={o.plans.find((x) => x.id === preview)!.quotes[period]!} currency={o.currency} businessName="TalkForGrow" onClose={() => setPreview(null)} />
       )}
     </div>
   );

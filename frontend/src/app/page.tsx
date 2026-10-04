@@ -6,7 +6,7 @@ import { getPublicPricing } from "@/lib/site/livePlans";
 import { pageMetadata, softwareLd } from "@/lib/site/seo";
 
 export const metadata = pageMetadata({
-  title: "LeadForGrow — WhatsApp Business Automation, Inbox, Flows & Payments",
+  title: "TalkForGrow — WhatsApp Business Automation, Inbox, Flows & Payments",
   description:
     "Run sales, support and marketing on WhatsApp: shared team inbox, no-code chat flows, broadcasts, an AI agent, a sales pipeline and Razorpay payment links — on the official WhatsApp Business Platform.",
   path: "/",

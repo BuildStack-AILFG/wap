@@ -51,7 +51,7 @@ export const HELP: HelpCategory[] = [
   {
     id: "billing",
     title: "Plans, payments & invoices",
-    blurb: "Paying for LeadForGrow and collecting payments from customers.",
+    blurb: "Paying for TalkForGrow and collecting payments from customers.",
     faqs: [
       { q: "How do I upgrade?", a: "Open Settings → Plan & billing, choose a plan and billing period, add your business details and pay online with UPI, card or netbanking through Razorpay." },
       { q: "Is GST included in the price?", a: "Prices are shown before GST. 18% GST is added at checkout, and your invoice shows the breakup — CGST and SGST for in-state customers, IGST otherwise." },
@@ -66,7 +66,7 @@ export const HELP: HelpCategory[] = [
     title: "Privacy & security",
     blurb: "Where data lives and who can access it.",
     faqs: [
-      { q: "Who can see my conversations?", a: "Members of your workspace according to their role. Access by LeadForGrow staff is restricted and used only to run the service or to help with a support request you make." },
+      { q: "Who can see my conversations?", a: "Members of your workspace according to their role. Access by TalkForGrow staff is restricted and used only to run the service or to help with a support request you make." },
       { q: "How do I delete my data?", a: "Contact us from the email on your account and we'll delete your workspace and the data in it, subject to legal retention requirements such as tax invoices." },
       { q: "How do you protect credentials?", a: "WhatsApp tokens, AI keys and payment keys are encrypted at rest. Passwords are hashed and never stored in plain text." },
     ],

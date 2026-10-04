@@ -22,7 +22,7 @@ export default function BlogPage() {
   return (
     <>
       <JsonLd data={{ "@context": "https://schema.org", "@type": "Blog", name: `${SITE.name} Blog`, url: absoluteUrl("/blog"), publisher: { "@id": absoluteUrl("/#organization") }, blogPost: posts.map((p) => ({ "@type": "BlogPosting", headline: p.title, url: absoluteUrl(`/blog/${p.slug}`), datePublished: p.published })) }} />
-      <PageHero breadcrumbs={[{ name: "Blog", path: "/blog" }]} overline="The LeadForGrow blog" title="Playbooks for teams that sell and support on WhatsApp" lead="Practical, no-fluff guides on templates, automation, campaigns, sales pipelines and payments — written by the team building the product." />
+      <PageHero breadcrumbs={[{ name: "Blog", path: "/blog" }]} overline="The TalkForGrow blog" title="Playbooks for teams that sell and support on WhatsApp" lead="Practical, no-fluff guides on templates, automation, campaigns, sales pipelines and payments — written by the team building the product." />
       <Section><BlogIndex posts={posts} categories={CATEGORIES} /></Section>
       <Section alt narrow>
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center">

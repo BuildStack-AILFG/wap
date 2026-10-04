@@ -4,10 +4,10 @@ import StatusBoard from "@/components/site/StatusBoard";
 import { pageMetadata } from "@/lib/site/seo";
 
 export const metadata = pageMetadata({
-  title: "System Status — LeadForGrow",
-  description: "Live health of the LeadForGrow website, API and database, checked in real time.",
+  title: "System Status — TalkForGrow",
+  description: "Live health of the TalkForGrow website, API and database, checked in real time.",
   path: "/status",
-  ogTitle: "LeadForGrow system status",
+  ogTitle: "TalkForGrow system status",
   ogKind: "Status",
 });
 

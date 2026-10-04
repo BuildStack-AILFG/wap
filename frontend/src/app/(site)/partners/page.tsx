@@ -16,7 +16,7 @@ export const metadata = pageMetadata({
 const FAQS: Faq[] = [
   { q: "What do partners get?", a: "Guidance on setting up client workspaces, access to our team for onboarding questions and partner terms shared once you apply. Specific commercial terms depend on the type of partnership." },
   { q: "Do I need to be a large agency?", a: "No. Freelancers, consultants and small agencies are welcome if you help businesses set up WhatsApp for sales or support." },
-  { q: "Can I white-label LeadForGrow?", a: "White-labelling is only available under a written partner agreement. Tell us what you have in mind in the form below." },
+  { q: "Can I white-label TalkForGrow?", a: "White-labelling is only available under a written partner agreement. Tell us what you have in mind in the form below." },
   { q: "How do I apply?", a: "Send the form on this page with a few lines about your business and the clients you work with. We'll reply within a few business days." },
 ];
 
@@ -28,10 +28,10 @@ export default function PartnersPage() {
         <FeatureGrid cols={3} items={[
           { icon: Handshake, title: "Agency & implementation partners", body: "Set up and run WhatsApp automation for your clients — flows, templates, campaigns and reporting — on separate client workspaces." },
           { icon: Share2, title: "Referral partners", body: "Introduce businesses that need WhatsApp automation and we take it from there." },
-          { icon: Plug, title: "Technology partners", body: "Build an integration between your product and LeadForGrow using our REST API and webhooks." },
+          { icon: Plug, title: "Technology partners", body: "Build an integration between your product and TalkForGrow using our REST API and webhooks." },
         ]} />
       </Section>
-      <Section overline="Why LeadForGrow" title="What makes it easy to work with">
+      <Section overline="Why TalkForGrow" title="What makes it easy to work with">
         <FeatureGrid cols={2} items={[
           { icon: LayoutGrid, title: "Separate workspaces per client", body: "Every client's contacts, templates and team are isolated, with their own plan and invoices." },
           { icon: Plug, title: "Open API and webhooks", body: "Connect the systems your clients already use — stores, payments, CRMs — without waiting on us." },
