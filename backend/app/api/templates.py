@@ -212,10 +212,10 @@ async def ai_draft(body: DraftRequest, ctx: Ctx = Depends(require_writer), db: A
     """AI Copilot: draft template copy from a short description."""
     tenant = await db.get(Tenant, ctx.tenant_id)
     try:
-        key, own = ai_agent._api_key(tenant)
-        await ai_agent._meter(db, tenant, own)
+        conn = ai_agent.connection(tenant)
+        await ai_agent._meter(db, tenant, conn.own)
         raw = await ai_agent.complete(
-            key, max_tokens=500,
+            conn.key, max_tokens=500, model=conn.model, provider=conn.provider,
             system=("You write WhatsApp Business message templates that comply with Meta's policies. Output ONLY JSON: "
                     '{"name": snake_case_name, "body": text using {{1}}, {{2}} placeholders (never at the very start or end), "footer": short optional footer or "", '
                     '"body_examples": [sample value for each placeholder]}. Body max 600 characters, no markdown. '

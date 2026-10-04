@@ -52,6 +52,13 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     anthropic_api_base: str = "https://api.anthropic.com"
     ai_model: str = "claude-sonnet-5"
+    # Other AI providers a workspace can bring its own key for, and Vercel AI Gateway (one key, every provider's models).
+    # A platform AI_GATEWAY_API_KEY, when set, is the metered fallback instead of ANTHROPIC_API_KEY.
+    openai_api_base: str = "https://api.openai.com"
+    xai_api_base: str = "https://api.x.ai"
+    ai_gateway_api_base: str = "https://ai-gateway.vercel.sh"
+    ai_gateway_api_key: str = ""
+    ai_gateway_model: str = "anthropic/claude-sonnet-5.5"
 
     # "Continue with Google" sign-in. The OAuth *Web* client id from Google Cloud Console; the button is hidden when unset.
     google_client_id: str = ""
