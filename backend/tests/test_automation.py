@@ -368,3 +368,66 @@ async def test_ai_playground_and_knowledge_url_ingest(wsa, meta, monkeypatch):
 async def test_ai_url_ingest_blocks_internal_addresses(wsa):
     r = await wsa.post("/ai/knowledge/url", json={"url": "http://169.254.169.254/latest/meta-data/"})
     assert r.status_code == 201 and r.json()["status"] == "failed" and "private" in r.json()["error"].lower() or "https" in r.json()["error"].lower()
+
+
+def _first_message_workflow(account_id: str) -> dict:
+    """The shipped flows/first-message-workflow.json, pointed at this test's WhatsApp number."""
+    from pathlib import Path
+    f = json.loads((Path(__file__).resolve().parents[2] / "flows" / "first-message-workflow.json").read_text(encoding="utf-8"))
+    next(n for n in f["graph"]["nodes"] if n["type"] == "start")["data"]["account_id"] = account_id
+    return f
+
+
+async def _expire_wait(fid: str, ws) -> None:
+    from app.models.automation_execution import AutomationExecution
+    ex = (await ws.get(f"/flows/{fid}/executions")).json()[0]
+    async with await db_session() as db:
+        await db.execute(update(AutomationExecution).where(AutomationExecution.id == ex["id"]).values(wait_until=datetime.now(timezone.utc) - timedelta(seconds=1)))
+        await db.commit()
+
+
+async def test_first_message_workflow_qualifies_and_books_a_demo(wsa, meta):
+    f = _first_message_workflow(wsa.account["id"])
+    fid = await _publish(wsa, f["name"], f["trigger_type"], f["graph"])
+    tap = lambda kind, id_: {"interactive": {"type": kind, kind: {"id": id_, "title": id_}}}  # noqa: E731
+
+    await wsa.inbound("hello", name="Ravi Kumar")
+    assert texts(meta)[0].startswith("Hey! 👋 Welcome") and texts(meta)[1].startswith("[interactive] Great! Please choose")
+
+    await _expire_wait(fid, wsa)  # quiet for 23h -> one gentle reminder, then keep waiting
+    await scheduler.tick()
+    await scheduler.tick()
+    assert sum("Just checking in" in t for t in texts(meta)) == 1
+
+    await wsa.inbound("2")  # typed the option number instead of tapping
+    assert texts(meta)[-1].startswith("[interactive] Perfect! 😊")
+    await wsa.inbound("", msg_type="interactive", extra=tap("list_reply", "real_estate"))
+    assert texts(meta)[-1].startswith("[interactive] Got it! What is your biggest challenge")
+    await wsa.inbound("low conversion")  # typed the option title
+    assert texts(meta)[-1].startswith("[interactive] Thanks for sharing! 🚀")
+
+    contact = (await wsa.get("/contacts")).json()["items"][0]
+    assert {k: contact["traits"].get(k) for k in ("interest", "business_type", "pain_point")} == {"interest": "WhatsApp Automation", "business_type": "Real Estate", "pain_point": "Low conversion"}
+    assert "qualified-lead" in contact["tags"]
+    stages = {s["id"]: s["name"] for s in (await wsa.get("/pipeline/stages")).json()}
+    deal = (await wsa.get("/pipeline/deals")).json()["items"][0]
+    assert stages[deal["stage_id"]] == "Qualified"
+
+    await wsa.inbound("", msg_type="interactive", extra=tap("button_reply", "pricing"))
+    assert "Starter — ₹799/month" in texts(meta)[-2] and texts(meta)[-1] == "[interactive] Would you like to see it in action?"
+    await wsa.inbound("", msg_type="interactive", extra=tap("button_reply", "demo"))
+    assert texts(meta)[-1].startswith("Awesome! 🎉 What date and time")
+    await wsa.inbound("12 Oct, 4 PM")
+    assert texts(meta)[-1] == "Thank you! ✅ We've noted 12 Oct, 4 PM for your demo. Our team will confirm the slot here shortly."
+
+    stages = {s["id"]: s["name"] for s in (await wsa.get("/pipeline/stages")).json()}
+    deal = (await wsa.get("/pipeline/deals")).json()["items"][0]
+    assert stages[deal["stage_id"]] == "Demo Scheduled"  # stage created by name on first use
+    assert (await wsa.get(f"/flows/{fid}/executions")).json()[0]["status"] == "completed"
+
+
+async def test_flow_limited_to_another_number_does_not_run(wsa, meta):
+    f = _first_message_workflow("00000000-0000-0000-0000-000000000000")
+    await _publish(wsa, f["name"], f["trigger_type"], f["graph"])
+    await wsa.inbound("hello")
+    assert not any(t.startswith("Hey! 👋") for t in texts(meta))

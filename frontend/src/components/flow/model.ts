@@ -128,7 +128,7 @@ export function summarize(node: { type: string; data: Record<string, unknown> })
     case "set_trait": return `${s(d.key) || "?"} = ${s(d.value)}`;
     case "assign_agent": return d.user_id ? "Specific teammate" : "By workspace rules";
     case "create_deal": return s(d.title) || "Untitled deal";
-    case "move_deal": return d.stage_id ? "Moves the open deal" : "Choose a stage";
+    case "move_deal": return d.stage_id ? "Moves the open deal" : d.stage_name ? `Moves the deal to ${s(d.stage_name)}` : "Choose a stage";
     case "send_payment_link": return Number(d.amount) > 0 ? `₹${s(d.amount)} link` : "Set an amount";
     case "webhook": return `${s(d.method)} ${s(d.url) || "no URL yet"}`;
     case "ai_reply": return "Answers from your knowledge base";

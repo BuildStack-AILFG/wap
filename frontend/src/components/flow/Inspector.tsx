@@ -12,6 +12,27 @@ type Props = { type: string; data: D; onChange: (d: D) => void; onDelete: () => 
 const str = (v: unknown) => (v == null ? "" : String(v));
 const HINT = "Merge fields: {{first_name}}, {{name}}, {{phone}}, {{trait.city}}, {{var.answer}}";
 
+/** Save-the-choice + gentle-reminder settings shared by every step that waits for the contact's reply. */
+function ReplyExtras({ data, set, saveChoice }: { data: D; set: (p: D) => void; saveChoice: boolean }) {
+  return <>
+    {saveChoice && <Field label="Save the choice as (optional)" hint="Stored on the contact, e.g. interest → usable as {{trait.interest}}"><Input value={str(data.key)} onChange={(e) => set({ key: e.target.value.trim().replace(/\s+/g, "_") })} placeholder="interest" /></Field>}
+    <div className="grid grid-cols-[110px_1fr] gap-3">
+      <Field label="Remind after (h)"><Input type="number" min={0} max={23} value={str(data.reminder_hours ?? "")} onChange={(e) => set({ reminder_hours: e.target.value === "" ? undefined : Number(e.target.value) })} placeholder="off" /></Field>
+      <Field label="Reminder message" hint="Sent once if they don't reply. Keep it under 24h — WhatsApp blocks free text after that."><Input value={str(data.reminder_text)} onChange={(e) => set({ reminder_text: e.target.value })} placeholder="Just checking in…" /></Field>
+    </div>
+  </>;
+}
+
+/** Stage picker that also shows a stage chosen by name (imported flows), which is matched — or created — when the step runs. */
+function StageSelect({ data, set, stages, empty }: { data: D; set: (p: D) => void; stages: PipelineStage[]; empty: string }) {
+  const byName = !data.stage_id && str(data.stage_name);
+  return <Select value={byName ? "__name" : str(data.stage_id)} onChange={(e) => e.target.value !== "__name" && set({ stage_id: e.target.value, stage_name: undefined })}>
+    <option value="">{empty}</option>
+    {byName && <option value="__name">{byName} (by name)</option>}
+    {stages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+  </Select>;
+}
+
 function useStages(): PipelineStage[] {
   const [stages, setStages] = useState<PipelineStage[]>([]);
   useEffect(() => { pipeline.stages().then(setStages).catch(() => {}); }, []);
@@ -38,6 +59,9 @@ export default function Inspector({ type, data, onChange, onDelete, templates, m
           {trigger === "event" && <Field label="Event name" hint="Started when this event arrives via the API or an integration."><Input value={str(data.event)} onChange={(e) => set({ event: e.target.value.trim() })} placeholder="order_placed" /></Field>}
           {["incoming_message", "contact_created"].includes(trigger) && <Field label="Don't re-run for the same contact within (hours)"><Input type="number" min={0} value={str(data.cooldown_hours ?? 24)} onChange={(e) => set({ cooldown_hours: Number(e.target.value) })} /></Field>}
           {trigger === "manual" && <p className="text-[12.5px] text-white/50">Start this flow from “Test run” or with the API.</p>}
+          {!!data.account_id && <div className="flex items-center justify-between gap-2 rounded-lg border border-white/10 p-2 text-[12px] text-white/60">
+            <span>Only runs for messages to WhatsApp number <code className="text-white/80">{str(data.account_id).slice(0, 8)}…</code></span>
+            <Button size="sm" variant="ghost" onClick={() => set({ account_id: undefined })}>Use all numbers</Button></div>}
         </>
       )}
 
@@ -59,8 +83,9 @@ export default function Inspector({ type, data, onChange, onDelete, templates, m
             <div className="mb-1.5 flex items-center justify-between"><span className="text-[12.5px] font-medium text-white/70">Buttons ({buttons.length}/3)</span>{buttons.length < 3 && <Button size="sm" variant="ghost" onClick={() => set({ buttons: [...buttons, { id: uid("b"), title: "" }] })}><Plus size={12} /> Add</Button>}</div>
             {buttons.map((b, i) => <div key={b.id} className="mb-2 flex gap-2"><Input value={b.title} maxLength={20} onChange={(e) => set({ buttons: buttons.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)) })} placeholder="Button text (max 20)" />
               {buttons.length > 1 && <button onClick={() => set({ buttons: buttons.filter((_, j) => j !== i) })} className="px-1 text-white/40 hover:text-red-300" aria-label="Remove button"><X size={15} /></button>}</div>)}
-            <p className="text-[11.5px] text-white/40">Each button gets its own output — connect it to the next step.</p>
+            <p className="text-[11.5px] text-white/40">Each button gets its own output. Buttons you don&apos;t connect follow <b>Other reply</b>.</p>
           </div>
+          <ReplyExtras data={data} set={set} saveChoice />
         </>;
       })()}
 
@@ -75,7 +100,9 @@ export default function Inspector({ type, data, onChange, onDelete, templates, m
             {rows.map((r, i) => <div key={r.id} className="mb-2 space-y-1 rounded-lg border border-white/10 p-2"><div className="flex gap-2"><Input value={r.title} maxLength={24} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} placeholder="Title (max 24)" />
               {rows.length > 1 && <button onClick={() => setRows(rows.filter((_, j) => j !== i))} className="px-1 text-white/40 hover:text-red-300" aria-label="Remove option"><X size={15} /></button>}</div>
               <Input value={r.description ?? ""} maxLength={72} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)))} placeholder="Description (optional)" /></div>)}
+            <p className="text-[11.5px] text-white/40">Options you don&apos;t connect follow <b>Other reply</b>. Typing an option&apos;s number or name counts as choosing it.</p>
           </div>
+          <ReplyExtras data={data} set={set} saveChoice />
         </>;
       })()}
 
@@ -103,6 +130,7 @@ export default function Inspector({ type, data, onChange, onDelete, templates, m
         {data.validation === "choice" && <Field label="Choices (one per line)"><Textarea value={((data.options as string[]) ?? []).join("\n")} onChange={(e) => set({ options: e.target.value.split("\n").map((o) => o.trim()).filter(Boolean) })} /></Field>}
         <div className="grid grid-cols-2 gap-3"><Field label="Max retries"><Input type="number" min={1} max={10} value={str(data.max_retries ?? 3)} onChange={(e) => set({ max_retries: Number(e.target.value) })} /></Field></div>
         <Field label="Message when invalid"><Input value={str(data.retry_message)} onChange={(e) => set({ retry_message: e.target.value })} /></Field>
+        <ReplyExtras data={data} set={set} saveChoice={false} />
         <p className="text-[11.5px] text-white/40">Outputs: <b>Answered</b> continues the flow. <b>Failed</b> runs after max retries — leave it unconnected to hand the chat to a human.</p>
       </>}
 
@@ -138,11 +166,11 @@ export default function Inspector({ type, data, onChange, onDelete, templates, m
         <Field label="Deal title" hint={HINT}><Input value={str(data.title)} onChange={(e) => set({ title: e.target.value })} placeholder="{{name}} - enquiry" /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Value (₹)"><Input type="number" min={0} value={str(data.value)} onChange={(e) => set({ value: Number(e.target.value) })} /></Field>
-          <Field label="Stage"><Select value={str(data.stage_id)} onChange={(e) => set({ stage_id: e.target.value })}><option value="">First stage</option>{stages.filter((s) => s.kind === "open").map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
+          <Field label="Stage"><StageSelect data={data} set={set} stages={stages.filter((s) => s.kind === "open")} empty="First stage" /></Field>
         </div>
         <label className="flex items-center gap-2 text-[12.5px] text-white/70"><input type="checkbox" className="accent-brand" checked={data.only_if_none !== false} onChange={(e) => set({ only_if_none: e.target.checked })} />Skip if the contact already has an open deal</label>
       </>}
-      {type === "move_deal" && <Field label="Move their open deal to" hint="Does nothing if the contact has no open deal."><Select value={str(data.stage_id)} onChange={(e) => set({ stage_id: e.target.value })}><option value="">Choose a stage…</option>{stages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>}
+      {type === "move_deal" && <Field label="Move their open deal to" hint="Does nothing if the contact has no open deal."><StageSelect data={data} set={set} stages={stages} empty="Choose a stage…" /></Field>}
       {type === "send_payment_link" && <>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Amount (₹)"><Input type="number" min={1} value={str(data.amount)} onChange={(e) => set({ amount: Number(e.target.value) })} /></Field>

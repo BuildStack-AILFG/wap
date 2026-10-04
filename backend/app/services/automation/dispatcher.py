@@ -177,6 +177,8 @@ async def _try_flows(db: AsyncSession, flows: list[AutomationFlow], conv: Conver
     ordered = sorted(flows, key=lambda f: {"keyword": 0, "campaign_reply": 1, "contact_created": 2, "incoming_message": 3}.get(f.trigger_type, 9))
     for f in ordered:
         d = start_data(f)
+        if d.get("account_id") and str(d["account_id"]) != str(conv.account_id):
+            continue  # flow is limited to one of the workspace's WhatsApp numbers
         if f.trigger_type == "keyword":
             hit = bool(text) and _text_matches([k.lower() for k in d.get("keywords", [])], text, d.get("match", "contains"))
         elif f.trigger_type == "contact_created":

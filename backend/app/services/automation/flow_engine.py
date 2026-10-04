@@ -158,7 +158,7 @@ def validate_graph(graph: dict) -> list[str]:
             errors.append(f"'{name}': a valid URL is required.")
         elif t == "create_deal" and not (d.get("title") or "").strip():
             errors.append(f"'{name}': give the deal a title.")
-        elif t == "move_deal" and not d.get("stage_id"):
+        elif t == "move_deal" and not (d.get("stage_id") or (d.get("stage_name") or "").strip()):
             errors.append(f"'{name}': choose the stage to move the deal to.")
         elif t == "send_payment_link":
             try:
@@ -192,6 +192,33 @@ def validate_graph(graph: dict) -> list[str]:
 
 def _label(node: dict) -> str:
     return (node.get("data") or {}).get("label") or node.get("type", "step").replace("_", " ").title()
+
+
+def _wait_for_reply(ex: AutomationExecution, node: dict) -> None:
+    """Park the run until the contact replies. With `reminder_hours` set, the scheduler nudges them once if they go quiet
+    (keep it under 24h — after that WhatsApp only allows templates)."""
+    d = node.get("data") or {}
+    ex.status, ex.waiting_for, ex.wait_until = "waiting", "reply", None
+    try:
+        hours = float(d.get("reminder_hours") or 0)
+    except (TypeError, ValueError):
+        hours = 0
+    if hours > 0 and (d.get("reminder_text") or "").strip() and not (ex.context or {}).get(f"_reminded:{node['id']}"):
+        ex.wait_until = utcnow() + timedelta(hours=hours)
+
+
+async def _stage_id(db: AsyncSession, tenant_id: uuid.UUID, d: dict) -> uuid.UUID | None:
+    """A step's pipeline stage: `stage_id`, or `stage_name` (matched case-insensitively, created if missing) so a flow
+    imported as JSON works in any workspace without knowing its stage ids."""
+    if d.get("stage_id"):
+        return uuid.UUID(str(d["stage_id"]))
+    name = (d.get("stage_name") or "").strip()
+    if not name:
+        return None
+    for s in await pipeline.ensure_stages(db, tenant_id):
+        if s.name.strip().lower() == name.lower():
+            return s.id
+    return (await pipeline.add_stage(db, tenant_id, name=name)).id
 
 
 # ---- execution ------------------------------------------------------------------------------------------------------
@@ -307,7 +334,7 @@ async def _exec_node(db, ex, graph, node, tenant, contact, conv, account) -> tup
         if m is None or m.status == "failed":
             _log(ex, nid, "not_sent", "buttons message could not be sent")
             return "next", "default"
-        ex.status, ex.waiting_for, ex.wait_until = "waiting", "reply", None
+        _wait_for_reply(ex, node)
         _log(ex, nid, "waiting_reply")
         return "wait", None
 
@@ -317,7 +344,7 @@ async def _exec_node(db, ex, graph, node, tenant, contact, conv, account) -> tup
         if m is None or m.status == "failed":
             _log(ex, nid, "not_sent", "list message could not be sent")
             return "next", "default"
-        ex.status, ex.waiting_for, ex.wait_until = "waiting", "reply", None
+        _wait_for_reply(ex, node)
         _log(ex, nid, "waiting_reply")
         return "wait", None
 
@@ -346,7 +373,7 @@ async def _exec_node(db, ex, graph, node, tenant, contact, conv, account) -> tup
         m = await _send(db, ex, node, account, conv, contact, kind="text", text=prompt)
         if m is None or m.status == "failed":
             return "next", "failed"
-        ex.status, ex.waiting_for, ex.wait_until = "waiting", "reply", None
+        _wait_for_reply(ex, node)
         _log(ex, nid, "waiting_reply", d.get("key", ""))
         return "wait", None
 
@@ -395,11 +422,10 @@ async def _exec_node(db, ex, graph, node, tenant, contact, conv, account) -> tup
     if t == "create_deal":
         try:
             value = int(round(float(d.get("value") or 0) * 100))
-            stage_id = uuid.UUID(str(d["stage_id"])) if d.get("stage_id") else None
             if d.get("only_if_none", True) and await pipeline.deal_for_contact(db, tenant.id, contact.id):
                 _log(ex, nid, "skipped", "contact already has an open deal")
                 return "next", None
-            deal = await pipeline.create_deal(db, tenant.id, title=r(d.get("title")) or contact.name, stage_id=stage_id, contact_id=contact.id, value=max(value, 0), source="flow")
+            deal = await pipeline.create_deal(db, tenant.id, title=r(d.get("title")) or contact.name, stage_id=await _stage_id(db, tenant.id, d), contact_id=contact.id, value=max(value, 0), source="flow")
             _log(ex, nid, "deal_created", deal.title[:80])
         except (pipeline.PipelineError, ValueError, TypeError) as exc:
             _log(ex, nid, "skipped", getattr(exc, "message", str(exc)))
@@ -411,7 +437,7 @@ async def _exec_node(db, ex, graph, node, tenant, contact, conv, account) -> tup
             if deal is None:
                 _log(ex, nid, "skipped", "contact has no open deal")
             else:
-                await pipeline.move_deal(db, deal, uuid.UUID(str(d["stage_id"])), user_id=None)
+                await pipeline.move_deal(db, deal, await _stage_id(db, tenant.id, d), user_id=None)
                 _log(ex, nid, "deal_moved", deal.title[:80])
         except (pipeline.PipelineError, ValueError, KeyError) as exc:
             _log(ex, nid, "skipped", getattr(exc, "message", str(exc)))
@@ -573,19 +599,30 @@ async def resume_on_reply(db: AsyncSession, ex: AutomationExecution, msg: Messag
     node = _nodes(graph)[ex.current_node]
     d = node.get("data") or {}
     tenant, contact, conv, account = await _load_ctx(db, ex)
-    ex.status, ex.waiting_for = "running", None
+    ex.status, ex.waiting_for, ex.wait_until = "running", None, None
     reply_id = (msg.payload or {}).get("reply_id")
 
     if node["type"] in {"send_buttons", "send_list"}:
-        valid_ids = ({b["id"] for b in d.get("buttons", [])} if node["type"] == "send_buttons"
-                     else {r_["id"] for s in d.get("sections", []) for r_ in s.get("rows", [])})
-        handle = reply_id if reply_id in valid_ids else "default"
-        if handle == "default" and not next_node(graph, node["id"], "default"):
+        options = ({b["id"]: b.get("title") for b in d.get("buttons", [])} if node["type"] == "send_buttons"
+                   else {r_["id"]: r_.get("title") for s in d.get("sections", []) for r_ in s.get("rows", [])})
+        if reply_id not in options:  # typed instead of tapped: accept "2" or the option's title
+            typed, ids = (msg.body or "").strip().lower(), list(options)
+            reply_id = next((i for i, title in options.items() if str(title or "").strip().lower() == typed), None) or \
+                (ids[int(typed) - 1] if typed.isdigit() and 1 <= int(typed) <= len(ids) else reply_id)
+        handle = reply_id if reply_id in options else "default"
+        # an option without its own connection shares the "Other reply" output, so a menu needs one wire, not one per option
+        nxt = (next_node(graph, node["id"], handle) if handle != "default" else None) or next_node(graph, node["id"], "default")
+        if nxt is None and handle == "default":
             ex.status, ex.waiting_for = "waiting", "reply"  # free text where a tap was expected: keep waiting
             await db.commit()
             return
+        if (d.get("key") or "").strip():
+            answer = options.get(reply_id) if handle != "default" else (msg.body or "").strip()
+            contact.custom_fields = {**(contact.custom_fields or {}), d["key"]: answer}
+            ex.context = {**(ex.context or {}), d["key"]: answer}
+            flag_modified(ex, "context")
         _log(ex, node["id"], "replied", str(reply_id or msg.body)[:80])
-        await _run(db, ex, graph, next_node(graph, node["id"], handle))
+        await _run(db, ex, graph, nxt)
         return
 
     if node["type"] == "ask_question":
@@ -627,6 +664,16 @@ async def resume_timed(db: AsyncSession, ex: AutomationExecution) -> None:
         ex.status, ex.error = "failed", "Flow changed while this run was waiting."
         await db.commit()
         return
+    if ex.waiting_for == "reply":  # the contact went quiet: nudge once, keep waiting for their answer
+        node = _nodes(graph)[ex.current_node]
+        ex.wait_until = None
+        ex.context = {**(ex.context or {}), f"_reminded:{node['id']}": True}
+        flag_modified(ex, "context")
+        _, contact, conv, account = await _load_ctx(db, ex)
+        m = await _send(db, ex, node, account, conv, contact, kind="text", text=templating.render((node.get("data") or {}).get("reminder_text"), contact, ex.context))
+        _log(ex, node["id"], "reminder_sent" if m else "not_sent")
+        await db.commit()
+        return
     ex.status, ex.waiting_for, ex.wait_until = "running", None, None
     _log(ex, ex.current_node, "resumed")
     await _run(db, ex, graph, next_node(graph, ex.current_node))
@@ -635,6 +682,6 @@ async def resume_timed(db: AsyncSession, ex: AutomationExecution) -> None:
 async def due_executions(db: AsyncSession, limit: int = 50) -> list[AutomationExecution]:
     """Timed waits that are due. SKIP LOCKED lets a second instance run safely without double-processing."""
     return list((await db.execute(
-        select(AutomationExecution).where(AutomationExecution.status == "waiting", AutomationExecution.waiting_for == "time", AutomationExecution.wait_until <= utcnow())
+        select(AutomationExecution).where(AutomationExecution.status == "waiting", AutomationExecution.waiting_for.in_(("time", "reply")), AutomationExecution.wait_until <= utcnow())
         .order_by(AutomationExecution.wait_until).limit(limit).with_for_update(skip_locked=True)
     )).scalars())
