@@ -58,6 +58,11 @@ class Settings(BaseSettings):
 
     # Transactional email (invites, password reset). Optional — without it, invite/reset links are returned to the caller.
     resend_api_key: str = ""
+    # Or any SMTP mailbox (e.g. Hostinger: smtp.hostinger.com, port 465). Used when RESEND_API_KEY is unset.
+    smtp_host: str = ""
+    smtp_port: int = 465
+    smtp_user: str = ""
+    smtp_password: str = ""
     email_from: str = "TalkForGrow <no-reply@leadforgrow.com>"
     # Base URL of the web app, used in emailed links. Defaults to the first non-localhost CORS origin, so production needs no extra setting.
     frontend_url: str = ""
