@@ -115,7 +115,7 @@ async def test_segments_by_trait_tag_and_event(wsa):
 async def test_invite_accept_roles_and_removal(wsa, monkeypatch):
     sent = []
 
-    async def fake_send(to, subject, html):
+    async def fake_send(to, subject, html, reply_to=None):
         sent.append((to, subject, html))
         return True
     monkeypatch.setattr(mailer, "send", fake_send)

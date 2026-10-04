@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import html
 import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -129,9 +130,13 @@ async def invite(body: InviteIn, request: Request, ctx: Ctx = Depends(require_ma
     await db.refresh(row)
 
     tenant = await db.get(Tenant, ctx.tenant_id)
+    inviter = await db.get(User, ctx.user_id)
+    who = (inviter.full_name or "").strip() or inviter.email
     link = _link(token, request.headers.get("origin"))
-    sent = await mailer.send(email, f"You're invited to {tenant.name} on TalkForGrow",
-                             mailer.button_html("Join your team", f"You've been invited to join <b>{tenant.name}</b> as {body.role}. This link expires in 7 days.", "Accept invitation", link))
+    sent = await mailer.send(email, f"{who} invited you to join {tenant.name}",
+                             mailer.button_html("", f"{html.escape(who)} has invited you to join <b>{html.escape(tenant.name)}</b> on TalkForGrow as {body.role}. "
+                                                "Use the link below to set up your account. It expires in 7 days.", "Accept the invitation", link),
+                             reply_to=inviter.email)
     # When email isn't configured the inviter gets the link to share manually — never silently lose the invite.
     return {**_invite_out(row), "email_sent": sent, "invite_link": None if sent else link}
 
