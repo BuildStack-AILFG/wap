@@ -190,6 +190,16 @@ def wants_human(text: str, keywords: list[str]) -> bool:
     return any(f" {k.lower().strip()} " in lowered or (len(k) > 5 and k.lower() in lowered) for k in keywords if k.strip())
 
 
+def _known(contact: Contact) -> str:
+    """What the business already knows about this customer (answers saved by flows, lead forms, the AI itself), so the agent
+    can pick up where a flow left off instead of asking again."""
+    known = {k: v for k, v in (contact.custom_fields or {}).items() if not str(k).startswith("_") and v not in (None, "")}
+    tags = [t for t in (contact.tags or []) if t]
+    lines = ([f"Known about this customer: {json.dumps(dict(list(known.items())[:20]), ensure_ascii=False)[:1200]}"] if known else []) + \
+        ([f"Customer tags: {', '.join(tags[:15])}"] if tags else [])
+    return "\n".join(lines) + ("\n" if lines else "")
+
+
 def build_system_prompt(cfg: dict, contact: Contact, chunks: list[str], extra: str = "") -> str:
     role = {
         "support": "You answer customer questions accurately using the business knowledge below.",
@@ -213,7 +223,7 @@ def build_system_prompt(cfg: dict, contact: Contact, chunks: list[str], extra: s
         "- If the customer is upset, asks for a human, or needs an action you can't do (refunds, account changes), set handoff=true.\n"
         "- WhatsApp style: short, plain text, at most 3 short paragraphs, no markdown headings, no code blocks.\n"
         f"{('- Business instructions: ' + cfg['instructions']) if cfg['instructions'] else ''}{fields}{extra}\n\n"
-        f"Customer name: {contact.name}\n\nKNOWLEDGE:\n{kb}\n\n"
+        f"Customer name: {contact.name}\n{_known(contact)}\nKNOWLEDGE:\n{kb}\n\n"
         'Respond with ONLY a JSON object: {"reply": string, "handoff": boolean, "confidence": number between 0 and 1, '
         '"collected": object of qualification field -> value the customer just gave (empty object if none)}.'
     )

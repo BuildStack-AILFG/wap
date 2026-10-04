@@ -371,9 +371,9 @@ async def test_ai_url_ingest_blocks_internal_addresses(wsa):
 
 
 def _first_message_workflow(account_id: str) -> dict:
-    """The shipped flows/first-message-workflow.json, pointed at this test's WhatsApp number."""
+    """The 'Welcome & qualify leads' preset the Flow builder offers, limited to this test's WhatsApp number."""
     from pathlib import Path
-    f = json.loads((Path(__file__).resolve().parents[2] / "flows" / "first-message-workflow.json").read_text(encoding="utf-8"))
+    f = json.loads((Path(__file__).resolve().parents[2] / "frontend" / "src" / "components" / "flow" / "presets" / "welcome-qualify.json").read_text(encoding="utf-8"))
     next(n for n in f["graph"]["nodes"] if n["type"] == "start")["data"]["account_id"] = account_id
     return f
 
@@ -386,43 +386,50 @@ async def _expire_wait(fid: str, ws) -> None:
         await db.commit()
 
 
-async def test_first_message_workflow_qualifies_and_books_a_demo(wsa, meta):
+async def test_welcome_preset_is_generic_qualifies_and_books_a_meeting(wsa, meta, monkeypatch):
     f = _first_message_workflow(wsa.account["id"])
+    assert "TalkForGrow" not in json.dumps(f) and "₹" not in json.dumps(f)  # nothing business-specific in the shared preset
     fid = await _publish(wsa, f["name"], f["trigger_type"], f["graph"])
+    from app.models.tenant import Tenant
+    async with await db_session() as db:
+        t = await db.get(Tenant, wsa.tenant_id)
+        t.name = "Sharma Interiors"
+        await db.commit()
+    await _enable_ai(wsa, business_name="Sharma Interiors")
+    fake_llm(monkeypatch, reply="Our 2BHK packages start at 4 lakh.")
     tap = lambda kind, id_: {"interactive": {"type": kind, kind: {"id": id_, "title": id_}}}  # noqa: E731
 
     await wsa.inbound("hello", name="Ravi Kumar")
-    assert texts(meta)[0].startswith("Hey! 👋 Welcome") and texts(meta)[1].startswith("[interactive] Great! Please choose")
+    assert texts(meta)[0] == "Hi Ravi 👋 Welcome to Sharma Interiors!\nThanks for reaching out — we'll help you find exactly what you need. 😊"
+    assert texts(meta)[1].startswith("[interactive] What are you interested in?")
 
     await _expire_wait(fid, wsa)  # quiet for 23h -> one gentle reminder, then keep waiting
     await scheduler.tick()
     await scheduler.tick()
     assert sum("Just checking in" in t for t in texts(meta)) == 1
 
-    await wsa.inbound("2")  # typed the option number instead of tapping
-    assert texts(meta)[-1].startswith("[interactive] Perfect! 😊")
-    await wsa.inbound("", msg_type="interactive", extra=tap("list_reply", "real_estate"))
-    assert texts(meta)[-1].startswith("[interactive] Got it! What is your biggest challenge")
-    await wsa.inbound("low conversion")  # typed the option title
-    assert texts(meta)[-1].startswith("[interactive] Thanks for sharing! 🚀")
+    await wsa.inbound("1")  # typed the option number instead of tapping
+    assert texts(meta)[-1].startswith("[interactive] Great! To help you better")
+    await wsa.inbound("", msg_type="interactive", extra=tap("list_reply", "small_business"))
+    assert texts(meta)[-1].startswith("[interactive] Got it! What matters most")
+    await wsa.inbound("quality & support")  # typed the option title
+    assert texts(meta)[-1].startswith("[interactive] Thanks for sharing! 🙌")
 
     contact = (await wsa.get("/contacts")).json()["items"][0]
-    assert {k: contact["traits"].get(k) for k in ("interest", "business_type", "pain_point")} == {"interest": "WhatsApp Automation", "business_type": "Real Estate", "pain_point": "Low conversion"}
+    assert {k: contact["traits"].get(k) for k in ("interest", "customer_type", "priority")} == {"interest": "Products & services", "customer_type": "Small business", "priority": "Quality & support"}
     assert "qualified-lead" in contact["tags"]
     stages = {s["id"]: s["name"] for s in (await wsa.get("/pipeline/stages")).json()}
-    deal = (await wsa.get("/pipeline/deals")).json()["items"][0]
-    assert stages[deal["stage_id"]] == "Qualified"
+    assert stages[(await wsa.get("/pipeline/deals")).json()["items"][0]["stage_id"]] == "Qualified"
 
     await wsa.inbound("", msg_type="interactive", extra=tap("button_reply", "pricing"))
-    assert "Starter — ₹799/month" in texts(meta)[-2] and texts(meta)[-1] == "[interactive] Would you like to see it in action?"
+    assert texts(meta)[-2] == "Our 2BHK packages start at 4 lakh." and texts(meta)[-1] == "[interactive] Would you like to take the next step?"  # pricing comes from the knowledge base
     await wsa.inbound("", msg_type="interactive", extra=tap("button_reply", "demo"))
     assert texts(meta)[-1].startswith("Awesome! 🎉 What date and time")
     await wsa.inbound("12 Oct, 4 PM")
-    assert texts(meta)[-1] == "Thank you! ✅ We've noted 12 Oct, 4 PM for your demo. Our team will confirm the slot here shortly."
+    assert texts(meta)[-1] == "Thank you! ✅ We've noted 12 Oct, 4 PM. Our team will confirm here shortly."
 
     stages = {s["id"]: s["name"] for s in (await wsa.get("/pipeline/stages")).json()}
-    deal = (await wsa.get("/pipeline/deals")).json()["items"][0]
-    assert stages[deal["stage_id"]] == "Demo Scheduled"  # stage created by name on first use
+    assert stages[(await wsa.get("/pipeline/deals")).json()["items"][0]["stage_id"]] == "Meeting booked"  # stage created by name on first use
     assert (await wsa.get(f"/flows/{fid}/executions")).json()[0]["status"] == "completed"
 
 
@@ -430,7 +437,7 @@ async def test_flow_limited_to_another_number_does_not_run(wsa, meta):
     f = _first_message_workflow("00000000-0000-0000-0000-000000000000")
     await _publish(wsa, f["name"], f["trigger_type"], f["graph"])
     await wsa.inbound("hello")
-    assert not any(t.startswith("Hey! 👋") for t in texts(meta))
+    assert not any(t.startswith("Hi ") for t in texts(meta))
 
 
 # ---- AI providers --------------------------------------------------------------------------------------------------------------------------
@@ -491,3 +498,36 @@ async def test_ai_provider_choice_key_and_model_are_saved_and_used(wsa, monkeypa
     async with await db_session() as db:
         conn = ai_agent.connection(await db.get(Tenant, wsa.tenant_id))
     assert (conn.provider, conn.key, conn.own, conn.model) == ("gateway", "platform-gateway", False, "anthropic/claude-sonnet-5.5")
+
+
+async def test_ai_agent_takes_over_mid_flow_questions_and_after_a_once_per_contact_flow(wsa, meta, monkeypatch):
+    from app.models.automation_execution import AutomationExecution
+    f = _first_message_workflow(wsa.account["id"])
+    fid = await _publish(wsa, f["name"], f["trigger_type"], f["graph"])
+    await _enable_ai(wsa)
+    seen: dict = {}
+    fake_llm(monkeypatch, reply="Our Growth plan is ₹1,299/month.", capture=seen)
+    tap = lambda kind, id_: {"interactive": {"type": kind, kind: {"id": id_, "title": id_}}}  # noqa: E731
+
+    await wsa.inbound("hi", name="Neha Gupta")
+    for answer in ("1", "2", "3"):  # interest, who they are, priority
+        await wsa.inbound(answer)
+    assert texts(meta)[-1].startswith("[interactive] Thanks for sharing! 🙌")
+
+    await wsa.inbound("how much does it cost?")  # typed a question where a button tap is expected
+    assert texts(meta)[-1] == "Our Growth plan is ₹1,299/month."
+    assert '"interest": "Products & services"' in seen["system"] and "qualified-lead" in seen["system"]  # the AI knows what the flow collected
+    assert (await wsa.get(f"/flows/{fid}/executions")).json()[0]["status"] == "waiting"  # ...and the flow still waits for the tap
+
+    await wsa.inbound("", msg_type="interactive", extra=tap("button_reply", "sales"))
+    assert (await wsa.get(f"/flows/{fid}/executions")).json()[0]["status"] == "completed"
+    conv = (await wsa.get("/inbox/conversations")).json()["items"][0]
+    await wsa.patch(f"/inbox/conversations/{conv['id']}", json={"inbox_status": "bot"})  # team hands the chat back to the bot
+
+    async with await db_session() as db:  # two days later the flow must not restart
+        await db.execute(update(AutomationExecution).values(created_at=datetime.now(timezone.utc) - timedelta(days=2)))
+        await db.commit()
+    meta.sent.clear()
+    await wsa.inbound("do you integrate with Shopify?")
+    assert texts(meta) == ["Our Growth plan is ₹1,299/month."]  # the AI answered; no welcome/menu again
+    assert len((await wsa.get(f"/flows/{fid}/executions")).json()) == 1

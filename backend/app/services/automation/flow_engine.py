@@ -194,6 +194,11 @@ def _label(node: dict) -> str:
     return (node.get("data") or {}).get("label") or node.get("type", "step").replace("_", " ").title()
 
 
+def _business(tenant: Tenant | None) -> str:
+    """{{business_name}}: the name the workspace gave its AI agent, else the workspace name."""
+    return str((((tenant.settings or {}).get("ai") or {}).get("business_name") or tenant.name) if tenant else "")
+
+
 def _wait_for_reply(ex: AutomationExecution, node: dict) -> None:
     """Park the run until the contact replies. With `reminder_hours` set, the scheduler nudges them once if they go quiet
     (keep it under 24h — after that WhatsApp only allows templates)."""
@@ -314,7 +319,7 @@ async def _send(db, ex, node, account, conv, contact, **kwargs) -> Message | Non
 async def _exec_node(db, ex, graph, node, tenant, contact, conv, account) -> tuple[str, str | None]:
     t, d, nid = node["type"], node.get("data") or {}, node["id"]
     ctx = ex.context or {}
-    r = lambda s: templating.render(s, contact, ctx)  # noqa: E731 — tiny local alias for readability
+    r = lambda s: templating.render(s, contact, ctx, business=_business(tenant))  # noqa: E731 — tiny local alias for readability
 
     if t == "send_message":
         m = await _send(db, ex, node, account, conv, contact, kind="text", text=r(d.get("text")))
@@ -588,17 +593,19 @@ def validate_answer(kind: str, text: str, options: list[str] | None) -> tuple[bo
     return True, text
 
 
-async def resume_on_reply(db: AsyncSession, ex: AutomationExecution, msg: Message) -> None:
-    """The contact answered while a run was waiting on them."""
+async def resume_on_reply(db: AsyncSession, ex: AutomationExecution, msg: Message) -> bool:
+    """The contact answered while a run was waiting on them. Returns False when the message wasn't an answer (free text where
+    a button tap was expected): the run keeps waiting and the caller may let the AI agent reply to it instead."""
     flow = await db.get(AutomationFlow, ex.flow_id)
     graph = flow.published_snapshot if flow else None
     if not graph or ex.current_node not in _nodes(graph):
         ex.status, ex.error = "failed", "Flow changed while this run was waiting."
         await db.commit()
-        return
+        return True
     node = _nodes(graph)[ex.current_node]
     d = node.get("data") or {}
     tenant, contact, conv, account = await _load_ctx(db, ex)
+    reminder_at = ex.wait_until
     ex.status, ex.waiting_for, ex.wait_until = "running", None, None
     reply_id = (msg.payload or {}).get("reply_id")
 
@@ -613,9 +620,9 @@ async def resume_on_reply(db: AsyncSession, ex: AutomationExecution, msg: Messag
         # an option without its own connection shares the "Other reply" output, so a menu needs one wire, not one per option
         nxt = (next_node(graph, node["id"], handle) if handle != "default" else None) or next_node(graph, node["id"], "default")
         if nxt is None and handle == "default":
-            ex.status, ex.waiting_for = "waiting", "reply"  # free text where a tap was expected: keep waiting
+            ex.status, ex.waiting_for, ex.wait_until = "waiting", "reply", reminder_at  # free text where a tap was expected: keep waiting
             await db.commit()
-            return
+            return False
         if (d.get("key") or "").strip():
             answer = options.get(reply_id) if handle != "default" else (msg.body or "").strip()
             contact.custom_fields = {**(contact.custom_fields or {}), d["key"]: answer}
@@ -623,7 +630,7 @@ async def resume_on_reply(db: AsyncSession, ex: AutomationExecution, msg: Messag
             flag_modified(ex, "context")
         _log(ex, node["id"], "replied", str(reply_id or msg.body)[:80])
         await _run(db, ex, graph, nxt)
-        return
+        return True
 
     if node["type"] == "ask_question":
         ok, value = validate_answer(d.get("validation", "text"), msg.body or "", d.get("options"))
@@ -641,20 +648,21 @@ async def resume_on_reply(db: AsyncSession, ex: AutomationExecution, msg: Messag
                     await _handoff(db, ex, node, tenant, conv, None)
                     ex.status = "completed"
                     await db.commit()
-                return
+                return True
             ex.status, ex.waiting_for = "waiting", "reply"
             await _send(db, ex, node, account, conv, contact, kind="text", text=d.get("retry_message") or "Sorry, that doesn't look right. Please try again.")
             await db.commit()
-            return
+            return True
         if d.get("save_as", "trait") == "trait":
             contact.custom_fields = {**(contact.custom_fields or {}), d["key"]: value}
         ex.context = {**(ex.context or {}), d["key"]: value}
         flag_modified(ex, "context")
         _log(ex, node["id"], "answered", f"{d['key']}={value}")
         await _run(db, ex, graph, next_node(graph, node["id"], "success") or next_node(graph, node["id"]))
-        return
+        return True
 
     await _run(db, ex, graph, next_node(graph, node["id"]))
+    return True
 
 
 async def resume_timed(db: AsyncSession, ex: AutomationExecution) -> None:
@@ -669,8 +677,9 @@ async def resume_timed(db: AsyncSession, ex: AutomationExecution) -> None:
         ex.wait_until = None
         ex.context = {**(ex.context or {}), f"_reminded:{node['id']}": True}
         flag_modified(ex, "context")
-        _, contact, conv, account = await _load_ctx(db, ex)
-        m = await _send(db, ex, node, account, conv, contact, kind="text", text=templating.render((node.get("data") or {}).get("reminder_text"), contact, ex.context))
+        tenant, contact, conv, account = await _load_ctx(db, ex)
+        m = await _send(db, ex, node, account, conv, contact, kind="text",
+                        text=templating.render((node.get("data") or {}).get("reminder_text"), contact, ex.context, business=_business(tenant)))
         _log(ex, node["id"], "reminder_sent" if m else "not_sent")
         await db.commit()
         return

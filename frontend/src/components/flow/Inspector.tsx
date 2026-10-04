@@ -10,7 +10,7 @@ type D = Record<string, unknown>;
 type Props = { type: string; data: D; onChange: (d: D) => void; onDelete: () => void; templates: Template[]; members: Member[]; trigger: string };
 
 const str = (v: unknown) => (v == null ? "" : String(v));
-const HINT = "Merge fields: {{first_name}}, {{name}}, {{phone}}, {{trait.city}}, {{var.answer}}";
+const HINT = "Merge fields: {{first_name}}, {{name}}, {{phone}}, {{business_name}}, {{trait.city}}, {{var.answer}}";
 
 /** Save-the-choice + gentle-reminder settings shared by every step that waits for the contact's reply. */
 function ReplyExtras({ data, set, saveChoice }: { data: D; set: (p: D) => void; saveChoice: boolean }) {
@@ -57,7 +57,8 @@ export default function Inspector({ type, data, onChange, onDelete, templates, m
             <Field label="Keywords" hint="Comma separated. The flow starts when a message contains (or equals) one of them."><Input value={((data.keywords as string[]) ?? []).join(", ")} onChange={(e) => set({ keywords: e.target.value.split(",").map((k) => k.trim()).filter(Boolean) })} placeholder="demo, pricing" /></Field>
             <Field label="Match"><Select value={str(data.match) || "contains"} onChange={(e) => set({ match: e.target.value })}><option value="contains">Message contains keyword</option><option value="exact">Message equals keyword</option></Select></Field></>}
           {trigger === "event" && <Field label="Event name" hint="Started when this event arrives via the API or an integration."><Input value={str(data.event)} onChange={(e) => set({ event: e.target.value.trim() })} placeholder="order_placed" /></Field>}
-          {["incoming_message", "contact_created"].includes(trigger) && <Field label="Don't re-run for the same contact within (hours)"><Input type="number" min={0} value={str(data.cooldown_hours ?? 24)} onChange={(e) => set({ cooldown_hours: Number(e.target.value) })} /></Field>}
+          {["incoming_message", "contact_created", "keyword"].includes(trigger) && <label className="flex items-start gap-2 text-[12.5px] text-white/70"><input type="checkbox" className="mt-0.5 accent-brand" checked={!!data.once_per_contact} onChange={(e) => set({ once_per_contact: e.target.checked })} /><span>Run only once per contact<span className="block text-[11.5px] text-white/40">After it finishes, later messages go to custom replies and the AI agent instead of restarting this flow.</span></span></label>}
+          {["incoming_message", "contact_created"].includes(trigger) && !data.once_per_contact && <Field label="Don't re-run for the same contact within (hours)"><Input type="number" min={0} value={str(data.cooldown_hours ?? 24)} onChange={(e) => set({ cooldown_hours: Number(e.target.value) })} /></Field>}
           {trigger === "manual" && <p className="text-[12.5px] text-white/50">Start this flow from “Test run” or with the API.</p>}
           {!!data.account_id && <div className="flex items-center justify-between gap-2 rounded-lg border border-white/10 p-2 text-[12px] text-white/60">
             <span>Only runs for messages to WhatsApp number <code className="text-white/80">{str(data.account_id).slice(0, 8)}…</code></span>

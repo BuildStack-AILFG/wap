@@ -1,4 +1,4 @@
-"""Merge-field substitution for message text: {{name}}, {{first_name}}, {{phone}}, {{email}}, {{trait.key}}, {{var.key}}."""
+"""Merge-field substitution for message text: {{name}}, {{first_name}}, {{phone}}, {{email}}, {{business_name}}, {{trait.key}}, {{var.key}}."""
 
 from __future__ import annotations
 
@@ -10,13 +10,14 @@ from app.models.contact import Contact
 _FIELD = re.compile(r"\{\{\s*([a-zA-Z_][\w.\-]*)\s*\}\}")
 
 
-def contact_values(contact: Contact, ctx: dict[str, Any] | None = None) -> dict[str, str]:
+def contact_values(contact: Contact, ctx: dict[str, Any] | None = None, business: str = "") -> dict[str, str]:
     name = contact.name or ""
     values: dict[str, str] = {
         "name": name,
         "first_name": name.split(" ")[0] if name and not name.startswith("+") else "",
         "phone": contact.phone or "",
         "email": contact.email or "",
+        "business_name": business,
     }
     for k, v in (contact.custom_fields or {}).items():
         values[f"trait.{k}"] = str(v)
@@ -25,10 +26,10 @@ def contact_values(contact: Contact, ctx: dict[str, Any] | None = None) -> dict[
     return values
 
 
-def render(text: str | None, contact: Contact, ctx: dict[str, Any] | None = None, fallback: str = "") -> str:
+def render(text: str | None, contact: Contact, ctx: dict[str, Any] | None = None, fallback: str = "", business: str = "") -> str:
     if not text:
         return ""
-    values = contact_values(contact, ctx)
+    values = contact_values(contact, ctx, business)
 
     def sub(match: re.Match) -> str:
         return values.get(match.group(1)) or fallback

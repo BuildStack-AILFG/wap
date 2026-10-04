@@ -119,13 +119,14 @@ async def run(db: AsyncSession, tenant: Tenant, account: WhatsAppAccount, conv: 
         await _bot_text(db, account, conv, contact, "Welcome back! You're subscribed again.", "optin")
         return "opt_in"
 
-    # 2 — resume a waiting flow
+    # 2 — resume a waiting flow. A question typed where a button tap was expected isn't an answer: the flow keeps waiting
+    # and the message falls through to custom replies / the AI agent below (but never starts a second flow).
     waiting = (await db.execute(select(AutomationExecution).where(
         AutomationExecution.contact_id == contact.id, AutomationExecution.status == "waiting", AutomationExecution.waiting_for == "reply"
     ).order_by(AutomationExecution.created_at.desc()).limit(1))).scalar_one_or_none()
-    if waiting is not None:
-        await flow_engine.resume_on_reply(db, waiting, msg)
+    if waiting is not None and await flow_engine.resume_on_reply(db, waiting, msg):
         return "flow_resumed"
+    mid_flow = waiting is not None
 
     # 3 — a human owns this conversation
     if conv.inbox_status == "intervened":
@@ -143,7 +144,7 @@ async def run(db: AsyncSession, tenant: Tenant, account: WhatsAppAccount, conv: 
             await _bot_text(db, account, conv, contact, auto["away"]["message"], "away")
 
     # 5 — flows
-    flows = (await db.execute(select(AutomationFlow).where(AutomationFlow.tenant_id == tenant.id, AutomationFlow.status == "published"))).scalars().all()
+    flows = [] if mid_flow else (await db.execute(select(AutomationFlow).where(AutomationFlow.tenant_id == tenant.id, AutomationFlow.status == "published"))).scalars().all()
     if await _try_flows(db, flows, conv, contact, msg, text, is_first):
         return "flow"
 
@@ -191,6 +192,10 @@ async def _try_flows(db: AsyncSession, flows: list[AutomationFlow], conv: Conver
             hit = False
         if not hit:
             continue
+        if d.get("once_per_contact"):  # e.g. a welcome/qualification flow: after it, the AI agent and your team take over
+            ran = (await db.execute(select(AutomationExecution.id).where(AutomationExecution.flow_id == f.id, AutomationExecution.contact_id == contact.id).limit(1))).first()
+            if ran:
+                continue
         cooldown = float(d.get("cooldown_hours", 24 if f.trigger_type in {"incoming_message", "contact_created"} else 0))
         if cooldown:
             recent = (await db.execute(select(AutomationExecution.id).where(

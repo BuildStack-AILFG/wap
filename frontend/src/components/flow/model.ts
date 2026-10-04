@@ -1,4 +1,5 @@
 import type { FlowGraph, FlowNode } from "@/lib/api";
+import welcomeQualify from "./presets/welcome-qualify.json";
 
 export const TRIGGERS = [
   { id: "incoming_message", label: "Any incoming message", hint: "Runs the first time a contact writes (once per cooldown)." },
@@ -65,6 +66,11 @@ const n = (id: string, type: string, x: number, y: number, data: Record<string, 
 const e = (source: string, target: string, sourceHandle = "next") => ({ id: `${source}-${sourceHandle}-${target}`, source, target, sourceHandle });
 
 export const PRESETS: { id: string; label: string; description: string; trigger: string; graph: () => FlowGraph }[] = [
+  {
+    id: "welcome_qualify", label: "Welcome & qualify leads", trigger: "incoming_message",
+    description: "Runs once per new contact: welcomes them with your business name, asks what they need through menus, adds a qualified deal, then offers a call, pricing (answered from your AI knowledge base) or your team. Edit any text or option to fit your business.",
+    graph: () => structuredClone(welcomeQualify.graph) as FlowGraph,
+  },
   { id: "blank", label: "Blank canvas", description: "Just a Start step — build it yourself.", trigger: "incoming_message", graph: () => ({ nodes: [n("start", "start", 60, 160, { label: "Start", cooldown_hours: 24 })], edges: [] }) },
   {
     id: "lead", label: "Lead qualification", trigger: "keyword", description: "Triggered by the word “demo”: greets, asks for an email (validated), asks which plan they want, tags them and hands hot leads to your team.",
