@@ -418,7 +418,7 @@ export const developer = {
   testWebhook: (id: string) => request<{ ok: boolean; detail: string }>(`/developer/webhooks/${id}/test`, { method: "POST" }),
   removeWebhook: (id: string) => request<void>(`/developer/webhooks/${id}`, { method: "DELETE" }),
 };
-export type AdapterMeta = { mode: "events" | "notify" | "generic"; secret_label: string; events: string[]; steps: string[] };
+export type AdapterMeta = { mode: "events" | "notify" | "generic"; secret_label: string; secret_required?: boolean; events: string[]; steps: string[] };
 export type IntegrationRow = { provider: string; kind: string; status: string; config: { actions?: Record<string, unknown>; events?: string[] }; has_secret: boolean; last_event_at: string | null; last_error: string | null; hook_url?: string };
 export const integrations = {
   adapters: () => request<Record<string, AdapterMeta>>("/integrations/adapters"),

@@ -20,7 +20,9 @@ from app.core.crypto import CryptoError, decrypt_json
 
 log = logging.getLogger(__name__)
 
-ADAPTERS = ("shopify", "woocommerce", "razorpay", "stripe")
+ADAPTERS = ("shopify", "woocommerce", "razorpay", "stripe", "meta-leads")
+# adapters reached through a no-code tool (Zapier/Make/Pabbly) that can't sign requests: the unguessable URL is the credential, a secret is optional
+URL_AUTH = ("generic", "meta-leads")
 NOTIFY = ("slack",)
 PROVIDER_RE = re.compile(r"^[a-z0-9][a-z0-9\-]{1,46}$")
 
@@ -44,6 +46,14 @@ META: dict[str, dict] = {
         "mode": "events", "secret_label": "Signing secret (whsec_…)", "events": ["payment_succeeded", "payment_failed", "checkout_completed"],
         "steps": ["Stripe Dashboard → Developers → Webhooks → Add endpoint.", "Endpoint URL: the hook URL below. Events: payment_intent.succeeded, payment_intent.payment_failed, checkout.session.completed.",
                   "Copy the endpoint's signing secret into the field below."],
+    },
+    "meta-leads": {
+        "mode": "events", "secret_label": "Signing secret (optional)", "secret_required": False, "events": ["meta_lead"],
+        "steps": ["Click Connect to get your webhook URL.",
+                  "In Zapier, Make or Pabbly Connect: trigger Facebook Lead Ads → New Lead, and pick your Page and lead form.",
+                  "Action: Webhooks → POST (JSON) to the URL below. Send the whole lead, or map at least phone, full_name and email (form_name, ad_name and campaign_name are kept too).",
+                  "Choose a template below for meta_lead, or create a flow from the 'Meta lead → promo' preset to also tag the lead and add a deal. When they reply, your 'Any incoming message' flow takes over.",
+                  "Lead phone numbers need a country code (+91…) — or set a default country code in Settings."],
     },
     "slack": {
         "mode": "notify", "secret_label": "Slack incoming webhook URL", "events": ["conversation_created", "lead_captured", "contact_opted_out", "message_failed", "broadcast_completed", "deal_won", "payment_received"],
@@ -84,7 +94,7 @@ def _cmp(a: str, b: str) -> bool:
 def verify(kind: str, secret: str | None, raw: bytes, headers: dict[str, str]) -> None:
     """Raise VerifyError unless the request is authentic. Adapters fail closed when no secret is stored."""
     h = {k.lower(): v for k, v in headers.items()}
-    if kind == "generic":
+    if kind in URL_AUTH:
         if not secret:
             return  # the unguessable URL is the credential
         sig = h.get("x-lfg-signature", "")
@@ -201,8 +211,44 @@ def parse_generic(data: dict, headers: dict[str, str]) -> list[Normalized]:
     return out
 
 
+_LEAD_KEYS = {"phone", "phone_number", "mobile", "mobile_number", "whatsapp", "whatsapp_number", "full_name", "name", "first_name", "last_name", "email", "email_address"}
+_LEAD_PROPS = ("form_id", "form_name", "ad_id", "ad_name", "adset_id", "adset_name", "campaign_id", "campaign_name", "page_id", "page_name", "platform", "leadgen_id", "lead_id", "id", "created_time")
+
+
+def _key(k: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", str(k).strip().lower()).strip("_")
+
+
+def parse_meta_leads(data: dict, headers: dict[str, str]) -> list[Normalized]:
+    """A Facebook / Instagram lead-form submission as Zapier, Make or Pabbly forward it: either flat fields (phone_number, full_name…,
+    any casing) or Meta's raw `field_data: [{name, values: [...]}]`. Answers to custom questions become contact details."""
+    items = data if isinstance(data, list) else [data]
+    out = []
+    for d in items[:100]:
+        if not isinstance(d, dict):
+            continue
+        d = d.get("lead") if isinstance(d.get("lead"), dict) else d
+        flat: dict[str, Any] = {}
+        for f in d.get("field_data") or []:
+            if isinstance(f, dict) and f.get("name"):
+                vals = f.get("values") or []
+                flat[_key(f["name"])] = vals[0] if isinstance(vals, list) and vals else vals
+        for k, v in d.items():
+            if k != "field_data" and isinstance(v, (str, int, float)) and not isinstance(v, bool):
+                flat.setdefault(_key(k), v)
+        phone = _first(*(flat.get(k) for k in ("phone_number", "phone", "mobile_number", "mobile", "whatsapp_number", "whatsapp")))
+        if not phone:
+            continue
+        props = {k: str(flat[k])[:200] for k in _LEAD_PROPS if flat.get(k) not in (None, "")}
+        traits = {k: str(v)[:200] for k, v in flat.items() if k not in _LEAD_KEYS and k not in _LEAD_PROPS and k != "event" and str(v).strip()}
+        out.append(Normalized(phone=phone, event="meta_lead", name=_first(flat.get("full_name"), flat.get("name")) or _full_name(flat.get("first_name"), flat.get("last_name")),
+                              email=_first(flat.get("email"), flat.get("email_address")), properties=props, tags=["meta-lead"], traits=dict(list(traits.items())[:20])))
+    return out
+
+
 PARSERS: dict[str, Callable[[dict, dict[str, str]], list[Normalized]]] = {
     "shopify": parse_shopify, "woocommerce": parse_woocommerce, "razorpay": parse_razorpay, "stripe": parse_stripe, "generic": parse_generic,
+    "meta-leads": parse_meta_leads,
 }
 
 

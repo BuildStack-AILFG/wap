@@ -409,6 +409,40 @@ async def test_shopify_hook_verifies_signature_and_sends_the_mapped_template(wsa
 
 
 @pytest.mark.paid
+async def test_meta_lead_ads_hook_takes_flat_or_raw_leads_tags_them_and_starts_the_promo_flow(wsa, meta):
+    meta.templates.append(approved_template("meta_lead_welcome", "Hi {{1}}, thanks for checking us out!", "MARKETING"))
+    await wsa.post(f"/whatsapp/accounts/{wsa.account['id']}/sync-templates")
+    tpl = next(t for t in (await wsa.get("/templates")).json() if t["name"] == "meta_lead_welcome")
+    n = lambda id_, type_, **data: {"id": id_, "type": type_, "position": {"x": 0, "y": 0}, "data": data}  # noqa: E731
+    graph = {"nodes": [n("start", "start", event="meta_lead"), n("deal", "create_deal", title="{{name}} – Meta lead", stage_name="New lead"),
+                       n("promo", "send_template", template_id=tpl["id"], variables={"body": ["{{first_name}}"]}), n("end", "end")],
+             "edges": [{"id": "1", "source": "start", "target": "deal"}, {"id": "2", "source": "deal", "target": "promo"}, {"id": "3", "source": "promo", "target": "end"}]}
+    fid = (await wsa.post("/flows", json={"name": "Meta lead – promo", "trigger_type": "event", "graph": graph})).json()["id"]
+    assert (await wsa.post(f"/flows/{fid}/publish")).status_code == 200
+
+    cfg = (await wsa.put("/integrations/meta-leads", json={})).json()
+    assert cfg["kind"] == "meta-leads" and not cfg["has_secret"]  # no-code tools can't sign: the URL is the credential
+    url = cfg["hook_url"].replace("https://api.test", "")
+
+    flat = {"Full Name": "Priya Nair", "Phone Number": "+91 98111 00093", "Email": "priya@acme.io", "Form Name": "Demo form", "Campaign Name": "Oct leads", "Budget": "50k"}
+    raw = {"id": "1234", "form_id": "99", "field_data": [{"name": "full_name", "values": ["Arjun Rao"]}, {"name": "phone_number", "values": ["+919811100094"]},
+                                                        {"name": "what_is_your_business?", "values": ["Real estate"]}]}
+    for lead in (flat, raw):
+        r = await wsa.client.post(url, json=lead)
+        assert r.status_code == 200 and r.json()["processed"] == 1, r.text
+    sent = [m for m in meta.sent if m["type"] == "template"]
+    assert [m["to"] for m in sent] == ["919811100093", "919811100094"]
+    assert sent[0]["template"]["components"][0]["parameters"] == [{"type": "text", "text": "Priya"}]
+
+    contacts = {c["phone"]: c for c in (await wsa.get("/contacts")).json()["items"]}
+    p, a = contacts["919811100093"], contacts["919811100094"]
+    assert p["name"] == "Priya Nair" and p["email"] == "priya@acme.io" and p["tags"] == ["meta-lead"] and p["traits"] == {"budget": "50k"}
+    assert a["name"] == "Arjun Rao" and a["traits"] == {"what_is_your_business": "Real estate"}
+    assert len((await wsa.get("/pipeline/deals")).json()["items"]) == 2
+    assert (await wsa.client.post(url, json={"full_name": "No Phone"})).json()["processed"] == 0
+
+
+@pytest.mark.paid
 async def test_generic_hook_signature_optional_and_url_rotation(wsa):
     cfg = (await wsa.put("/integrations/zapier", json={})).json()
     assert cfg["kind"] == "generic"

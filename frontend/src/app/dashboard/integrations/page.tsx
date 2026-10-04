@@ -34,6 +34,7 @@ export default function IntegrationsPage() {
   useEffect(() => { void load(); api.adapters().then(setAdapters).catch(() => {}); whatsapp.list().then((a) => setWaConnected(a.some((x) => x.status === "connected"))).catch(() => setWaConnected(false)); }, [load]);
 
   const items: Item[] = useMemo(() => [
+    (() => { const m = INTEGRATIONS.find((i) => i.id === "meta"); return { id: "meta-leads", name: "Meta Lead Ads", description: "Message Facebook & Instagram lead-form leads on WhatsApp the moment they sign up, then qualify them with a flow.", category: "ads", Icon: m?.icon, color: m?.iconColor, kind: "meta-leads", how: "Via Zapier, Make or Pabbly → template / flow" }; })(),
     ...INTEGRATIONS.filter((i) => BASE[i.id]).map((i) => ({ id: i.id, name: i.name, description: i.description, category: i.category, Icon: i.icon, color: i.iconColor, ...BASE[i.id] })),
     ...EXTRA,
   ], []);
@@ -56,7 +57,7 @@ export default function IntegrationsPage() {
           </Card>))}
       </div>
 
-      <div className="mb-2 flex items-center justify-between"><Tabs tabs={[{ id: "all", label: "All" }, { id: "commerce", label: "Commerce" }, { id: "payments", label: "Payments" }, { id: "productivity", label: "Productivity" }, { id: "automation", label: "Automation" }]} value={cat} onChange={setCat} />
+      <div className="mb-2 flex items-center justify-between"><Tabs tabs={[{ id: "all", label: "All" }, { id: "ads", label: "Ads" }, { id: "commerce", label: "Commerce" }, { id: "payments", label: "Payments" }, { id: "productivity", label: "Productivity" }, { id: "automation", label: "Automation" }]} value={cat} onChange={setCat} />
         <span className="mb-5 text-[12.5px] text-white/40">{connectedCount} connected</span></div>
 
       {!rows ? <Spinner /> : (
@@ -84,6 +85,7 @@ function Connect({ item, meta, row, onClose, onChanged }: { item: Item; meta?: A
   const { toast, confirm } = useUi();
   const isSlack = item.kind === "slack";
   const isAdapter = meta?.mode === "events";
+  const needsSecret = isAdapter && meta?.secret_required !== false;
   const [secret, setSecret] = useState("");
   const [events, setEvents] = useState<string[]>(row?.config.events ?? meta?.events ?? []);
   const [actions, setActions] = useState<Record<string, { template_id: string; body: string }>>(() => Object.fromEntries(Object.entries((row?.config.actions ?? {}) as Record<string, { template_id: string; body?: string[] }>).map(([k, v]) => [k, { template_id: v.template_id, body: (v.body ?? []).join(" | ") }])));
@@ -108,7 +110,7 @@ function Connect({ item, meta, row, onClose, onChanged }: { item: Item; meta?: A
   return (
     <Modal open onClose={onClose} title={`${item.name}`} width={680}
       footer={<>{current && <Button variant="danger" className="mr-auto" onClick={async () => { if (await confirm({ title: `Disconnect ${item.name}?`, body: "Its webhook URL stops working immediately.", confirmLabel: "Disconnect", danger: true })) { try { await api.remove(item.id); onChanged(); onClose(); toast("Disconnected"); } catch (e) { setErr(errorMessage(e)); } } }}>Disconnect</Button>}
-        <Button variant="ghost" onClick={onClose}>Close</Button><Button loading={busy} onClick={save} disabled={isSlack ? !current && !secret : isAdapter && !current?.has_secret && !secret}>{current ? "Save changes" : "Connect"}</Button></>}>
+        <Button variant="ghost" onClick={onClose}>Close</Button><Button loading={busy} onClick={save} disabled={isSlack ? !current && !secret : needsSecret && !current?.has_secret && !secret}>{current ? "Save changes" : "Connect"}</Button></>}>
       {err && <Alert>{err}</Alert>}
       {meta && <ol className="mb-4 list-decimal space-y-1 pl-5 text-[12.5px] text-white/55">{meta.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>}
 
@@ -118,7 +120,7 @@ function Connect({ item, meta, row, onClose, onChanged }: { item: Item; meta?: A
       )}
       {!isSlack && !current && <Alert tone="blue">Connect first to get your unique webhook URL.</Alert>}
 
-      <Field label={meta?.secret_label ?? "Secret"} hint={current?.has_secret ? "A secret is saved (encrypted). Enter a new one to replace it." : isAdapter ? "Required — requests without a valid signature are rejected." : undefined}>
+      <Field label={meta?.secret_label ?? "Secret"} hint={current?.has_secret ? "A secret is saved (encrypted). Enter a new one to replace it." : needsSecret ? "Required — requests without a valid signature are rejected." : isAdapter ? "Leave empty for Zapier, Make or Pabbly — your unique URL keeps it private." : undefined}>
         <Input type={isSlack ? "text" : "password"} value={secret} onChange={(e) => setSecret(e.target.value)} placeholder={current?.has_secret ? "••••••••" : isSlack ? "https://hooks.slack.com/services/…" : ""} autoComplete="off" /></Field>
 
       {isSlack && meta && (

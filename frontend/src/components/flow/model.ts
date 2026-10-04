@@ -89,6 +89,15 @@ export const PRESETS: { id: string; label: string; description: string; trigger:
     }),
   },
   {
+    id: "meta_lead", label: "Meta lead → promo", trigger: "event", description: "For Meta Lead Ads (Integrations → Meta Lead Ads): tags the new lead, adds a deal and sends your promo template. When they reply, your “Any incoming message” flow takes over.",
+    graph: () => ({
+      nodes: [n("start", "start", 40, 160, { label: "Start", event: "meta_lead" }), n("tag", "add_tag", 300, 160, { tag: "meta-lead" }),
+        n("deal", "create_deal", 560, 160, { title: "{{name}} – Meta lead", value: 0, stage_name: "New lead", only_if_none: true }),
+        n("promo", "send_template", 820, 160, { template_id: "", variables: { body: ["{{first_name}}"] } }), n("end", "end", 1080, 160)],
+      edges: [e("start", "tag"), e("tag", "deal"), e("deal", "promo"), e("promo", "end")],
+    }),
+  },
+  {
     id: "followup", label: "Follow-up after silence", trigger: "incoming_message", description: "Sends a thank-you, waits a day, then checks in with a template (works after the 24-hour window).",
     graph: () => ({
       nodes: [n("start", "start", 40, 160, { label: "Start", cooldown_hours: 72 }), n("thanks", "send_message", 300, 160, { text: "Thanks for reaching out! We'll get back to you soon." }),
