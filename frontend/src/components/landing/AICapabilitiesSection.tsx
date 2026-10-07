@@ -5,11 +5,11 @@ import { Check, ArrowRight } from "lucide-react";
 import { MARKETING } from "@/lib/marketing/designTokens";
 
 const AI_POINTS = [
-  { label: "Write, Launch, and Optimize with AI Copilot", image: "/images/interakt-clone/AI-copilot-3.webp" },
-  { label: "AI Chatbots That Drive Conversions", image: "/images/interakt-clone/AI-Chatbots-2.webp" },
-  { label: "Forms That Convert Chats into Leads", image: "/images/interakt-clone/WhatsApp-Forms-2.webp" },
-  { label: "Go Beyond Keywords with Intent-Based Automation", image: "/images/interakt-clone/Intent-matching-2.webp" },
-  { label: "Ready-to-Send Templates, Powered by AI", image: "/images/interakt-clone/Templates-2.webp" },
+  { label: "Write, Launch, and Optimize with AI Copilot", image: "/images/site/product/ai-copilot.svg" },
+  { label: "AI Chatbots That Drive Conversions", image: "/images/site/product/ai-chatbot.svg" },
+  { label: "Forms That Convert Chats into Leads", image: "/images/site/product/ai-forms.svg" },
+  { label: "Go Beyond Keywords with Intent-Based Automation", image: "/images/site/product/ai-intent.svg" },
+  { label: "Ready-to-Send Templates, Powered by AI", image: "/images/site/product/ai-templates.svg" },
 ];
 
 export default function AICapabilitiesSection({

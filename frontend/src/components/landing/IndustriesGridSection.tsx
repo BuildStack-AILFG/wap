@@ -5,19 +5,19 @@ import { ArrowRight } from "lucide-react";
 import { MARKETING } from "@/lib/marketing/designTokens";
 
 const INDUSTRIES = [
-  { title: "Banking & Finance", description: "Automate secure updates and support with WhatsApp Business.", image: "/images/industries/freelancer-consultants.webp" },
-  { title: "Travel & Tourism", description: "Fast-track bookings, share details, and set up 24/7 automated FAQs.", image: "/images/industries/banking-finance.webp" },
-  { title: "Beauty & Cosmetics", description: "See how top brands acquire, convert, and engage shoppers on WhatsApp.", image: "/images/industries/travel-tourism.webp" },
-  { title: "Education", description: "Get more enrollments for your courses and keep students informed automatically.", image: "/images/industries/beauty-cosmetics.webp" },
-  { title: "Spas & Salons", description: "Grow your spa & salon business through scheduling, payments, and reminders.", image: "/images/industries/education.webp" },
-  { title: "E-commerce", description: "Scale up your D2C brand with catalog sharing and order updates on chat.", image: "/images/industries/spas-salons.webp" },
-  { title: "Restaurant & Food Businesses", description: "Streamline orders, payments, menu sharing, and more.", image: "/images/industries/ecommerce.webp" },
-  { title: "Health & Wellness", description: "Improve patient experiences with automated appointment bookings and updates.", image: "/images/industries/restaurant-food.webp" },
-  { title: "Home Decor & Furnishing", description: "Boost your home decor business through catalog-driven WhatsApp commerce.", image: "/images/industries/health-wellness.webp" },
-  { title: "Marketing Agencies", description: "Help your clients stand out and manage every account from one platform.", image: "/images/industries/home-decor.webp" },
-  { title: "Automotive Industry", description: "From promotions to service bookings, make communication simple and seamless.", image: "/images/industries/marketing-agencies.webp" },
-  { title: "Real Estate", description: "Acquire, engage, convert prospects, and retain customers effortlessly.", image: "/images/industries/automotive.webp" },
-  { title: "Freelancers & Consultants", description: "Create personalized customer journeys and manage every client effortlessly.", image: "/images/industries/real-estate.webp" },
+  { title: "Banking & Finance", description: "Automate secure updates and support with WhatsApp Business.", image: "/images/site/industries/banking-finance.svg" },
+  { title: "Travel & Tourism", description: "Fast-track bookings, share details, and set up 24/7 automated FAQs.", image: "/images/site/industries/travel-tourism.svg" },
+  { title: "Beauty & Cosmetics", description: "See how top brands acquire, convert, and engage shoppers on WhatsApp.", image: "/images/site/industries/beauty-cosmetics.svg" },
+  { title: "Education", description: "Get more enrollments for your courses and keep students informed automatically.", image: "/images/site/industries/education.svg" },
+  { title: "Spas & Salons", description: "Grow your spa & salon business through scheduling, payments, and reminders.", image: "/images/site/industries/spas-salons.svg" },
+  { title: "E-commerce", description: "Scale up your D2C brand with catalog sharing and order updates on chat.", image: "/images/site/industries/ecommerce.svg" },
+  { title: "Restaurant & Food Businesses", description: "Streamline orders, payments, menu sharing, and more.", image: "/images/site/industries/restaurant-food.svg" },
+  { title: "Health & Wellness", description: "Improve patient experiences with automated appointment bookings and updates.", image: "/images/site/industries/health-wellness.svg" },
+  { title: "Home Decor & Furnishing", description: "Boost your home decor business through catalog-driven WhatsApp commerce.", image: "/images/site/industries/home-decor.svg" },
+  { title: "Marketing Agencies", description: "Help your clients stand out and manage every account from one platform.", image: "/images/site/industries/marketing-agencies.svg" },
+  { title: "Automotive Industry", description: "From promotions to service bookings, make communication simple and seamless.", image: "/images/site/industries/automotive.svg" },
+  { title: "Real Estate", description: "Acquire, engage, convert prospects, and retain customers effortlessly.", image: "/images/site/industries/real-estate.svg" },
+  { title: "Freelancers & Consultants", description: "Create personalized customer journeys and manage every client effortlessly.", image: "/images/site/industries/freelancer-consultants.svg" },
 ];
 
 export default function IndustriesGridSection() {
@@ -36,7 +36,7 @@ export default function IndustriesGridSection() {
               href="#contact"
               className={`group ${MARKETING.card} ${MARKETING.cardHover} overflow-hidden flex flex-col`}
             >
-              <div className="w-full overflow-hidden bg-black" style={{ aspectRatio: "1024 / 507" }}>
+              <div className="w-full overflow-hidden bg-black" style={{ aspectRatio: "800 / 396" }}>
                 <img src={image} alt={title} className="h-full w-full object-cover" loading="lazy" />
               </div>
               <div className="min-w-0 flex-1 p-5">

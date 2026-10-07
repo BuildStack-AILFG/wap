@@ -8,7 +8,7 @@ const HUBS = [
     title: "Reply & Qualify Automatically",
     description: "No-code chat flows greet, answer FAQs, and qualify every WhatsApp conversation instantly.",
     href: "#features",
-    image: "/images/interakt-clone/Marketing-CRM_Image-1.webp",
+    image: "/images/site/product/crm-qualify.svg",
     alt: "Automated WhatsApp reply and qualification dashboard",
   },
   {
@@ -16,7 +16,7 @@ const HUBS = [
     title: "Reach Thousands in One Click",
     description: "Send approved template campaigns to your whole contact list, segmented and scheduled.",
     href: "#features",
-    image: "/images/interakt-clone/Broadcast-WhatsApp-Messages-to-1000s-in-a-single-click3x_-1.webp",
+    image: "/images/site/product/broadcast.svg",
     alt: "Broadcasting WhatsApp messages to thousands of contacts in one click",
   },
   {
@@ -24,7 +24,7 @@ const HUBS = [
     title: "Never Miss a Message",
     description: "A shared team inbox for WhatsApp with assignment, read receipts, and internal notes.",
     href: "#features",
-    image: "/images/interakt-clone/Support_Image.webp",
+    image: "/images/site/product/support.svg",
     alt: "Shared WhatsApp support inbox",
   },
 ];

@@ -20,7 +20,7 @@ const CAPABILITIES = [
     description: "Deploy an AI agent that answers queries, qualifies leads, and recommends products like a human would.",
     href: "#ai-suite",
     tagColor: "var(--brand-bright)",
-    image: "/images/interakt-clone/Group-1430106369.webp",
+    image: "/images/site/product/ai-agent.svg",
   },
   {
     tag: "Automation",
@@ -28,7 +28,7 @@ const CAPABILITIES = [
     description: "Automate up to 80% of queries with an easy, drag-and-drop, no-code chatbot builder.",
     href: "#features",
     tagColor: "var(--brand-bright)",
-    image: "/images/interakt-clone/chatbot-builder.gif",
+    image: "/images/site/product/flow-builder.svg",
   },
   {
     tag: "Marketing",
@@ -36,7 +36,7 @@ const CAPABILITIES = [
     description: "Scale your business communication effortlessly and reach every contact in a single send.",
     href: "#features",
     tagColor: "var(--brand-bright)",
-    image: "/images/interakt-clone/Broadcast-WhatsApp-Messages-to-1000s-in-a-single-click3x_-1.webp",
+    image: "/images/site/product/broadcast.svg",
   },
   {
     tag: "Support",
@@ -44,7 +44,7 @@ const CAPABILITIES = [
     description: "Manage every WhatsApp query with a shared inbox — assignment, notes, and zero missed messages.",
     href: "#features",
     tagColor: "var(--brand-bright)",
-    image: "/images/interakt-clone/Manage-Customer-Interactions-with-Ease-2.webp",
+    image: "/images/site/product/team-inbox.svg",
   },
   {
     tag: "Commerce",
@@ -52,7 +52,7 @@ const CAPABILITIES = [
     description: "Share catalogs, collect payments, and confirm orders — all without leaving the conversation.",
     href: "#features",
     tagColor: "var(--brand-bright)",
-    image: "/images/interakt-clone/Launch-WhatsApp-Store-Payments-1.webp",
+    image: "/images/site/product/payments-catalog.svg",
   },
   {
     tag: "Analytics",
@@ -60,7 +60,7 @@ const CAPABILITIES = [
     description: "Track team performance, measure impact, and optimize campaigns with real-time insights.",
     href: "#features",
     tagColor: "var(--brand-bright)",
-    image: "/images/interakt-clone/Campaign-Team-Analytics-3.webp",
+    image: "/images/site/product/analytics.svg",
   },
 ];
 
@@ -107,7 +107,7 @@ export default function CapabilitiesGridSection() {
                 </span>
               </div>
               <div className="mt-4 flex h-44 w-full items-end justify-center overflow-hidden px-5 pb-5">
-                <img src={image} alt={title} className="max-h-full max-w-full object-contain" loading="lazy" />
+                <img src={image} alt={title} className="max-h-full max-w-full rounded-xl object-contain" loading="lazy" />
               </div>
             </Link>
           ))}
