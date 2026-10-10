@@ -1,10 +1,10 @@
 "use client";
 
 import { Anton } from "next/font/google";
-import { ArrowUpRight, CheckCircle2, Megaphone, MousePointer2, Zap } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, Megaphone, MousePointer2, Zap, Bot } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/BrandIcons";
 import { useTheme } from "@/lib/theme";
-import { MetaIcon, ZapierIcon, ShopifyIcon, SlackColorIcon } from "@/components/icons/IntegrationBrandIcons";
+import { ZapierIcon, ShopifyIcon, SlackColorIcon } from "@/components/icons/IntegrationBrandIcons";
 
 const anton = Anton({ subsets: ["latin"], weight: "400" });
 
@@ -22,7 +22,7 @@ type CardSpec = {
 // same composition technique as the original card-stack hero, restricted to
 // WhatsApp automation concepts instead of a multi-channel CRM.
 const LEFT_CARDS: CardSpec[] = [
-  { key: "meta", left: "5%", top: "5.2%", rotate: -6, color: "#1877F2", icon: <MetaIcon className="h-full w-full" /> },
+  { key: "meta", left: "5%", top: "5.2%", rotate: -6, color: "#6366F1", icon: <Bot className="h-full w-full" /> },
   { key: "bolt", left: "12.8%", top: "11.2%", rotate: -5, color: "#111827", darkColor: "#F5F6F2", icon: <Zap className="h-full w-full" /> },
   { key: "wa", left: "20.6%", top: "17.2%", rotate: -4, color: "#25D366", icon: <WhatsAppIcon className="h-full w-full" /> },
   { key: "check", left: "28.4%", top: "21.2%", rotate: -2, color: "#34D399", icon: <CheckCircle2 className="h-full w-full" /> },
@@ -232,7 +232,7 @@ function MobileHero({ onGetStarted, onBookDemo }: { onGetStarted?: () => void; o
   const { isDark, toggle } = useTheme();
 
   const mobileCards: CardSpec[] = [
-    { key: "meta", left: "0%", top: "6%", rotate: -10, color: "#1877F2", icon: <MetaIcon className="h-full w-full" /> },
+    { key: "meta", left: "0%", top: "6%", rotate: -10, color: "#6366F1", icon: <Bot className="h-full w-full" /> },
     { key: "bolt", left: "19%", top: "0%", rotate: -5, color: "#111827", darkColor: "#F5F6F2", icon: <Zap className="h-full w-full" /> },
     { key: "wa", left: "38%", top: "4%", rotate: 3, color: "#25D366", icon: <WhatsAppIcon className="h-full w-full" /> },
     { key: "check", left: "57%", top: "2%", rotate: 8, color: "#34D399", icon: <CheckCircle2 className="h-full w-full" /> },
