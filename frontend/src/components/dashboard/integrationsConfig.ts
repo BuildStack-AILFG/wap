@@ -18,7 +18,7 @@ export type Integration = {
   id: string;
   name: string;
   description: string;
-  category: "messaging" | "commerce" | "payments" | "productivity" | "automation";
+  category: "messaging" | "commerce" | "payments" | "productivity" | "automation" | "ads";
   icon: ComponentType<{ className?: string; size?: number; style?: CSSProperties }>;
   iconColor?: string;
   status: IntegrationStatus;
@@ -48,8 +48,8 @@ export const INTEGRATIONS: Integration[] = [
   {
     id: "google-sheets",
     name: "Google Sheets",
-    description: "Export contacts and broadcast results to a live spreadsheet.",
-    category: "productivity",
+    description: "Turn every new row in a shared sheet (form responses, lead lists) into a WhatsApp contact, then message them or start a follow-up.",
+    category: "ads",
     icon: GoogleSheetsIcon,
     iconColor: "#0F9D58",
     status: "not_connected",

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, ChevronRight, Plug, RefreshCw, ShoppingCart, Webhook, Workflow } from "lucide-react";
+import { CheckCircle2, ChevronRight, Plug, RefreshCw, ShoppingCart, Store, Webhook, Workflow } from "lucide-react";
 import { Alert, Badge, Button, Card, CopyField, Field, Input, Modal, Page, PageHeader, Select, Spinner, Tabs, Toggle, timeAgo, useUi } from "@/components/ui/kit";
 import { errorMessage, integrations as api, templates as tplApi, whatsapp, type AdapterMeta, type IntegrationRow, type Template } from "@/lib/api";
 import { INTEGRATIONS } from "@/components/dashboard/integrationsConfig";
@@ -10,10 +10,11 @@ import { INTEGRATIONS } from "@/components/dashboard/integrationsConfig";
 type Item = { id: string; name: string; description: string; category: string; Icon?: React.ComponentType<{ className?: string; size?: number; style?: React.CSSProperties }>; color?: string; kind: string; how: string };
 const BASE: Record<string, { kind: string; how: string }> = {
   shopify: { kind: "shopify", how: "Order events → WhatsApp templates" }, razorpay: { kind: "razorpay", how: "Payment events → WhatsApp templates" }, stripe: { kind: "stripe", how: "Payment events → WhatsApp templates" },
-  slack: { kind: "slack", how: "Team notifications in Slack" }, zapier: { kind: "generic", how: "Signed webhook + API key" }, "google-sheets": { kind: "generic", how: "Via Zapier, Make or Apps Script" },
+  slack: { kind: "slack", how: "Team notifications in Slack" }, zapier: { kind: "generic", how: "Signed webhook + API key" }, "google-sheets": { kind: "google-sheets", how: "New rows → contacts, checked every 10 min" },
   calendly: { kind: "generic", how: "Booking events via webhook" }, "google-calendar": { kind: "generic", how: "Via Zapier or Make" },
 };
 const EXTRA: Item[] = [
+  { id: "indiamart", name: "IndiaMART", description: "Every IndiaMART enquiry becomes a WhatsApp contact with the buyer's message attached. Reply instantly with a template or start a follow-up sequence.", category: "ads", kind: "indiamart", how: "Enquiries → contacts, checked every 15 min" },
   { id: "woocommerce", name: "WooCommerce", description: "Send order confirmations and status updates from your WordPress store.", category: "commerce", kind: "woocommerce", how: "Order events → WhatsApp templates" },
   { id: "make", name: "Make (Integromat)", description: "Trigger WhatsApp messages from 1,500+ apps, or push WhatsApp events into them.", category: "automation", kind: "generic", how: "Signed webhook + API key" },
   { id: "n8n", name: "n8n", description: "Self-hosted automation: call our API and receive signed events.", category: "automation", kind: "generic", how: "Signed webhook + API key" },
@@ -57,7 +58,7 @@ export default function IntegrationsPage() {
           </Card>))}
       </div>
 
-      <div className="mb-2 flex items-center justify-between"><Tabs tabs={[{ id: "all", label: "All" }, { id: "ads", label: "Ads" }, { id: "commerce", label: "Commerce" }, { id: "payments", label: "Payments" }, { id: "productivity", label: "Productivity" }, { id: "automation", label: "Automation" }]} value={cat} onChange={setCat} />
+      <div className="mb-2 flex items-center justify-between"><Tabs tabs={[{ id: "all", label: "All" }, { id: "ads", label: "Lead sources & ads" }, { id: "commerce", label: "Commerce" }, { id: "payments", label: "Payments" }, { id: "productivity", label: "Productivity" }, { id: "automation", label: "Automation" }]} value={cat} onChange={setCat} />
         <span className="mb-5 text-[12.5px] text-white/40">{connectedCount} connected</span></div>
 
       {!rows ? <Spinner /> : (
@@ -65,7 +66,7 @@ export default function IntegrationsPage() {
           const r = byProvider.get(i.id);
           return (
             <Card key={i.id} className="flex flex-col p-5">
-              <div className="flex items-start gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/[0.06]">{i.Icon ? <i.Icon size={24} style={{ color: i.color }} /> : i.kind === "woocommerce" ? <ShoppingCart size={22} className="text-purple-300" /> : i.id === "webhook" ? <Webhook size={22} className="text-white/70" /> : <Workflow size={22} className="text-white/70" />}</div>
+              <div className="flex items-start gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/[0.06]">{i.Icon ? <i.Icon size={24} style={{ color: i.color }} /> : i.kind === "woocommerce" ? <ShoppingCart size={22} className="text-purple-300" /> : i.kind === "indiamart" ? <Store size={22} className="text-sky-300" /> : i.id === "webhook" ? <Webhook size={22} className="text-white/70" /> : <Workflow size={22} className="text-white/70" />}</div>
                 <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><span className="text-[14.5px] font-semibold text-white">{i.name}</span>{r && <Badge tone={r.status === "connected" ? "green" : "red"}>{r.status === "connected" ? <><CheckCircle2 size={10} /> connected</> : r.status}</Badge>}</div>
                   <div className="text-[11.5px] text-white/35">{i.how}</div></div></div>
               <p className="mt-3 flex-1 text-[12.5px] text-white/50">{i.description}</p>
@@ -84,8 +85,11 @@ export default function IntegrationsPage() {
 function Connect({ item, meta, row, onClose, onChanged }: { item: Item; meta?: AdapterMeta; row?: IntegrationRow; onClose: () => void; onChanged: () => void }) {
   const { toast, confirm } = useUi();
   const isSlack = item.kind === "slack";
-  const isAdapter = meta?.mode === "events";
-  const needsSecret = isAdapter && meta?.secret_required !== false;
+  const isPull = meta?.mode === "pull";
+  const isAdapter = meta?.mode === "events" || isPull;
+  const needsSecret = isPull || (isAdapter && meta?.secret_required !== false);
+  const [importExisting, setImportExisting] = useState(!!row?.config.import_existing);
+  const [syncing, setSyncing] = useState(false);
   const [secret, setSecret] = useState("");
   const [events, setEvents] = useState<string[]>(row?.config.events ?? meta?.events ?? []);
   const [actions, setActions] = useState<Record<string, { template_id: string; body: string }>>(() => Object.fromEntries(Object.entries((row?.config.actions ?? {}) as Record<string, { template_id: string; body?: string[] }>).map(([k, v]) => [k, { template_id: v.template_id, body: (v.body ?? []).join(" | ") }])));
@@ -100,6 +104,7 @@ function Connect({ item, meta, row, onClose, onChanged }: { item: Item; meta?: A
     try {
       const body: Parameters<typeof api.save>[1] = {};
       if (secret) body.secret = secret;
+      if (isPull) body.import_existing = importExisting;
       if (isSlack) body.events = events;
       else body.actions = Object.fromEntries(Object.entries(actions).filter(([, a]) => a.template_id).map(([k, a]) => [k, { type: "send_template", template_id: a.template_id, body: a.body.split("|").map((s) => s.trim()).filter(Boolean) }]));
       const saved = await api.save(item.id, body);
@@ -118,10 +123,30 @@ function Connect({ item, meta, row, onClose, onChanged }: { item: Item; meta?: A
         <div className="mb-4 space-y-2"><CopyField label="Webhook URL (paste this in the other tool)" value={current.hook_url} />
           <Button size="sm" variant="ghost" onClick={async () => { if (await confirm({ title: "Generate a new URL?", body: "The old URL stops working — update it in the other tool.", confirmLabel: "Regenerate" })) { try { setCurrent(await api.rotate(item.id)); onChanged(); } catch (e) { setErr(errorMessage(e)); } } }}><RefreshCw size={12} /> Regenerate URL</Button></div>
       )}
-      {!isSlack && !current && <Alert tone="blue">Connect first to get your unique webhook URL.</Alert>}
+      {!isSlack && !isPull && !current && <Alert tone="blue">Connect first to get your unique webhook URL.</Alert>}
 
-      <Field label={meta?.secret_label ?? "Secret"} hint={current?.has_secret ? "A secret is saved (encrypted). Enter a new one to replace it." : needsSecret ? "Required — requests without a valid signature are rejected." : isAdapter ? "Leave empty for Zapier, Make or Pabbly — your unique URL keeps it private." : undefined}>
-        <Input type={isSlack ? "text" : "password"} value={secret} onChange={(e) => setSecret(e.target.value)} placeholder={current?.has_secret ? "••••••••" : isSlack ? "https://hooks.slack.com/services/…" : ""} autoComplete="off" /></Field>
+      <Field label={meta?.secret_label ?? "Secret"} hint={isPull ? (current?.has_secret ? "Saved (encrypted). Paste a new one to replace it; a different sheet or key starts fresh." : "Required.")
+        : current?.has_secret ? "A secret is saved (encrypted). Enter a new one to replace it." : needsSecret ? "Required — requests without a valid signature are rejected." : isAdapter ? "Leave empty for Zapier, Make or Pabbly — your unique URL keeps it private." : undefined}>
+        <Input type={isSlack || item.kind === "google-sheets" ? "text" : "password"} value={secret} onChange={(e) => setSecret(e.target.value)}
+          placeholder={current?.has_secret ? "••••••••" : isSlack ? "https://hooks.slack.com/services/…" : item.kind === "google-sheets" ? "https://docs.google.com/spreadsheets/d/…" : ""} autoComplete="off" /></Field>
+
+      {item.kind === "google-sheets" && (
+        <label className="mt-3 flex items-center gap-2 text-[13px] text-white/70"><Toggle checked={importExisting} onChange={setImportExisting} label="Import existing rows" />
+          Import existing rows too (otherwise only rows added from now on)</label>
+      )}
+      {isPull && current && (
+        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-white/[0.04] px-4 py-3 text-[12.5px] text-white/60">
+          <span>{current.config.last_call_at ? `Last checked ${timeAgo(current.config.last_call_at)}` : "Not checked yet"}{typeof current.config.rows_done === "number" ? ` · ${current.config.rows_done} rows seen` : ""}</span>
+          <Button size="sm" variant="ghost" className="ml-auto" loading={syncing} onClick={async () => {
+            setSyncing(true); setErr(null);
+            try {
+              const r = await api.sync(item.id);
+              toast(r.skipped_existing_rows ? `Connected. ${r.skipped_existing_rows} existing rows skipped; new rows will be imported.` : `${r.new_leads} new lead${r.new_leads === 1 ? "" : "s"} imported`);
+              onChanged();
+            } catch (e) { setErr(errorMessage(e)); } finally { setSyncing(false); }
+          }}><RefreshCw size={12} /> Check now</Button>
+        </div>
+      )}
 
       {isSlack && meta && (
         <div className="mt-4"><div className="mb-2 text-[12.5px] font-medium text-white/70">Post to Slack when…</div>
@@ -130,8 +155,10 @@ function Connect({ item, meta, row, onClose, onChanged }: { item: Item; meta?: A
       )}
 
       {isAdapter && meta && (
-        <div className="mt-5"><div className="mb-1 text-[13.5px] font-semibold text-white">Send a WhatsApp template when…</div>
-          <p className="mb-3 text-[12px] text-white/45">Pick a template per event. Variables use the customer and order data: <code>{"{{name}}"}</code> <code>{"{{var.order_number}}"}</code> <code>{"{{var.total}}"}</code> — separate multiple values with <b>|</b>.</p>
+        <div className="mt-5"><div className="mb-1 text-[13.5px] font-semibold text-white">{isPull ? "Message each new lead on WhatsApp" : "Send a WhatsApp template when…"}</div>
+          <p className="mb-3 text-[12px] text-white/45">{isPull
+            ? <>Pick a template to send each new lead. Use <code>{"{{name}}"}</code> or any lead detail, e.g. <code>{item.kind === "google-sheets" ? "{{var.city}}" : "{{var.query_message}}"}</code> — separate multiple values with <b>|</b>.</>
+            : <>Pick a template per event. Variables use the customer and order data: <code>{"{{name}}"}</code> <code>{"{{var.order_number}}"}</code> <code>{"{{var.total}}"}</code> — separate multiple values with <b>|</b>.</>}</p>
           <div className="space-y-3">{meta.events.map((e) => { const a = actions[e] ?? { template_id: "", body: "" }; const t = tpls.find((x) => x.id === a.template_id);
             return <div key={e} className="rounded-xl border border-white/10 p-3"><div className="mb-2 text-[13px] font-medium text-white">{e.replace(/_/g, " ")}</div>
               <Select value={a.template_id} onChange={(ev) => setActions({ ...actions, [e]: { ...a, template_id: ev.target.value } })} aria-label={`Template for ${e}`}><option value="">Don&apos;t send anything</option>{tpls.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</Select>

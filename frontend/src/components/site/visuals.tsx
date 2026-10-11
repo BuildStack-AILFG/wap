@@ -219,7 +219,73 @@ function Integrations() {
   );
 }
 
-const MAP: Record<VisualKind, () => ReactNode> = { inbox: Inbox, broadcast: Broadcast, flow: Flow, ai: Ai, replies: Replies, pipeline: Pipeline, payments: Payments, widget: Widget, templates: Templates, analytics: Analytics, integrations: Integrations };
+function Followups() {
+  const steps: [string, string, string, "green" | "gray" | "blue"][] = [
+    ["After 4 hours", "AI follow-up", "“Hi Priya, still thinking about the 2BHK in Baner? Happy to share the floor plan.”", "green"],
+    ["After 2 days", "Template: site_visit_offer", "Free site visit this weekend", "green"],
+    ["After 5 days", "Template: last_offer", "Stopped: Priya replied", "gray"],
+  ];
+  return (
+    <Frame title="Follow-ups">
+      <div className="space-y-3 p-5 text-white">
+        <div className="flex items-center justify-between"><div><p className="text-[14px] font-semibold">Price asked, went quiet</p><p className="text-[11.5px] text-white/45">Starts when a lead is tagged hot-lead</p></div><Chip tone="green">On</Chip></div>
+        {steps.map(([when, what, detail, tone], i) => (
+          <div key={when} className="flex gap-3">
+            <div className="flex flex-col items-center"><span className={`flex h-6 w-6 items-center justify-center rounded-full ${tone === "green" ? "bg-emerald-500/20 text-emerald-300" : "bg-white/10 text-white/40"}`}>{tone === "green" ? <Check size={12} /> : i + 1}</span>{i < steps.length - 1 && <span className="mt-1 w-px flex-1 bg-white/15" />}</div>
+            <div className="min-w-0 pb-1"><p className="text-[11px] text-white/45">{when}</p><p className="text-[12.5px] font-semibold">{what}</p><p className="truncate text-[11.5px] text-white/55">{detail}</p></div>
+          </div>
+        ))}
+        <Bubble>Yes! Can we visit on Saturday?</Bubble>
+        <div className="flex flex-wrap gap-1.5"><Chip tone="blue">Replied after follow-up #2</Chip><Chip>Sequence stopped automatically</Chip></div>
+      </div>
+    </Frame>
+  );
+}
+
+function Scoring() {
+  const leads: [string, "Hot" | "Warm" | "Cold", string][] = [
+    ["Priya Sharma", "Hot", "Asked the price and wants a Saturday visit"],
+    ["Rohan Mehta", "Warm", "Comparing two projects, no timeline yet"],
+    ["Anita Desai", "Cold", "Just browsing"],
+  ];
+  const tone = { Hot: "bg-red-500/15 text-red-300", Warm: "bg-amber-500/15 text-amber-300", Cold: "bg-sky-500/15 text-sky-300" };
+  return (
+    <Frame title="Contacts · hot leads first">
+      <div className="divide-y divide-white/10 text-white">
+        {leads.map(([n, s, why]) => (
+          <div key={n} className="flex items-center gap-3 px-4 py-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-[12px] font-semibold">{n[0]}</span>
+            <div className="min-w-0 flex-1"><p className="text-[12.5px] font-semibold">{n}</p><p className="truncate text-[11.5px] text-white/45">AI: {why}</p></div>
+            <span className={`rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${tone[s]}`}>{s}</span>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-1.5 px-4 py-3"><Chip tone="green"><Sparkles size={10} /> Scored from the conversation</Chip><Chip>hot-lead tag → follow-up starts</Chip></div>
+      </div>
+    </Frame>
+  );
+}
+
+function Capture() {
+  const sources: [string, string][] = [["IndiaMART", "Need 500 steel racks, share price"], ["Google Sheets", "New row: Neha Rao, Nashik"], ["Meta Lead Ads", "Form: Free consultation"]];
+  return (
+    <Frame title="New leads">
+      <div className="space-y-2.5 p-4 text-white">
+        {sources.map(([src, what]) => (
+          <div key={src} className="flex items-center gap-3 rounded-xl border border-white/10 bg-card px-3 py-2.5">
+            <Store size={15} className="shrink-0 text-white/50" />
+            <div className="min-w-0 flex-1"><p className="text-[12px] font-semibold">{src}</p><p className="truncate text-[11.5px] text-white/45">{what}</p></div>
+            <Chip tone="green"><Check size={10} /> Contact added</Chip>
+          </div>
+        ))}
+        <Bubble me meta={<><span>10:16</span><CheckCheck size={12} className="text-sky-300" /></>}>Hi Rakesh, thanks for your enquiry on IndiaMART! Sharing our steel rack price list now.</Bubble>
+        <div className="flex flex-wrap gap-1.5"><Chip>Same phone, same contact: no duplicates</Chip><Chip tone="blue">Follow-up sequence started</Chip></div>
+      </div>
+    </Frame>
+  );
+}
+
+const MAP: Record<VisualKind, () => ReactNode> = { inbox: Inbox, broadcast: Broadcast, flow: Flow, ai: Ai, replies: Replies, pipeline: Pipeline, payments: Payments, widget: Widget, templates: Templates, analytics: Analytics, integrations: Integrations,
+  followups: Followups, scoring: Scoring, capture: Capture };
 
 export default function Visual({ kind }: { kind: VisualKind }) {
   const C = MAP[kind];

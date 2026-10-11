@@ -216,11 +216,14 @@ export const whatsapp = {
 export type Contact = {
   id: string; name: string; phone: string; email: string | null; tags: string[]; traits: Record<string, unknown>; source: string; opted_out: boolean;
   last_contacted_at: string | null; created_at: string;
+  lead_score: LeadScore | null; lead_score_reason: string | null; lead_scored_at: string | null;
 };
+export type LeadScore = "hot" | "warm" | "cold";
 export type ContactDetail = Contact & { events: { name: string; properties: Record<string, unknown>; source: string; at: string }[]; ad_attribution: Record<string, string> };
 export type Page<T> = { total: number; items: T[] };
 export const contacts = {
-  list: (p: { q?: string; tag?: string; opted_out?: boolean; source?: string; segment_id?: string; sort?: string; limit?: number; offset?: number }) => request<Page<Contact>>(`/contacts${qs(p)}`),
+  list: (p: { q?: string; tag?: string; opted_out?: boolean; source?: string; segment_id?: string; sort?: string; lead_score?: LeadScore; limit?: number; offset?: number }) => request<Page<Contact>>(`/contacts${qs(p)}`),
+  score: (id: string) => request<{ lead_score: LeadScore; lead_score_reason: string | null }>(`/contacts/${id}/score`, { method: "POST" }),
   get: (id: string) => request<ContactDetail>(`/contacts/${id}`),
   create: (b: { name: string; phone: string; email?: string; tags?: string[]; traits?: Record<string, unknown> }) => request<Contact>("/contacts", { method: "POST", body: b }),
   update: (id: string, b: Partial<{ name: string; email: string | null; phone: string; tags: string[]; traits: Record<string, unknown>; opted_out: boolean }>) => request<Contact>(`/contacts/${id}`, { method: "PATCH", body: b }),
@@ -271,7 +274,7 @@ export const templates = {
 export type ConversationSummary = {
   id: string; status: "open" | "resolved"; inbox_status: "bot" | "intervened"; labels: string[]; unread_count: number; last_message_at: string | null;
   last_message_preview: string | null; window_open: boolean; window_expires_at: string | null; account_id: string;
-  assigned_user: { id: string; name: string } | null; contact: { id: string; name: string; phone: string; opted_out: boolean };
+  assigned_user: { id: string; name: string } | null; contact: { id: string; name: string; phone: string; opted_out: boolean; lead_score: LeadScore | null; lead_score_reason: string | null };
 };
 export type ConversationDetail = ConversationSummary & {
   contact: ConversationSummary["contact"] & { email: string | null; tags: string[]; traits: Record<string, unknown>; source: string; ad_attribution: Record<string, string>; created_at: string };
@@ -284,7 +287,7 @@ export type ChatMessage = {
 };
 export type SendBody = { type: "text" | "image" | "video" | "audio" | "document" | "template" | "note"; text?: string; media_id?: string; media_filename?: string; media_mime?: string; template_id?: string; variables?: Record<string, unknown>; keep_bot?: boolean };
 export const inbox = {
-  list: (p: { status?: string; assigned?: string; unread?: boolean; q?: string; label?: string; mode?: string; handler?: "human" | "ai"; limit?: number; offset?: number }) => request<Page<ConversationSummary>>(`/inbox/conversations${qs(p)}`),
+  list: (p: { status?: string; assigned?: string; unread?: boolean; q?: string; label?: string; mode?: string; handler?: "human" | "ai"; sort?: "recent" | "hot_first"; lead_score?: LeadScore; limit?: number; offset?: number }) => request<Page<ConversationSummary>>(`/inbox/conversations${qs(p)}`),
   summary: () => request<{ open: number; unread_conversations: number; unassigned: number; mine: number; resolved: number; unread_messages: number; needs_human: number; ai_handling: number; labels: string[] }>("/inbox/summary"),
   get: (id: string) => request<ConversationDetail>(`/inbox/conversations/${id}`),
   messages: (id: string, p?: { limit?: number; before?: string }) => request<{ items: ChatMessage[]; has_more: boolean; window_open: boolean; window_expires_at: string | null }>(`/inbox/conversations/${id}/messages${qs(p)}`),
@@ -419,15 +422,44 @@ export const developer = {
   testWebhook: (id: string) => request<{ ok: boolean; detail: string }>(`/developer/webhooks/${id}/test`, { method: "POST" }),
   removeWebhook: (id: string) => request<void>(`/developer/webhooks/${id}`, { method: "DELETE" }),
 };
-export type AdapterMeta = { mode: "events" | "notify" | "generic"; secret_label: string; secret_required?: boolean; events: string[]; steps: string[] };
-export type IntegrationRow = { provider: string; kind: string; status: string; config: { actions?: Record<string, unknown>; events?: string[] }; has_secret: boolean; last_event_at: string | null; last_error: string | null; hook_url?: string };
+export type AdapterMeta = { mode: "events" | "notify" | "generic" | "pull"; secret_label: string; secret_required?: boolean; events: string[]; steps: string[] };
+export type IntegrationRow = { provider: string; kind: string; status: string; config: { actions?: Record<string, unknown>; events?: string[]; last_call_at?: string; rows_done?: number; import_existing?: boolean }; has_secret: boolean; last_event_at: string | null; last_error: string | null; hook_url?: string };
 export const integrations = {
   adapters: () => request<Record<string, AdapterMeta>>("/integrations/adapters"),
   list: () => request<IntegrationRow[]>("/integrations"),
-  save: (provider: string, b: { secret?: string; actions?: Record<string, unknown>; events?: string[] }) => request<IntegrationRow>(`/integrations/${provider}`, { method: "PUT", body: b }),
+  save: (provider: string, b: { secret?: string; actions?: Record<string, unknown>; events?: string[]; import_existing?: boolean }) => request<IntegrationRow>(`/integrations/${provider}`, { method: "PUT", body: b }),
+  sync: (provider: string) => request<{ new_leads: number; ignored: number; rows_in_sheet?: number; skipped_existing_rows?: number }>(`/integrations/${provider}/sync`, { method: "POST" }),
   rotate: (provider: string) => request<IntegrationRow>(`/integrations/${provider}/rotate-url`, { method: "POST" }),
   slackTest: () => request<{ ok: boolean }>("/integrations/slack/test", { method: "POST" }),
   remove: (provider: string) => request<void>(`/integrations/${provider}`, { method: "DELETE" }),
+};
+
+// ---- follow-up sequences ------------------------------------------------------------------------------------------------------------------------
+
+export type FollowupStep = {
+  kind: "template" | "text" | "ai"; delay_minutes: number; template_id?: string | null; variables?: { body?: string[] };
+  text?: string; instructions?: string; fallback_template_id?: string | null;
+};
+export type FollowupStatus = "active" | "replied" | "completed" | "stopped" | "failed";
+export type FollowupSequence = {
+  id: string; name: string; active: boolean; trigger: "manual" | "tag" | "new_lead"; trigger_value: string | null; business_hours_only: boolean;
+  steps: FollowupStep[]; counts: Record<FollowupStatus, number>; enrolled: number; reply_rate: number | null; created_at: string;
+};
+export type FollowupInput = Pick<FollowupSequence, "name" | "active" | "trigger" | "trigger_value" | "business_hours_only" | "steps">;
+export type FollowupEnrollment = {
+  id: string; contact_id: string; name: string; phone: string; lead_score: LeadScore | null; status: FollowupStatus; step: number; sent: number;
+  next_run_at: string | null; finished_at: string | null; source: string; log: { at: string; step: number; event: string; detail?: string }[]; error: string | null;
+};
+export type SilentLead = { contact_id: string; name: string; phone: string; lead_score: LeadScore | null; sequence: string; sequence_id: string; followups_sent: number; finished_at: string | null };
+export const followups = {
+  list: () => request<FollowupSequence[]>("/followups"),
+  create: (b: FollowupInput) => request<FollowupSequence>("/followups", { method: "POST", body: b }),
+  update: (id: string, b: FollowupInput) => request<FollowupSequence>(`/followups/${id}`, { method: "PUT", body: b }),
+  remove: (id: string) => request<void>(`/followups/${id}`, { method: "DELETE" }),
+  enroll: (id: string, contact_ids: string[]) => request<{ enrolled: number; skipped: number }>(`/followups/${id}/enroll`, { method: "POST", body: { contact_ids } }),
+  enrollments: (id: string, status?: FollowupStatus) => request<FollowupEnrollment[]>(`/followups/${id}/enrollments${qs({ status })}`),
+  stop: (enrollmentId: string) => request<{ status: FollowupStatus }>(`/followups/enrollments/${enrollmentId}/stop`, { method: "POST" }),
+  silent: () => request<SilentLead[]>("/followups/silent"),
 };
 
 // ---- team, workspace, analytics ---------------------------------------------------------------------------------------------------------------------------------------------

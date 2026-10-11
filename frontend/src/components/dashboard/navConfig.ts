@@ -23,6 +23,7 @@ import {
   Store,
   Package,
   ScrollText,
+  BellRing,
 } from "lucide-react";
 
 export type NavItem = {
@@ -109,6 +110,7 @@ export const NAV_GROUPS: NavGroup[] = [
           { id: "auto-replies", label: "Auto-Replies", href: "/dashboard/auto-replies", icon: MessageSquareReply },
           { id: "custom-replies", label: "Custom Replies", href: "/dashboard/custom-replies", icon: MessageSquareReply },
           { id: "flow-builder", label: "Flow Builder", href: "/dashboard/flow-builder", icon: Workflow },
+          { id: "followups", label: "Follow-ups", href: "/dashboard/followups", icon: BellRing },
           { id: "intent-matching", label: "Intent Matching", href: "/dashboard/intent-matching", icon: Target },
           { id: "ai-agent", label: "AI Agent", href: "/dashboard/ai-agent", icon: Bot },
         ],

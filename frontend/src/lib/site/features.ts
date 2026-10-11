@@ -1,7 +1,7 @@
-import { BarChart3, Bell, Bot, Brain, CalendarClock, Clock, CreditCard, FileText, Filter, GitBranch, Globe, Handshake, Inbox, KeyRound, Layers, LayoutGrid, Link2, Lock, Megaphone, MessageSquareReply, MousePointerClick, Plug, QrCode, Receipt, Route, ScanSearch, Send, ShieldCheck, Sparkles, Tag, Target, TrendingUp, UserCheck, Users, Webhook, Workflow, Zap, type LucideIcon } from "lucide-react";
+import { BarChart3, Bell, BellRing, Bot, Brain, CalendarClock, Clock, CreditCard, FileSpreadsheet, FileText, Flame, Filter, GitBranch, Globe, Handshake, Inbox, KeyRound, Layers, LayoutGrid, Link2, Lock, Megaphone, MessageSquareReply, MousePointerClick, Plug, QrCode, Receipt, Route, ScanSearch, Send, ShieldCheck, Sparkles, Store, Tag, Target, TrendingUp, UserCheck, Users, Webhook, Workflow, Zap, type LucideIcon } from "lucide-react";
 import type { Faq } from "./seo";
 
-export type VisualKind = "inbox" | "broadcast" | "flow" | "ai" | "replies" | "pipeline" | "payments" | "widget" | "templates" | "analytics" | "integrations";
+export type VisualKind = "inbox" | "broadcast" | "flow" | "ai" | "replies" | "pipeline" | "payments" | "widget" | "templates" | "analytics" | "integrations" | "followups" | "scoring" | "capture";
 
 export type Feature = {
   slug: string;
@@ -174,6 +174,119 @@ export const FEATURES: Feature[] = [
       { q: "Is there a limit on AI replies?", a: "Each plan includes a monthly number of AI replies. Your usage is visible in the dashboard." },
     ],
     related: ["chat-flow-builder", "shared-inbox", "auto-replies"],
+  },
+  {
+    slug: "follow-ups",
+    navLabel: "Follow-up Sequences",
+    icon: BellRing,
+    tagline: "Nudge quiet leads for days, stop the moment they reply",
+    metaTitle: "WhatsApp Follow-up Sequences for Leads Who Go Quiet",
+    metaDescription: "Automatically follow up with WhatsApp leads over hours or days with AI-written nudges and approved templates. The sequence stops the second they reply. Recover silent leads in one click.",
+    keywords: ["WhatsApp follow up automation", "WhatsApp lead follow up", "WhatsApp drip sequence", "recover cold leads WhatsApp"],
+    h1: "Follow up with every lead until they reply, without anyone remembering to",
+    lead: "Most leads don't say no. They just go quiet. Set up a sequence once: an AI-written nudge after a few hours, a template after two days, a last offer after five. The moment the customer replies, it stops and your team or AI agent takes over.",
+    visual: "followups",
+    benefits: [
+      { icon: MessageSquareReply, title: "Stops the second they reply", body: "Any message from the customer ends their sequence before anything else runs, so nobody gets a reminder after they've already answered." },
+      { icon: Sparkles, title: "AI-written nudges that don't repeat", body: "An AI step writes a short follow-up from what the customer actually asked about, worded differently every time. Add guidance like \u201coffer a free site visit\u201d." },
+      { icon: Clock, title: "Respects WhatsApp's 24-hour rule", body: "Free text and AI steps only go out inside the 24-hour window. After that, the step sends the approved template you chose, so messages are never blocked." },
+      { icon: Zap, title: "Starts on its own", body: "Start a sequence when a tag is added (like hot-lead), when a new lead arrives from IndiaMART, Google Sheets or Meta Lead Ads, or add contacts yourself." },
+      { icon: Target, title: "Silent-leads list", body: "Leads who finished every step without replying land in one list. Restart them in a different sequence with a click, or call the hot ones." },
+      { icon: BarChart3, title: "See what works", body: "Every sequence shows how many leads are in progress, how many replied and the reply rate, so you can keep the wording that converts." },
+    ],
+    steps: [
+      { title: "Write the steps", body: "Pick a wait (minutes, hours or days) and what to send: an approved template, a message or an AI-written follow-up." },
+      { title: "Choose who gets it", body: "Contacts with a tag, every new lead from a source, or the people you select in Contacts." },
+      { title: "Let it run", body: "Steps go out on schedule, optionally only during your business hours. Opted-out contacts are never messaged." },
+      { title: "Work the replies", body: "Replies stop the sequence and land in your shared inbox. Leads who never replied show up under Silent leads." },
+    ],
+    useCases: [
+      { title: "Price asked, then silence", body: "A customer asks the price and disappears. Nudge them in 4 hours, share a brochure on day 2 and a limited offer on day 5." },
+      { title: "New enquiries from lead portals", body: "Every IndiaMART or Meta lead gets an instant hello and a follow-up plan, even at 2 am." },
+      { title: "Hot leads that need a push", body: "When the AI marks a lead hot, start a short sequence that books the visit or the call." },
+    ],
+    faqs: [
+      { q: "Will a customer get a follow-up after they've replied?", a: "No. Any message from them ends every active sequence they're in before other automation runs." },
+      { q: "What happens after WhatsApp's 24-hour window closes?", a: "WhatsApp only allows approved templates outside the window. Template steps always work; message and AI steps send their backup template instead, or are skipped if you didn't set one." },
+      { q: "Do AI follow-ups use my AI reply allowance?", a: "Yes, each AI-written follow-up counts as one AI reply, the same as the AI agent. With your own AI key there is no platform limit." },
+      { q: "Can I stop a sequence for one person?", a: "Yes. Open the sequence's contacts and stop it for that contact, or pause the whole sequence with one switch." },
+    ],
+    related: ["lead-scoring", "lead-capture", "ai-agent"],
+  },
+  {
+    slug: "lead-scoring",
+    navLabel: "AI Lead Scoring",
+    icon: Flame,
+    tagline: "Know who's ready to buy: hot, warm or cold, with the reason",
+    metaTitle: "AI Lead Scoring for WhatsApp: Hot, Warm and Cold Leads",
+    metaDescription: "TalkForGrow's AI rates every WhatsApp lead hot, warm or cold from what they actually said, shows the reason, and puts hot leads first in your inbox and contacts.",
+    keywords: ["WhatsApp lead scoring", "AI lead qualification WhatsApp", "hot leads WhatsApp CRM", "lead prioritisation"],
+    h1: "Call the hot leads first. The AI tells you which ones they are",
+    lead: "Every conversation the AI agent handles is rated hot, warm or cold, with one line explaining why. Sort your inbox and contacts hot-first, and let a hot lead automatically start a follow-up or reach the right salesperson.",
+    visual: "scoring",
+    benefits: [
+      { icon: Flame, title: "Hot, warm, cold, with a reason", body: "\u201cAsked the price and wants a Saturday visit\u201d beats a number. Every score shows what the customer said that earned it." },
+      { icon: Sparkles, title: "Scored while the AI replies", body: "The AI agent rates the lead as part of each reply, so scores stay current without an extra step. Score any contact on demand too." },
+      { icon: Filter, title: "Hot leads first", body: "Sort the inbox and contacts so the leads most likely to buy are at the top, and filter to just hot or warm." },
+      { icon: Tag, title: "Turns into action", body: "Leads that turn hot get a hot-lead tag, which can start a follow-up sequence, a flow or an assignment rule. Switch the tag off if you don't want it." },
+      { icon: UserCheck, title: "Fair, explainable rules", body: "Hot means a clear intent to buy soon (price, availability, timeline, a visit). Warm is still exploring. Cold is just browsing." },
+      { icon: Lock, title: "Your data stays yours", body: "Scoring only uses the conversation with your own customer, through the same AI connection as your agent." },
+    ],
+    steps: [
+      { title: "Turn on the AI agent", body: "Scores arrive with its replies. No separate setup." },
+      { title: "Sort hot-first", body: "Use Hot leads first in the inbox or contacts, or filter to one score." },
+      { title: "Act on hot leads", body: "Start a follow-up from the hot-lead tag, or route hot chats to your best closer." },
+      { title: "Re-score any time", body: "Open a contact and click Score with AI after new messages." },
+    ],
+    useCases: [
+      { title: "Busy sales teams", body: "Reps open the inbox and start with the people who asked to pay or visit, not the ones who said hi." },
+      { title: "Real estate and education", body: "Spot the enquiries with a budget and a timeline among hundreds of \u201cplease share details\u201d messages." },
+      { title: "Owners who sell themselves", body: "See at a glance which five chats deserve a call today." },
+    ],
+    faqs: [
+      { q: "Does scoring cost extra AI replies?", a: "Scores that come with an AI agent reply don't cost anything extra. Scoring a contact on demand uses one AI reply from your allowance." },
+      { q: "Can I trust the score?", a: "Treat it as a strong hint, not a verdict. Every score shows the reason, so you can see at a glance whether you agree." },
+      { q: "Can I stop the hot-lead tag being added?", a: "Yes, it can be switched off for the workspace. Scores still appear." },
+    ],
+    related: ["follow-ups", "ai-agent", "sales-pipeline"],
+  },
+  {
+    slug: "lead-capture",
+    navLabel: "Lead Capture",
+    icon: Store,
+    tagline: "IndiaMART, Google Sheets and Meta leads, straight into WhatsApp",
+    metaTitle: "Capture IndiaMART, Google Sheets and Meta Ads Leads on WhatsApp",
+    metaDescription: "Pull IndiaMART enquiries and new Google Sheet rows into TalkForGrow automatically, receive Meta Lead Ads through Zapier, Make or Pabbly, and message every lead on WhatsApp in minutes.",
+    keywords: ["IndiaMART WhatsApp integration", "Google Sheets to WhatsApp", "Meta lead ads WhatsApp", "lead capture WhatsApp India"],
+    h1: "Every lead, from every source, on WhatsApp in minutes",
+    lead: "The fastest reply usually wins the deal. Connect IndiaMART or a Google Sheet once; new enquiries become contacts automatically, get a WhatsApp message from your template and start a follow-up sequence, with no copy-pasting from portals.",
+    visual: "capture",
+    benefits: [
+      { icon: Store, title: "IndiaMART enquiries", body: "Paste your IndiaMART Pull API key. We check for new enquiries every 15 minutes and save the buyer's message, product and city on the contact." },
+      { icon: FileSpreadsheet, title: "Google Sheets rows", body: "Share a sheet as \u201canyone with the link can view\u201d. Every new row (form responses, lead lists) becomes a contact; each column is saved as a detail." },
+      { icon: Megaphone, title: "Meta Lead Ads", body: "Facebook and Instagram lead-form leads arrive through Zapier, Make or Pabbly Connect, and get a WhatsApp message right away." },
+      { icon: UserCheck, title: "No duplicate contacts", body: "Contacts are unique per phone number, so a lead who enquires twice from two sources is still one contact with one history." },
+      { icon: Zap, title: "Instant message + follow-up", body: "Choose a template for each source and start a follow-up sequence for new leads automatically." },
+      { icon: Webhook, title: "Anything else via webhook", body: "Any tool that can send a webhook, plus CSV import and our REST API, can create contacts and fire events." },
+    ],
+    steps: [
+      { title: "Connect a source", body: "IndiaMART key, a Google Sheet link, or a webhook URL for Zapier, Make or Pabbly." },
+      { title: "Pick the first message", body: "Choose the approved template each new lead receives on WhatsApp." },
+      { title: "Add a follow-up", body: "Create a sequence for new leads from that source so nobody is left waiting." },
+      { title: "Reply from one inbox", body: "Answers land in your shared inbox with the lead's enquiry details attached." },
+    ],
+    useCases: [
+      { title: "B2B sellers on IndiaMART", body: "Reply to buy-leads on WhatsApp before other sellers have opened the portal." },
+      { title: "Forms and ad campaigns", body: "Google Forms responses or Meta lead forms get a WhatsApp hello within minutes." },
+      { title: "Lists from your team", body: "Sales teams that log leads in a shared sheet get every new row followed up automatically." },
+    ],
+    faqs: [
+      { q: "Which IndiaMART plan do I need?", a: "IndiaMART's Pull API is available to paid IndiaMART sellers. Generate the key in Lead Manager under Import/Export Leads, then paste it into TalkForGrow." },
+      { q: "Will old rows in my Google Sheet get messaged?", a: "No. By default only rows added after you connect are imported. You can choose to import existing rows if you want to." },
+      { q: "Do phone numbers need a country code?", a: "Numbers with +91 work as they are. For 10-digit numbers, set a default country code in Settings." },
+      { q: "Can I connect other lead sources?", a: "Yes, through Zapier, Make, Pabbly Connect or any tool that can send a webhook, or by importing a CSV." },
+    ],
+    related: ["follow-ups", "integrations-api", "lead-scoring"],
   },
   {
     slug: "auto-replies",

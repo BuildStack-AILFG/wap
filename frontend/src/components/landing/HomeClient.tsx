@@ -16,12 +16,15 @@ import IndustriesGridSection from "@/components/landing/IndustriesGridSection";
 import SuccessStoriesSection from "@/components/landing/SuccessStoriesSection";
 import LandingCTA from "@/components/landing/LandingCTA";
 import FAQSection from "@/components/landing/FAQSection";
+import SalesEngineSection from "@/components/landing/SalesEngineSection";
+import RevenueCalculator from "@/components/landing/RevenueCalculator";
+import ValueStrip from "@/components/landing/ValueStrip";
 import ScrollToTopButton from "@/components/landing/ScrollToTopButton";
 import BookDemoButton from "@/components/landing/BookDemoButton";
 import BookDemoModal from "@/components/landing/BookDemoModal";
 import Footer from "@/components/landing/Footer";
 
-export default function HomeClient({ pricing }: { pricing?: React.ReactNode }) {
+export default function HomeClient({ pricing, startPrice = 799, trialDays = 14 }: { pricing?: React.ReactNode; startPrice?: number; trialDays?: number }) {
   const router = useRouter();
   const [demoOpen, setDemoOpen] = useState(false);
 
@@ -39,12 +42,15 @@ export default function HomeClient({ pricing }: { pricing?: React.ReactNode }) {
         <TrustedCompanies />
         <ProductHubsSection />
         <AutomationInActionSection />
+        <SalesEngineSection />
         <CapabilitiesGridSection />
         <AICapabilitiesSection onGetStarted={handleGetStarted} onBookDemo={handleBookDemo} />
         <StatsSection />
+        <RevenueCalculator startPrice={startPrice} />
         <IntegrationsTeaser />
         <IndustriesGridSection />
         <SuccessStoriesSection />
+        <ValueStrip startPrice={startPrice} trialDays={trialDays} />
         {pricing}
         <FAQSection onBookDemo={handleBookDemo} />
         <LandingCTA onGetStarted={handleGetStarted} onBookDemo={handleBookDemo} />

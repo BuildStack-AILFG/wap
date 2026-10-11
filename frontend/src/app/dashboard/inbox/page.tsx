@@ -12,6 +12,7 @@ import {
 import PaymentLinkModal from "@/components/sales/PaymentLinkModal";
 import ContactDeals from "@/components/sales/ContactDeals";
 import { useWorkspace } from "@/components/dashboard/WorkspaceContext";
+import LeadScoreBadge from "@/components/dashboard/LeadScoreBadge";
 
 type Filter = "open" | "human" | "ai" | "mine" | "unassigned" | "resolved";
 
@@ -30,6 +31,7 @@ function Inbox() {
   const [filter, setFilter] = useState<Filter>("open");
   const [q, setQ] = useState("");
   const dq = useDebounced(q);
+  const [hotFirst, setHotFirst] = useState(false);
   const [list, setList] = useState<ConversationSummary[] | null>(null);
   const [total, setTotal] = useState(0);
   const [summary, setSummary] = useState<Awaited<ReturnType<typeof inbox.summary>> | null>(null);
@@ -42,7 +44,7 @@ function Inbox() {
     try {
       const p = filter === "resolved" ? { status: "resolved" } : filter === "mine" ? { status: "open", assigned: "me" } : filter === "unassigned" ? { status: "open", assigned: "unassigned" }
         : filter === "human" || filter === "ai" ? { status: "open", handler: filter } : { status: "open" };
-      const [l, s] = await Promise.all([inbox.list({ ...p, q: dq || undefined, limit: 60 }), inbox.summary()]);
+      const [l, s] = await Promise.all([inbox.list({ ...p, q: dq || undefined, sort: hotFirst ? "hot_first" : "recent", limit: 60 }), inbox.summary()]);
       setList(l.items);
       setTotal(l.total);
       setSummary(s);
@@ -50,9 +52,9 @@ function Inbox() {
     } catch (e) {
       setError(errorMessage(e, "Couldn't load conversations."));
     }
-  }, [filter, dq]);
+  }, [filter, dq, hotFirst]);
 
-  usePoll(loadList, 8000, [filter, dq]);
+  usePoll(loadList, 8000, [filter, dq, hotFirst]);
   useEffect(() => {
     team.members().then(setMembers).catch(() => {});
     whatsapp.list().then((a) => setHasAccount(a.some((x) => x.status === "connected"))).catch(() => setHasAccount(true));
@@ -87,6 +89,7 @@ function Inbox() {
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or number" className="pl-9" aria-label="Search conversations" />
           </div>
+          <label className="mt-2 flex items-center gap-2 text-[12px] text-white/55"><Toggle checked={hotFirst} onChange={setHotFirst} label="Hot leads first" /> Hot leads first</label>
           <div className="mt-3 flex gap-1 overflow-x-auto">
             {tabs.map((t) => (
               <button key={t.id} onClick={() => setFilter(t.id)} className={cx("shrink-0 rounded-full px-3 py-1 text-[12.5px] transition", filter === t.id ? "text-white" : "text-white/50 hover:text-white/80")} style={filter === t.id ? { background: accentTint(20), color: "var(--foreground)" } : undefined}>
@@ -112,6 +115,7 @@ function Inbox() {
                   {c.unread_count > 0 && <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-bold text-white btn-accent" style={{ background: ACCENT }}>{c.unread_count}</span>}
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
+                  <LeadScoreBadge score={c.contact.lead_score} reason={c.contact.lead_score_reason} />
                   {c.labels.includes("needs-human") && <Badge tone="red"><AlertTriangle size={10} /> Needs human</Badge>}
                   {c.inbox_status === "intervened" && <Badge tone="blue"><UserRound size={10} /> Human</Badge>}
                   {c.assigned_user && <Badge>{c.assigned_user.id === user_id ? "You" : c.assigned_user.name.split(" ")[0]}</Badge>}

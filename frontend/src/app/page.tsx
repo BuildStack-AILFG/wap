@@ -25,12 +25,13 @@ const HOME_WIDGET_SRC =
 export const revalidate = 300;
 
 export default async function Home() {
-  const { plans } = await getPublicPricing();
+  const { plans, trial } = await getPublicPricing();
+  const startPrice = Math.min(...plans.filter((p) => p.perMonth).map((p) => p.perMonth!.monthly));
   return (
     <>
       {HOME_WIDGET_SRC ? <Script src={HOME_WIDGET_SRC} strategy="afterInteractive" /> : null}
       <JsonLd data={softwareLd(plans.filter((p) => p.perMonth).map((p) => ({ name: p.name, price: p.perMonth!.monthly, description: p.audience })))} />
-      <HomeClient pricing={<HomePricingSection />} />
+      <HomeClient pricing={<HomePricingSection />} startPrice={Number.isFinite(startPrice) ? startPrice : undefined} trialDays={trial.days} />
     </>
   );
 }

@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ClipboardCheck, Download, MessageSquare, Plus, Search, Trash2, Upload, UserX, UserCheck, X } from "lucide-react";
+import { BellRing, ClipboardCheck, Download, MessageSquare, Plus, Search, Sparkles, Trash2, Upload, UserX, UserCheck, X } from "lucide-react";
 import { Alert, Badge, Button, Card, cx, EmptyState, Field, fmtDateTime, Input, Modal, Page, PageHeader, Select, Spinner, timeAgo, Toggle, useDebounced, useUi } from "@/components/ui/kit";
-import { contacts as api, errorMessage, getSettings, inbox, segments as segApi, type Contact, type ContactDetail, type Segment } from "@/lib/api";
+import LeadScoreBadge from "@/components/dashboard/LeadScoreBadge";
+import { contacts as api, errorMessage, followups, getSettings, inbox, segments as segApi, type Contact, type ContactDetail, type FollowupSequence, type LeadScore, type Segment } from "@/lib/api";
 
 const PAGE = 25;
 
@@ -18,6 +19,10 @@ export default function ContactsPage() {
   const [tag, setTag] = useState("");
   const [optOut, setOptOut] = useState("");
   const [segment, setSegment] = useState("");
+  const [score, setScore] = useState<LeadScore | "">("");
+  const [sort, setSort] = useState<"created" | "hot_first">("created");
+  const [seqs, setSeqs] = useState<FollowupSequence[]>([]);
+  const [seqPick, setSeqPick] = useState("");
   const [tags, setTags] = useState<{ tag: string; count: number }[]>([]);
   const [segs, setSegs] = useState<Segment[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -26,19 +31,24 @@ export default function ContactsPage() {
   const [showImport, setShowImport] = useState(false);
   const [detail, setDetail] = useState<string | null>(null);
 
-  const filters = { q: dq || undefined, tag: tag || undefined, opted_out: optOut === "" ? undefined : optOut === "yes", segment_id: segment || undefined };
+  const filters = { q: dq || undefined, tag: tag || undefined, opted_out: optOut === "" ? undefined : optOut === "yes", segment_id: segment || undefined, lead_score: score || undefined };
+  useEffect(() => { const pre = new URLSearchParams(window.location.search).get("q"); if (pre) setQ(pre); }, []);
   const load = useCallback(async () => {
     try {
-      const r = await api.list({ ...filters, sort: "created", limit: PAGE, offset: page * PAGE });
+      const r = await api.list({ ...filters, sort, limit: PAGE, offset: page * PAGE });
       setRows(r.items);
       setTotal(r.total);
       setError(null);
     } catch (e) { setError(errorMessage(e, "Couldn't load contacts.")); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dq, tag, optOut, segment, page]);
+  }, [dq, tag, optOut, segment, score, sort, page]);
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { setPage(0); setSelected(new Set()); }, [dq, tag, optOut, segment]);
-  const loadMeta = useCallback(() => { api.tags().then(setTags).catch(() => {}); segApi.list().then(setSegs).catch(() => {}); }, []);
+  useEffect(() => { setPage(0); setSelected(new Set()); }, [dq, tag, optOut, segment, score, sort]);
+  const loadMeta = useCallback(() => {
+    api.tags().then(setTags).catch(() => {});
+    segApi.list().then(setSegs).catch(() => {});
+    followups.list().then((l) => setSeqs(l.filter((x) => x.active))).catch(() => {});
+  }, []);
   useEffect(loadMeta, [loadMeta]);
 
   const allSelected = !!rows?.length && rows.every((r) => selected.has(r.id));
@@ -51,6 +61,14 @@ export default function ContactsPage() {
       setSelected(new Set());
       await load();
       loadMeta();
+    } catch (e) { toast(errorMessage(e), "error"); }
+  };
+  const addToFollowup = async () => {
+    if (!seqPick) return;
+    try {
+      const r = await followups.enroll(seqPick, [...selected]);
+      toast(`${r.enrolled} added to the follow-up${r.skipped ? ` · ${r.skipped} skipped (already in it or opted out)` : ""}`);
+      setSelected(new Set());
     } catch (e) { toast(errorMessage(e), "error"); }
   };
   const bulkTag = async () => {
@@ -76,12 +94,17 @@ export default function ContactsPage() {
         <Select value={tag} onChange={(e) => setTag(e.target.value)} className="!w-44" aria-label="Filter by tag"><option value="">All tags</option>{tags.map((t) => <option key={t.tag} value={t.tag}>{t.tag} ({t.count})</option>)}</Select>
         <Select value={segment} onChange={(e) => setSegment(e.target.value)} className="!w-44" aria-label="Filter by segment"><option value="">All segments</option>{segs.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select>
         <Select value={optOut} onChange={(e) => setOptOut(e.target.value)} className="!w-40" aria-label="Filter by consent"><option value="">Any consent</option><option value="no">Subscribed</option><option value="yes">Opted out</option></Select>
+        <Select value={score} onChange={(e) => setScore(e.target.value as LeadScore | "")} className="!w-36" aria-label="Filter by lead score"><option value="">Any score</option><option value="hot">Hot</option><option value="warm">Warm</option><option value="cold">Cold</option></Select>
+        <Select value={sort} onChange={(e) => setSort(e.target.value as "created" | "hot_first")} className="!w-40" aria-label="Sort"><option value="created">Newest first</option><option value="hot_first">Hot leads first</option></Select>
       </Card>
 
       {selected.size > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-[13px]">
           <span className="font-medium text-white">{selected.size} selected</span>
           <Button size="sm" variant="ghost" onClick={bulkTag}><Plus size={13} /> Add tag</Button>
+          {seqs.length > 0 && <span className="flex items-center gap-1.5">
+            <Select value={seqPick} onChange={(e) => setSeqPick(e.target.value)} className="!w-48 !py-1" aria-label="Follow-up sequence"><option value="">Follow-up sequence…</option>{seqs.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</Select>
+            <Button size="sm" variant="ghost" disabled={!seqPick} onClick={addToFollowup}><BellRing size={13} /> Add to follow-up</Button></span>}
           <Button size="sm" variant="ghost" onClick={() => bulk("opt_out")}><UserX size={13} /> Opt out</Button>
           <Button size="sm" variant="ghost" onClick={() => bulk("opt_in")}><UserCheck size={13} /> Opt in</Button>
           <Button size="sm" variant="danger" onClick={() => bulk("delete")}><Trash2 size={13} /> Delete</Button>
@@ -90,8 +113,8 @@ export default function ContactsPage() {
       )}
 
       {!rows ? <Spinner /> : rows.length === 0 ? (
-        <EmptyState icon={<ClipboardCheck size={22} />} title={dq || tag || segment || optOut ? "No contacts match these filters" : "No contacts yet"}
-          body={dq || tag || segment || optOut ? undefined : "Add someone manually, import a CSV, or just wait — anyone who messages your WhatsApp number is added automatically."}
+        <EmptyState icon={<ClipboardCheck size={22} />} title={dq || tag || segment || optOut || score ? "No contacts match these filters" : "No contacts yet"}
+          body={dq || tag || segment || optOut || score ? undefined : "Add someone manually, import a CSV, or just wait — anyone who messages your WhatsApp number is added automatically."}
           action={!dq && !tag && !segment && !optOut ? <Button onClick={() => setShowImport(true)}><Upload size={15} /> Import CSV</Button> : undefined} />
       ) : (
         <Card className="overflow-hidden">
@@ -99,7 +122,7 @@ export default function ContactsPage() {
             <thead className="border-b border-white/10 text-[11.5px] uppercase tracking-wide text-white/40">
               <tr>
                 <th className="w-10 px-4 py-3"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Select all on this page" className="accent-brand" /></th>
-                <th className="px-2 py-3">Name</th><th className="px-2 py-3">Phone</th><th className="hidden px-2 py-3 md:table-cell">Tags</th><th className="hidden px-2 py-3 lg:table-cell">Source</th>
+                <th className="px-2 py-3">Name</th><th className="px-2 py-3">Phone</th><th className="px-2 py-3">Lead</th><th className="hidden px-2 py-3 md:table-cell">Tags</th><th className="hidden px-2 py-3 lg:table-cell">Source</th>
                 <th className="hidden px-2 py-3 lg:table-cell">Last contacted</th><th className="px-2 py-3">Consent</th>
               </tr>
             </thead>
@@ -109,6 +132,7 @@ export default function ContactsPage() {
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={selected.has(c.id)} onChange={() => setSelected((s) => { const n = new Set(s); if (n.has(c.id)) n.delete(c.id); else n.add(c.id); return n; })} aria-label={`Select ${c.name}`} className="accent-brand" /></td>
                   <td className="px-2 py-3 font-medium text-white">{c.name}{c.email && <div className="text-[11.5px] font-normal text-white/40">{c.email}</div>}</td>
                   <td className="px-2 py-3 text-white/70">+{c.phone}</td>
+                  <td className="px-2 py-3"><LeadScoreBadge score={c.lead_score} reason={c.lead_score_reason} /></td>
                   <td className="hidden px-2 py-3 md:table-cell"><div className="flex flex-wrap gap-1">{c.tags.slice(0, 3).map((t) => <Badge key={t}>{t}</Badge>)}{c.tags.length > 3 && <Badge>+{c.tags.length - 3}</Badge>}</div></td>
                   <td className="hidden px-2 py-3 text-white/55 lg:table-cell">{c.source}</td>
                   <td className="hidden px-2 py-3 text-white/55 lg:table-cell">{timeAgo(c.last_contacted_at)}</td>
@@ -210,6 +234,7 @@ function Drawer({ id, onClose, onChanged }: { id: string | null; onClose: () => 
   const [f, setF] = useState({ name: "", email: "", tags: "" });
   const [traits, setTraits] = useState<[string, string][]>([]);
   const [busy, setBusy] = useState(false);
+  const [scoring, setScoring] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -250,6 +275,15 @@ function Drawer({ id, onClose, onChanged }: { id: string | null; onClose: () => 
               <div key={i} className="mb-2 flex gap-2"><Input value={k} onChange={(e) => setTraits(traits.map((t, j) => (j === i ? [e.target.value, t[1]] : t)))} placeholder="field" /><Input value={v} onChange={(e) => setTraits(traits.map((t, j) => (j === i ? [t[0], e.target.value] : t)))} placeholder="value" />
                 <button onClick={() => setTraits(traits.filter((_, j) => j !== i))} className="px-2 text-white/40 hover:text-red-300" aria-label="Remove detail"><X size={15} /></button></div>
             ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 rounded-xl bg-white/[0.04] px-4 py-3 text-[13px]">
+            <span className="text-white/70">AI lead score</span>
+            {c.lead_score ? <LeadScoreBadge score={c.lead_score} reason={c.lead_score_reason} /> : <span className="text-white/35">Not scored yet</span>}
+            {c.lead_score_reason && <span className="min-w-0 flex-1 text-[12px] text-white/50">“{c.lead_score_reason}”</span>}
+            <Button size="sm" variant="ghost" className="ml-auto" loading={scoring} onClick={async () => {
+              setScoring(true); setErr(null);
+              try { const r = await api.score(c.id); setC({ ...c, lead_score: r.lead_score, lead_score_reason: r.lead_score_reason }); onChanged(); } catch (e) { setErr(errorMessage(e)); } finally { setScoring(false); }
+            }}><Sparkles size={13} /> {c.lead_score ? "Re-score" : "Score with AI"}</Button>
           </div>
           <div className="flex items-center justify-between rounded-xl bg-white/[0.04] px-4 py-3 text-[13px]"><span className="text-white/70">Opted out of marketing messages</span>
             <Toggle checked={c.opted_out} onChange={async (v) => { try { const u = await api.update(c.id, { opted_out: v }); setC({ ...c, opted_out: u.opted_out }); onChanged(); } catch (e) { setErr(errorMessage(e)); } }} label="Opted out" /></div>
