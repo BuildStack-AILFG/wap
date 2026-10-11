@@ -17,6 +17,7 @@ import SuccessStoriesSection from "@/components/landing/SuccessStoriesSection";
 import LandingCTA from "@/components/landing/LandingCTA";
 import FAQSection from "@/components/landing/FAQSection";
 import ScrollToTopButton from "@/components/landing/ScrollToTopButton";
+import BookDemoButton from "@/components/landing/BookDemoButton";
 import BookDemoModal from "@/components/landing/BookDemoModal";
 import Footer from "@/components/landing/Footer";
 
@@ -49,6 +50,7 @@ export default function HomeClient({ pricing }: { pricing?: React.ReactNode }) {
         <LandingCTA onGetStarted={handleGetStarted} onBookDemo={handleBookDemo} />
         <Footer />
         <ScrollToTopButton />
+        <BookDemoButton aboveChat />
         <BookDemoModal open={demoOpen} onClose={() => setDemoOpen(false)} />
       </div>
     </SmoothScroll>

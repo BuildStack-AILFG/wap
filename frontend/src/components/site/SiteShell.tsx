@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import BookDemoButton from "@/components/landing/BookDemoButton";
 import Footer from "@/components/landing/Footer";
 import { COMPANY_LINKS, PRODUCT_LINKS, RESOURCE_LINKS, SOLUTION_LINKS } from "@/lib/site/nav";
 import SiteHeader from "./SiteHeader";
@@ -18,6 +19,7 @@ export default function SiteShell({ children }: { children: ReactNode }) {
       <SiteHeader groups={GROUPS} />
       <main id="main">{children}</main>
       <Footer />
+      <BookDemoButton />
     </div>
   );
 }
