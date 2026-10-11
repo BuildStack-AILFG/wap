@@ -26,6 +26,7 @@ from app.services.whatsapp.templates import TemplateValidationError, build_send_
 router = APIRouter(prefix="/inbox", tags=["inbox"])
 
 MAX_UPLOAD = 16 * 1024 * 1024
+NEEDS_HUMAN = "needs-human"  # label the AI agent and flows add when a person should step in
 ALLOWED_MIME = {
     "image": {"image/jpeg", "image/png", "image/webp"},
     "video": {"video/mp4", "video/3gpp"},
@@ -62,11 +63,17 @@ def _conv_out(c: Conversation, contact: Contact, assignee: User | None) -> dict:
     }
 
 
+def _needs_human():
+    """A person should look at it: the AI or a flow flagged it, or someone switched the bot off."""
+    return Conversation.labels.any(NEEDS_HUMAN) | (Conversation.inbox_status == "intervened")
+
+
 @router.get("/conversations")
 async def list_conversations(
     status_: Literal["open", "resolved", "all"] = Query("open", alias="status"),
     assigned: str | None = Query(None, description="me | unassigned | <user uuid>"),
     unread: bool = False, q: str | None = None, label: str | None = None, mode: Literal["bot", "intervened"] | None = None,
+    handler: Literal["human", "ai"] | None = Query(None, description="human = flagged needs-human or bot off; ai = the bot is handling it"),
     limit: int = Query(30, ge=1, le=100), offset: int = Query(0, ge=0),
     ctx: Ctx = Depends(get_ctx), db: AsyncSession = Depends(get_db),
 ) -> dict:
@@ -88,6 +95,8 @@ async def list_conversations(
         cond.append(Conversation.labels.any(label))
     if mode:
         cond.append(Conversation.inbox_status == mode)
+    if handler:
+        cond.append(_needs_human() if handler == "human" else ~_needs_human())
     base = select(Conversation, Contact).join(Contact, Contact.id == Conversation.contact_id).where(*cond)
     if q and q.strip():
         like = f"%{q.strip()}%"
@@ -106,9 +115,11 @@ async def summary(ctx: Ctx = Depends(get_ctx), db: AsyncSession = Depends(get_db
         func.count().filter(c.status == "open"), func.count().filter((c.status == "open") & (c.unread_count > 0)),
         func.count().filter((c.status == "open") & c.assigned_user_id.is_(None)), func.count().filter((c.status == "open") & (c.assigned_user_id == ctx.user_id)),
         func.count().filter(c.status == "resolved"), func.coalesce(func.sum(c.unread_count).filter(c.status == "open"), 0),
+        func.count().filter((c.status == "open") & _needs_human()), func.count().filter((c.status == "open") & ~_needs_human()),
     ).where(c.tenant_id == ctx.tenant_id))).one()
     labels = (await db.execute(select(func.unnest(c.labels)).where(c.tenant_id == ctx.tenant_id).distinct())).scalars().all()
-    return {"open": row[0], "unread_conversations": row[1], "unassigned": row[2], "mine": row[3], "resolved": row[4], "unread_messages": int(row[5]), "labels": sorted(labels)}
+    return {"open": row[0], "unread_conversations": row[1], "unassigned": row[2], "mine": row[3], "resolved": row[4], "unread_messages": int(row[5]),
+            "needs_human": row[6], "ai_handling": row[7], "labels": sorted(labels)}
 
 
 class StartConversation(BaseModel):

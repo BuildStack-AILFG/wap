@@ -628,3 +628,19 @@ async def test_ai_shows_typing_then_replies_after_the_delay(wsa, meta, monkeypat
     meta.fail_next(400, 100, "typing not supported")  # a failed typing call never blocks the reply
     await wsa.inbound("and growth?", wamid="wamid.IN2")
     assert texts(meta)[-1] == "We start at ₹799/month."
+
+
+async def test_inbox_filters_chats_that_need_a_human_vs_ai_handled(wsa, meta, monkeypatch):
+    await _enable_ai(wsa, handoff_message="Connecting you to a human.")
+    fake_llm(monkeypatch, reply="Happy to help!")
+    await wsa.inbound("I want to talk to a human", from_="919800000051")  # AI flags it
+    await wsa.inbound("what are your prices?", from_="919800000052")    # AI handles it
+    await wsa.inbound("hello", from_="919800000053")
+    paused = next(c for c in (await wsa.get("/inbox/conversations")).json()["items"] if c["contact"]["phone"] == "919800000053")
+    await wsa.patch(f"/inbox/conversations/{paused['id']}", json={"inbox_status": "intervened"})  # someone switched the bot off
+
+    phones = lambda r: sorted(c["contact"]["phone"] for c in r.json()["items"])  # noqa: E731
+    assert phones(await wsa.get("/inbox/conversations", params={"handler": "human"})) == ["919800000051", "919800000053"]
+    assert phones(await wsa.get("/inbox/conversations", params={"handler": "ai"})) == ["919800000052"]
+    s = (await wsa.get("/inbox/summary")).json()
+    assert (s["needs_human"], s["ai_handling"]) == (2, 1)

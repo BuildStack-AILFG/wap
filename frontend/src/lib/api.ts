@@ -284,8 +284,8 @@ export type ChatMessage = {
 };
 export type SendBody = { type: "text" | "image" | "video" | "audio" | "document" | "template" | "note"; text?: string; media_id?: string; media_filename?: string; media_mime?: string; template_id?: string; variables?: Record<string, unknown>; keep_bot?: boolean };
 export const inbox = {
-  list: (p: { status?: string; assigned?: string; unread?: boolean; q?: string; label?: string; mode?: string; limit?: number; offset?: number }) => request<Page<ConversationSummary>>(`/inbox/conversations${qs(p)}`),
-  summary: () => request<{ open: number; unread_conversations: number; unassigned: number; mine: number; resolved: number; unread_messages: number; labels: string[] }>("/inbox/summary"),
+  list: (p: { status?: string; assigned?: string; unread?: boolean; q?: string; label?: string; mode?: string; handler?: "human" | "ai"; limit?: number; offset?: number }) => request<Page<ConversationSummary>>(`/inbox/conversations${qs(p)}`),
+  summary: () => request<{ open: number; unread_conversations: number; unassigned: number; mine: number; resolved: number; unread_messages: number; needs_human: number; ai_handling: number; labels: string[] }>("/inbox/summary"),
   get: (id: string) => request<ConversationDetail>(`/inbox/conversations/${id}`),
   messages: (id: string, p?: { limit?: number; before?: string }) => request<{ items: ChatMessage[]; has_more: boolean; window_open: boolean; window_expires_at: string | null }>(`/inbox/conversations/${id}/messages${qs(p)}`),
   send: (id: string, b: SendBody) => request<ChatMessage>(`/inbox/conversations/${id}/messages`, { method: "POST", body: b }),

@@ -13,7 +13,7 @@ import PaymentLinkModal from "@/components/sales/PaymentLinkModal";
 import ContactDeals from "@/components/sales/ContactDeals";
 import { useWorkspace } from "@/components/dashboard/WorkspaceContext";
 
-type Filter = "open" | "mine" | "unassigned" | "resolved";
+type Filter = "open" | "human" | "ai" | "mine" | "unassigned" | "resolved";
 
 export default function InboxPage() {
   return (
@@ -40,7 +40,8 @@ function Inbox() {
 
   const loadList = useCallback(async () => {
     try {
-      const p = filter === "resolved" ? { status: "resolved" } : filter === "mine" ? { status: "open", assigned: "me" } : filter === "unassigned" ? { status: "open", assigned: "unassigned" } : { status: "open" };
+      const p = filter === "resolved" ? { status: "resolved" } : filter === "mine" ? { status: "open", assigned: "me" } : filter === "unassigned" ? { status: "open", assigned: "unassigned" }
+        : filter === "human" || filter === "ai" ? { status: "open", handler: filter } : { status: "open" };
       const [l, s] = await Promise.all([inbox.list({ ...p, q: dq || undefined, limit: 60 }), inbox.summary()]);
       setList(l.items);
       setTotal(l.total);
@@ -72,7 +73,8 @@ function Inbox() {
   }
 
   const tabs: { id: Filter; label: string; count?: number }[] = [
-    { id: "open", label: "Open", count: summary?.open }, { id: "mine", label: "Mine", count: summary?.mine },
+    { id: "open", label: "Open", count: summary?.open }, { id: "human", label: "Needs human", count: summary?.needs_human },
+    { id: "ai", label: "AI handling", count: summary?.ai_handling }, { id: "mine", label: "Mine", count: summary?.mine },
     { id: "unassigned", label: "Unassigned", count: summary?.unassigned }, { id: "resolved", label: "Resolved" },
   ];
 
@@ -88,7 +90,7 @@ function Inbox() {
           <div className="mt-3 flex gap-1 overflow-x-auto">
             {tabs.map((t) => (
               <button key={t.id} onClick={() => setFilter(t.id)} className={cx("shrink-0 rounded-full px-3 py-1 text-[12.5px] transition", filter === t.id ? "text-white" : "text-white/50 hover:text-white/80")} style={filter === t.id ? { background: accentTint(20), color: "var(--foreground)" } : undefined}>
-                {t.label}{t.count ? <span className="ml-1.5 text-white/40">{t.count}</span> : null}
+                {t.label}{t.count ? <span className={cx("ml-1.5", t.id === "human" ? "rounded-full bg-red-500 px-1.5 text-[11px] font-semibold text-white" : "text-white/40")}>{t.count}</span> : null}
               </button>
             ))}
           </div>
@@ -96,7 +98,7 @@ function Inbox() {
         <div className="min-h-0 flex-1 overflow-y-auto">
           {error && <div className="p-3"><Alert>{error}</Alert></div>}
           {!list && !error && <Spinner />}
-          {list && list.length === 0 && <div className="px-6 py-16 text-center text-[13px] text-white/40">{dq ? "No conversations match your search." : filter === "resolved" ? "No resolved conversations yet." : "No conversations here yet. Messages from customers appear instantly."}</div>}
+          {list && list.length === 0 && <div className="px-6 py-16 text-center text-[13px] text-white/40">{dq ? "No conversations match your search." : filter === "resolved" ? "No resolved conversations yet." : filter === "human" ? "Nobody needs a person right now. The AI is handling every chat." : "No conversations here yet. Messages from customers appear instantly."}</div>}
           {list?.map((c) => (
             <button key={c.id} onClick={() => open(c.id)} className={cx("flex w-full items-start gap-3 border-b border-white/5 px-4 py-3 text-left transition hover:bg-white/[0.04]", activeId === c.id && "bg-white/[0.07]")}>
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-[14px] font-semibold text-white">{(c.contact.name.replace("+", "")[0] ?? "?").toUpperCase()}</div>
