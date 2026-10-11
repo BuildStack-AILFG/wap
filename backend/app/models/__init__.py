@@ -7,6 +7,7 @@ from app.models.contact import Contact
 from app.models.contact_event import ContactEvent
 from app.models.conversation import Conversation, Message
 from app.models.custom_reply import CustomReply
+from app.models.followup import FollowupEnrollment, FollowupSequence
 from app.models.integration import ApiKey, Integration, OutboundWebhook
 from app.models.knowledge import KnowledgeChunk, KnowledgeSource
 from app.models.pipeline import Deal, DealActivity, PipelineStage
@@ -34,6 +35,8 @@ __all__ = [
     "ContactEvent",
     "Conversation",
     "CustomReply",
+    "FollowupEnrollment",
+    "FollowupSequence",
     "Deal",
     "DealActivity",
     "Integration",

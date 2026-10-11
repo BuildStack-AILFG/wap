@@ -165,6 +165,10 @@ def validate(patch: dict, current: dict) -> dict:
             out[key] = _pipeline(value)
         elif key == "flow_followup":
             out[key] = _flow_followup(value)
+        elif key == "lead_scoring":
+            if not isinstance(value, dict):
+                raise _bad("lead_scoring must be an object.")
+            out[key] = {"auto_tag": _bool(value.get("auto_tag", True), "lead_scoring.auto_tag")}
         else:
             raise _bad(f"Unknown setting '{key}'.")
     return out

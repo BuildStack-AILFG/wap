@@ -8,7 +8,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import ARRAY, JSON, Boolean, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import ARRAY, JSON, Boolean, DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -35,3 +35,8 @@ class Contact(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     opted_out_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     last_contacted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # AI lead score from the conversation (app/services/lead_scoring.py): hot | warm | cold
+    lead_score: Mapped[str | None] = mapped_column(String(8), nullable=True, index=True)
+    lead_score_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    lead_scored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

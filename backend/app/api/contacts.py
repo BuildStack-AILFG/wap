@@ -20,7 +20,8 @@ from app.models.contact import Contact
 from app.models.contact_event import ContactEvent
 from app.models.segment import Segment
 from app.models.tenant import Tenant
-from app.services import outbound_webhooks, quotas, segments
+from app.services import followups, lead_scoring, outbound_webhooks, quotas, segments
+from app.services.ai import agent as ai_agent
 from app.services.phone import InvalidPhone, normalize_phone
 
 router = APIRouter(prefix="/contacts", tags=["contacts"])
@@ -37,6 +38,7 @@ def _out(c: Contact) -> dict:
         "id": str(c.id), "name": c.name, "phone": c.phone, "email": c.email, "tags": c.tags or [], "traits": c.custom_fields or {}, "source": c.source,
         "opted_out": c.opted_out, "last_contacted_at": c.last_contacted_at.isoformat() if c.last_contacted_at else None,
         "created_at": c.created_at.isoformat() if c.created_at else None,
+        "lead_score": c.lead_score, "lead_score_reason": c.lead_score_reason, "lead_scored_at": c.lead_scored_at.isoformat() if c.lead_scored_at else None,
     }
 
 
@@ -78,8 +80,10 @@ class ContactUpdate(BaseModel):
     opted_out: bool | None = None
 
 
-def _filters(tenant_id, q, tag, opted_out, source):
+def _filters(tenant_id, q, tag, opted_out, source, lead_score=None):
     cond = [Contact.tenant_id == tenant_id]
+    if lead_score in lead_scoring.SCORES:
+        cond.append(Contact.lead_score == lead_score)
     if q and q.strip():
         like = f"%{q.strip()}%"
         cond.append(or_(Contact.name.ilike(like), Contact.phone.ilike(like.replace("+", "")), Contact.email.ilike(like)))
@@ -95,10 +99,11 @@ def _filters(tenant_id, q, tag, opted_out, source):
 @router.get("")
 async def list_contacts(
     q: str | None = None, tag: str | None = None, opted_out: bool | None = None, source: str | None = None, segment_id: uuid.UUID | None = None,
-    sort: Literal["created", "name", "last_contacted"] = "created", limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0),
+    sort: Literal["created", "name", "last_contacted", "hot_first"] = "created", lead_score: str | None = None,
+    limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0),
     ctx: Ctx = Depends(get_ctx), db: AsyncSession = Depends(get_db),
 ) -> dict:
-    cond = _filters(ctx.tenant_id, q, tag, opted_out, source)
+    cond = _filters(ctx.tenant_id, q, tag, opted_out, source, lead_score)
     if segment_id:
         seg = await db.get(Segment, segment_id)
         if seg is None or seg.tenant_id != ctx.tenant_id:
@@ -107,9 +112,10 @@ async def list_contacts(
             cond.append(segments.build_filter(ctx.tenant_id, seg.filters))
         except segments.SegmentError as exc:
             raise HTTPException(status_code=422, detail={"error": str(exc)})
-    order = {"created": Contact.created_at.desc(), "name": func.lower(Contact.name), "last_contacted": Contact.last_contacted_at.desc().nullslast()}[sort]
+    order = {"created": [Contact.created_at.desc()], "name": [func.lower(Contact.name)], "last_contacted": [Contact.last_contacted_at.desc().nullslast()],
+             "hot_first": [lead_scoring.RANK, Contact.last_contacted_at.desc().nullslast()]}[sort]
     total = (await db.execute(select(func.count()).select_from(Contact).where(*cond))).scalar_one()
-    rows = (await db.execute(select(Contact).where(*cond).order_by(order, Contact.id).limit(limit).offset(offset))).scalars().all()
+    rows = (await db.execute(select(Contact).where(*cond).order_by(*order, Contact.id).limit(limit).offset(offset))).scalars().all()
     return {"total": total, "items": [_out(c) for c in rows]}
 
 
@@ -170,7 +176,9 @@ async def update_contact(contact_id: uuid.UUID, body: ContactUpdate, ctx: Ctx = 
         except InvalidPhone as exc:
             raise HTTPException(status_code=422, detail={"error": str(exc)})
     if data.get("tags") is not None:
+        before = set(c.tags or [])
         c.tags = _clean_tags(data["tags"])
+        await followups.on_tags_added(db, c, set(c.tags) - before)
     if data.get("traits") is not None:
         c.custom_fields = data["traits"]
     if "opted_out" in data and data["opted_out"] is not None and data["opted_out"] != c.opted_out:
@@ -183,6 +191,21 @@ async def update_contact(contact_id: uuid.UUID, body: ContactUpdate, ctx: Ctx = 
         raise HTTPException(status_code=409, detail={"error": "Another contact already uses this phone number."})
     await db.refresh(c)
     return _out(c)
+
+
+@router.post("/{contact_id}/score")
+async def score_contact(contact_id: uuid.UUID, ctx: Ctx = Depends(require_writer), db: AsyncSession = Depends(get_db)) -> dict:
+    """Rate this lead hot / warm / cold from their conversation with the AI."""
+    c = await _owned(db, ctx, contact_id)
+    tenant = await db.get(Tenant, ctx.tenant_id)
+    try:
+        out = await lead_scoring.score_contact(db, tenant, c)
+    except ai_agent.AIUnavailable as exc:
+        raise HTTPException(status_code=409, detail={"error": f"AI scoring isn't available: {exc}"})
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail={"error": str(exc)})
+    await db.commit()
+    return out
 
 
 @router.delete("/{contact_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
@@ -351,7 +374,10 @@ async def bulk(body: BulkBody, ctx: Ctx = Depends(require_writer), db: AsyncSess
     else:
         for c in rows:
             if body.action == "add_tag":
+                had = {t.lower() for t in (c.tags or [])}
                 c.tags = _clean_tags([*(c.tags or []), tag])
+                if tag.lower() not in had:
+                    await followups.on_tags_added(db, c, {tag})
             elif body.action == "remove_tag":
                 c.tags = [t for t in (c.tags or []) if t.lower() != tag.lower()]
             elif body.action == "opt_out":

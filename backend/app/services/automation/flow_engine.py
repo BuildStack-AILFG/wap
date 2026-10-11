@@ -416,6 +416,8 @@ async def _exec_node(db, ex, graph, node, tenant, contact, conv, account) -> tup
         tags = list(contact.tags or [])
         if t == "add_tag" and tag not in tags:
             tags.append(tag)
+            from app.services import followups  # local import: followups -> dispatcher -> flow_engine
+            await followups.on_tags_added(db, contact, {tag})
         elif t == "remove_tag":
             tags = [x for x in tags if x != tag]
         contact.tags = tags

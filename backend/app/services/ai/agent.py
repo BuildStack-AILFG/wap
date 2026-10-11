@@ -40,6 +40,12 @@ OPTION_RULES = (
 )
 
 
+LEAD_GUIDE = (
+    "hot = ready to buy or book soon (asks price/availability/how to pay, gives a timeline or budget, wants a call or visit); "
+    "warm = interested but still exploring or comparing; cold = not interested, just browsing, or no buying intent."
+)
+
+
 class AIUnavailable(Exception):
     """No usable API key / quota — automation should silently skip rather than error the webhook."""
 
@@ -235,8 +241,10 @@ def build_system_prompt(cfg: dict, contact: Contact, chunks: list[str], extra: s
         f"{OPTION_RULES if cfg['option_replies'] else ''}"
         f"{('- Business instructions: ' + cfg['instructions']) if cfg['instructions'] else ''}{fields}{extra}\n\n"
         f"Customer name: {contact.name}\n{_known(contact)}\nKNOWLEDGE:\n{kb}\n\n"
+        f"Also rate the lead from the whole conversation: {LEAD_GUIDE}\n"
         'Respond with ONLY a JSON object: {"reply": string, "handoff": boolean, "confidence": number between 0 and 1, '
-        '"collected": object of qualification field -> value the customer just gave (empty object if none)}.'
+        '"collected": object of qualification field -> value the customer just gave (empty object if none), '
+        '"lead_score": "hot" | "warm" | "cold", "score_reason": one short sentence}.'
     )
 
 
@@ -261,6 +269,8 @@ async def answer(db: AsyncSession, tenant: Tenant, conv: Conversation, contact: 
         reply=str(data.get("reply", "")).strip()[:3000], handoff=bool(data.get("handoff", False)),
         confidence=max(0.0, min(1.0, float(data.get("confidence", 0.6) or 0))), collected=data.get("collected") if isinstance(data.get("collected"), dict) else {},
     )
+    from app.services import lead_scoring  # local import: lead_scoring imports this module
+    await lead_scoring.apply(db, tenant, contact, data.get("lead_score"), data.get("score_reason"))
     if cfg["agent_type"] == "leads" and result.collected and cfg["qualification_fields"]:
         contact.custom_fields = {**(contact.custom_fields or {}), **{k: str(v) for k, v in result.collected.items() if k in cfg["qualification_fields"] and v}}
     if not result.handoff and result.confidence < cfg["min_confidence"]:

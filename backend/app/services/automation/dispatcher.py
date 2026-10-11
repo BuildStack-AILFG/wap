@@ -1,6 +1,7 @@
 """
 Decides what (if anything) automation does when a contact messages the business. Order matters:
 
+  0. end the contact's follow-up sequences (they replied)
   1. opt-out / opt-in keyword confirmation
   2. a flow run that is waiting for this reply
   3. (human took over? -> stop; automation never talks over an agent)
@@ -31,7 +32,7 @@ from app.models.conversation import Conversation, Message
 from app.models.custom_reply import CustomReply
 from app.models.tenant import Tenant
 from app.models.whatsapp_account import WhatsAppAccount
-from app.services import assignment, templating
+from app.services import assignment, followups, templating
 from app.services.ai import agent as ai_agent
 from app.services.automation import flow_engine
 from app.services.whatsapp import messaging
@@ -113,6 +114,10 @@ async def run(db: AsyncSession, tenant: Tenant, account: WhatsAppAccount, conv: 
     """Returns which stage handled the message (useful for tests/logging)."""
     settings = tenant.settings or {}
     text = (msg.body or "").strip()
+
+    # 0 — they wrote back: end any follow-up sequence waiting on them (a reaction isn't a reply)
+    if msg.type != "reaction" and await followups.on_inbound(db, contact, opted_out=bool((msg.payload or {}).get("opt_out"))):
+        await db.commit()
 
     # 1 — opt-out / opt-in acknowledgements
     if (msg.payload or {}).get("opt_out"):

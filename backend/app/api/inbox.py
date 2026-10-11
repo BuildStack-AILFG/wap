@@ -19,6 +19,7 @@ from app.models.conversation import Conversation, Message
 from app.models.template import WhatsAppTemplate
 from app.models.tenant import TenantMembership, User
 from app.models.whatsapp_account import WhatsAppAccount
+from app.services import lead_scoring
 from app.services.whatsapp import messaging
 from app.services.whatsapp.graph import GraphError
 from app.services.whatsapp.templates import TemplateValidationError, build_send_components, render_preview
@@ -58,7 +59,8 @@ def _conv_out(c: Conversation, contact: Contact, assignee: User | None) -> dict:
         "last_message_at": _iso(c.last_message_at), "last_message_preview": c.last_message_preview,
         "window_open": messaging.window_open(c), "window_expires_at": _iso(messaging.window_expires_at(c)),
         "assigned_user": {"id": str(assignee.id), "name": assignee.full_name or assignee.email} if assignee else None,
-        "contact": {"id": str(contact.id), "name": contact.name, "phone": contact.phone, "opted_out": contact.opted_out},
+        "contact": {"id": str(contact.id), "name": contact.name, "phone": contact.phone, "opted_out": contact.opted_out,
+                    "lead_score": contact.lead_score, "lead_score_reason": contact.lead_score_reason},
         "account_id": str(c.account_id),
     }
 
@@ -74,10 +76,13 @@ async def list_conversations(
     assigned: str | None = Query(None, description="me | unassigned | <user uuid>"),
     unread: bool = False, q: str | None = None, label: str | None = None, mode: Literal["bot", "intervened"] | None = None,
     handler: Literal["human", "ai"] | None = Query(None, description="human = flagged needs-human or bot off; ai = the bot is handling it"),
+    sort: Literal["recent", "hot_first"] = "recent", lead_score: str | None = None,
     limit: int = Query(30, ge=1, le=100), offset: int = Query(0, ge=0),
     ctx: Ctx = Depends(get_ctx), db: AsyncSession = Depends(get_db),
 ) -> dict:
     cond = [Conversation.tenant_id == ctx.tenant_id]
+    if lead_score in lead_scoring.SCORES:
+        cond.append(Contact.lead_score == lead_score)
     if status_ != "all":
         cond.append(Conversation.status == status_)
     if assigned == "me":
@@ -102,7 +107,8 @@ async def list_conversations(
         like = f"%{q.strip()}%"
         base = base.where(or_(Contact.name.ilike(like), Contact.phone.ilike(like.replace("+", ""))))
     total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
-    rows = (await db.execute(base.order_by(Conversation.last_message_at.desc().nullslast()).limit(limit).offset(offset))).all()
+    order = [lead_scoring.RANK] if sort == "hot_first" else []
+    rows = (await db.execute(base.order_by(*order, Conversation.last_message_at.desc().nullslast()).limit(limit).offset(offset))).all()
     ids = {c.assigned_user_id for c, _ in rows if c.assigned_user_id}
     users = {u.id: u for u in (await db.execute(select(User).where(User.id.in_(ids)))).scalars()} if ids else {}
     return {"total": total, "items": [_conv_out(c, contact, users.get(c.assigned_user_id)) for c, contact in rows]}

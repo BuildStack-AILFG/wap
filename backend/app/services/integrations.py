@@ -24,6 +24,7 @@ ADAPTERS = ("shopify", "woocommerce", "razorpay", "stripe", "meta-leads")
 # adapters reached through a no-code tool (Zapier/Make/Pabbly) that can't sign requests: the unguessable URL is the credential, a secret is optional
 URL_AUTH = ("generic", "meta-leads")
 NOTIFY = ("slack",)
+PULL = ("indiamart", "google-sheets")  # polled on a schedule by app/services/lead_sources.py
 PROVIDER_RE = re.compile(r"^[a-z0-9][a-z0-9\-]{1,46}$")
 
 META: dict[str, dict] = {
@@ -55,6 +56,21 @@ META: dict[str, dict] = {
                   "Choose a template below for meta_lead, or create a flow from the 'Meta lead → promo' preset to also tag the lead and add a deal. When they reply, your 'Any incoming message' flow takes over.",
                   "Lead phone numbers need a country code (+91…) — or set a default country code in Settings."],
     },
+    "indiamart": {
+        "mode": "pull", "secret_label": "IndiaMART Pull API key (CRM key)", "events": ["indiamart_lead"],
+        "steps": ["In IndiaMART Seller app/website: Lead Manager → Import/Export Leads → Pull API (available on paid IndiaMART plans).",
+                  "Generate the key and paste it below. Keep it secret — anyone with it can read your leads.",
+                  "We check for new enquiries every 15 minutes (IndiaMART allows one check per 5 minutes). Each enquiry with a mobile number becomes a contact tagged 'indiamart'.",
+                  "Choose a template below for indiamart_lead to message them on WhatsApp right away, and/or start a follow-up sequence for new IndiaMART leads."],
+    },
+    "google-sheets": {
+        "mode": "pull", "secret_label": "Google Sheet link", "events": ["sheet_lead"],
+        "steps": ["Open your sheet → Share → General access → 'Anyone with the link' → Viewer, then copy the link (it can point to a specific tab).",
+                  "The first row must be headers with a 'phone' column (name, email and tags are optional; every other column is saved on the contact).",
+                  "Paste the link below. We check for new rows every 10 minutes; rows already in the sheet are skipped unless you tick 'Import existing rows'.",
+                  "Phone numbers need a country code (+91…), or set a default country code in Settings so 10-digit numbers work.",
+                  "Choose a template below for sheet_lead to message new rows on WhatsApp, and/or start a follow-up sequence for new sheet leads."],
+    },
     "slack": {
         "mode": "notify", "secret_label": "Slack incoming webhook URL", "events": ["conversation_created", "lead_captured", "contact_opted_out", "message_failed", "broadcast_completed", "deal_won", "payment_received"],
         "steps": ["In Slack: create an app → Incoming Webhooks → Add New Webhook to Workspace.", "Paste the webhook URL (https://hooks.slack.com/services/…) below and choose which events to post."],
@@ -69,7 +85,7 @@ META: dict[str, dict] = {
 
 
 def kind_of(provider: str) -> str:
-    return provider if provider in ADAPTERS or provider in NOTIFY else "generic"
+    return provider if provider in ADAPTERS or provider in NOTIFY or provider in PULL else "generic"
 
 
 @dataclass

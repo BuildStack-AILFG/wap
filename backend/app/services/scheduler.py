@@ -18,7 +18,7 @@ from app.models.conversation import Conversation, Message
 from app.models.tenant import Tenant
 from app.models.webhook import WebhookIngress
 from app.models.whatsapp_account import WhatsAppAccount
-from app.services import billing, broadcasts, payment_links
+from app.services import billing, broadcasts, followups, lead_sources, payment_links
 from app.services.automation import dispatcher, flow_engine
 from app.services.whatsapp import accounts as wa_accounts
 from app.services.whatsapp import messaging
@@ -44,7 +44,7 @@ def utcnow() -> datetime:
 
 async def tick() -> dict[str, int]:
     """One pass over every job. Exposed separately so tests (and an admin endpoint) can run it deterministically."""
-    stats = {"broadcasts": 0, "flows": 0, "delayed_replies": 0, "accounts": 0, "payment_links": 0}
+    stats = {"broadcasts": 0, "flows": 0, "followups": 0, "lead_sources": 0, "delayed_replies": 0, "accounts": 0, "payment_links": 0}
 
     async with db_session.async_session_factory() as db:
         for bid in await broadcasts.due_broadcasts(db):
@@ -61,6 +61,8 @@ async def tick() -> dict[str, int]:
                 log.exception("resuming execution %s failed", ex.id)
                 await db.rollback()
 
+    stats["lead_sources"] = await lead_sources.poll_all(db_session.async_session_factory)
+    stats["followups"] = await followups.run_due(db_session.async_session_factory)
     stats["delayed_replies"] = await _send_delayed_replies()
     stats["accounts"] = await _refresh_accounts()
     stats["payment_links"] = await payment_links.poll_open_links()
