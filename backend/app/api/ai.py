@@ -37,6 +37,7 @@ class AIConfigIn(BaseModel):
     qualification_fields: list[str] = Field(default_factory=list, max_length=15)
     min_confidence: float = Field(default=0.35, ge=0, le=1)
     option_replies: bool = True  # answer, then ask one question with A/B/C/D choices
+    reply_delay_seconds: int = Field(default=8, ge=0, le=20)  # "typing…" shows meanwhile (WhatsApp caps it at 25s)
     provider: Literal["anthropic", "openai", "xai", "groq", "gateway"] = "anthropic"
     model: str = Field(default="", max_length=120, pattern=r"^([A-Za-z0-9][A-Za-z0-9\-\._:/]*)?$")
     api_key: str | None = Field(default=None, max_length=300, description="Bring-your-own key for the chosen provider. Send '' to remove the stored key.")

@@ -140,8 +140,12 @@ class GraphClient:
     async def send_interactive(self, phone_number_id: str, to: str, interactive: dict) -> str:
         return await self.send(phone_number_id, to, {"type": "interactive", "interactive": interactive})
 
-    async def mark_read(self, phone_number_id: str, wamid: str) -> None:
-        await self._request("POST", f"{phone_number_id}/messages", json={"messaging_product": "whatsapp", "status": "read", "message_id": wamid}, retries=0)
+    async def mark_read(self, phone_number_id: str, wamid: str, *, typing: bool = False) -> None:
+        """Blue ticks on an inbound message. With `typing`, the customer also sees "typing…" until our reply lands or 25s pass."""
+        body: dict[str, Any] = {"messaging_product": "whatsapp", "status": "read", "message_id": wamid}
+        if typing:
+            body["typing_indicator"] = {"type": "text"}
+        await self._request("POST", f"{phone_number_id}/messages", json=body, retries=0)
 
     # ---- media ------------------------------------------------------------------------------------------------
     async def upload_media(self, phone_number_id: str, content: bytes, mime: str, filename: str) -> str:

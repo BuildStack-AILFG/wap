@@ -68,6 +68,7 @@ def get_config(tenant: Tenant) -> dict:
         "qualification_fields": cfg.get("qualification_fields") or [],
         "min_confidence": float(cfg.get("min_confidence", 0.35)),
         "option_replies": cfg.get("option_replies", True) is not False,
+        "reply_delay_seconds": max(0, min(int(cfg.get("reply_delay_seconds", 8) or 0), 20)),
         "provider": cfg.get("provider") if cfg.get("provider") in PROVIDERS else "anthropic",
         "model": cfg.get("model") or "",
         "has_own_key": bool(cfg.get("api_key_enc")),

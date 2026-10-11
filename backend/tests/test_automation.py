@@ -614,3 +614,17 @@ def test_ai_prompt_asks_lettered_options_unless_turned_off():
     assert "'A) ...'" in ai_agent.build_system_prompt(cfg, Contact(name="Ravi"), ["Plans: Starter, Growth"])
     cfg = ai_agent.get_config(Tenant(name="Acme", settings={"ai": {"option_replies": False}}))
     assert "'A) ...'" not in ai_agent.build_system_prompt(cfg, Contact(name="Ravi"), [])
+
+
+async def test_ai_shows_typing_then_replies_after_the_delay(wsa, meta, monkeypatch, _no_ai_typing_delay):
+    await _enable_ai(wsa)
+    fake_llm(monkeypatch, reply="We start at ₹799/month.")
+    await wsa.inbound("price?", wamid="wamid.IN1")
+    typing = [c["body"] for c in meta.calls if c["body"].get("typing_indicator")]
+    assert typing == [{"messaging_product": "whatsapp", "status": "read", "message_id": "wamid.IN1", "typing_indicator": {"type": "text"}}]
+    assert texts(meta) == ["We start at ₹799/month."]
+    assert len(_no_ai_typing_delay) == 1 and 7 < _no_ai_typing_delay[0] <= 8  # ~8s minus the model's own time
+
+    meta.fail_next(400, 100, "typing not supported")  # a failed typing call never blocks the reply
+    await wsa.inbound("and growth?", wamid="wamid.IN2")
+    assert texts(meta)[-1] == "We start at ₹799/month."

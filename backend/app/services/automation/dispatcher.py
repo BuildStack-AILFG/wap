@@ -13,7 +13,9 @@ Decides what (if anything) automation does when a contact messages the business.
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -39,6 +41,7 @@ log = logging.getLogger(__name__)
 DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 AWAY_COOLDOWN = timedelta(hours=12)
 TEXT_TYPES = {"text", "interactive", "button"}
+_pause = asyncio.sleep  # tests swap this out so the AI's human-like delay doesn't slow them down
 
 
 def is_open_now(settings: dict, now: datetime | None = None) -> bool:
@@ -166,7 +169,7 @@ async def run(db: AsyncSession, tenant: Tenant, account: WhatsAppAccount, conv: 
     # 7/8 — AI agent
     ai_cfg = ai_agent.get_config(tenant)
     if ai_cfg["enabled"] and msg.type in TEXT_TYPES and text:
-        return await _ai_reply(db, tenant, account, conv, contact, text)
+        return await _ai_reply(db, tenant, account, conv, contact, text, msg)
     return "none"
 
 
@@ -246,13 +249,27 @@ async def _apply_reply(db, tenant, account, conv, contact, reply: CustomReply) -
     await db.commit()
 
 
-async def _ai_reply(db, tenant, account, conv, contact, text: str) -> str:
+async def _show_typing(account, msg: Message | None) -> None:
+    """Best effort: a failed typing indicator must never stop the reply."""
+    if msg is None or not msg.wamid:
+        return
+    try:
+        await messaging.client_for(account).mark_read(account.phone_number_id, msg.wamid, typing=True)
+    except Exception as exc:  # noqa: BLE001
+        log.info("typing indicator failed: %s", exc)
+
+
+async def _ai_reply(db, tenant, account, conv, contact, text: str, msg: Message | None = None) -> str:
+    started = time.monotonic()
+    await _show_typing(account, msg)
     try:
         result = await ai_agent.answer(db, tenant, conv, contact, text)
     except ai_agent.AIUnavailable as exc:
         log.info("AI reply skipped for tenant %s: %s", tenant.id, exc)
         return "ai_unavailable"
     await db.commit()  # persist usage counter + collected lead fields
+    # reply like a person typing: at least `reply_delay_seconds` after the message (the model's time counts toward it)
+    await _pause(max(0.0, ai_agent.get_config(tenant)["reply_delay_seconds"] - (time.monotonic() - started)))
     await _bot_text_ai(db, account, conv, contact, result.reply)
     if result.handoff:  # flag it for the team; the AI keeps replying until someone turns the Bot toggle off
         conv.labels = sorted({*(conv.labels or []), "needs-human"})

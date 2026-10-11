@@ -140,6 +140,16 @@ async def app_client(meta):  # noqa: ARG001 — meta must be installed first
 
 
 @pytest.fixture(autouse=True)
+def _no_ai_typing_delay(monkeypatch):
+    from app.services.automation import dispatcher
+    paused: list[float] = []
+    async def fake(seconds: float) -> None:
+        paused.append(seconds)
+    monkeypatch.setattr(dispatcher, "_pause", fake)
+    return paused
+
+
+@pytest.fixture(autouse=True)
 def _reset(meta):
     ratelimit.reset()
     meta.calls.clear()
