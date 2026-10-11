@@ -225,8 +225,9 @@ async def send(conv_id: uuid.UUID, body: SendBody, ctx: Ctx = Depends(require_wr
     except GraphError as exc:
         raise HTTPException(status_code=502, detail={"error": f"WhatsApp could not send this message: {exc}", "code": exc.code})
 
-    # A human replied: they own the conversation now.
-    if not body.keep_bot:
+    # A human replied: they own the conversation now. A template is an opener whose quick replies usually start a flow,
+    # so it leaves automation on.
+    if not body.keep_bot and body.type != "template":
         conv.inbox_status = "intervened"
     if conv.assigned_user_id is None:
         conv.assigned_user_id = ctx.user_id

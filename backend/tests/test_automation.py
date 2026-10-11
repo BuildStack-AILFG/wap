@@ -92,6 +92,21 @@ async def test_human_reply_pauses_the_bot_until_resumed(wsa, meta):
     assert texts(meta) == ["Here is the menu"]
 
 
+async def test_template_from_inbox_leaves_automation_on(wsa, meta):
+    # an agent opens with a template; the contact's quick-reply tap must still reach automation
+    await wsa.post("/custom-replies", json={"trigger": "need more deals", "match_type": "contains", "reply_text": "Great, a few questions"})
+    await wsa.inbound("hi")
+    cid = await _conv_id(wsa)
+    meta.templates.append({"id": "t1", "name": "intro", "language": "en", "status": "APPROVED", "category": "MARKETING", "components": [{"type": "BODY", "text": "Want more deals?"}]})
+    await wsa.post(f"/whatsapp/accounts/{wsa.account['id']}/sync-templates")
+    tpl = next(t for t in (await wsa.get("/templates")).json() if t["name"] == "intro")
+    assert (await wsa.post(f"/inbox/conversations/{cid}/messages", json={"type": "template", "template_id": tpl["id"]})).status_code == 201
+    assert (await wsa.get(f"/inbox/conversations/{cid}")).json()["inbox_status"] == "bot"
+    meta.sent.clear()
+    await wsa.inbound("Need More Deals")
+    assert texts(meta) == ["Great, a few questions"]
+
+
 async def test_opt_out_gets_a_confirmation(wsa, meta):
     await wsa.inbound("STOP")
     assert len(meta.sent) == 1 and "unsubscribed" in meta.sent[0]["text"]["body"]
