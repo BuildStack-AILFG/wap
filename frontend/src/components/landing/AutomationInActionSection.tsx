@@ -1,5 +1,6 @@
 import { CheckCircle2 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/BrandIcons";
+import LottieLoop from "./LottieLoop";
 
 function TypingDots() {
   return (
@@ -16,7 +17,8 @@ const WORKFLOW_STEPS = [
   "Intent detected",
   "Auto-reply sent",
   "Customer replied",
-  "Follow-up scheduled",
+  "Payment confirmed",
+  "Delivery scheduled",
   "Conversation resolved",
 ];
 
@@ -36,7 +38,7 @@ export default function AutomationInActionSection() {
       </div>
 
       <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center gap-8 px-4 sm:px-6 md:flex-row md:items-center md:justify-center md:gap-14">
-        <div className="mx-auto h-[420px] w-[210px] shrink-0">
+        <div className="mx-auto h-[480px] w-[220px] shrink-0">
           <div className="theme-fixed flex h-full flex-col rounded-[1.75rem] border-[3px] border-white/15 bg-[#0a0a0a] p-[3px] shadow-[0_20px_50px_rgba(15,23,42,0.22)]">
             <div className="flex h-full flex-col overflow-hidden rounded-[1.35rem] bg-black">
               <div className="flex h-5 shrink-0 items-end justify-center bg-black pb-0.5">
@@ -77,6 +79,17 @@ export default function AutomationInActionSection() {
                     </p>
                     <p className="mt-0.5 text-right text-[9px] text-[#8696A0]">10:25</p>
                   </div>
+                </div>
+
+                <LottieLoop src="/images/site/lottie/clap.json" className="h-16 w-16" label="Customer sent a clapping sticker" />
+
+                <div className="flex flex-col items-end">
+                  <LottieLoop src="/images/site/lottie/payment-success.json" className="h-14 w-14" label="Payment success sticker" />
+                  <div className="max-w-[90%] rounded-lg rounded-tr-none bg-[#005C4B] px-2.5 py-1.5 shadow-sm">
+                    <p className="text-[11px] leading-relaxed text-[#E9EDEF]">Payment received. Your order ships today.</p>
+                    <p className="mt-0.5 text-right text-[9px] text-[#8696A0]">10:27</p>
+                  </div>
+                  <LottieLoop src="/images/site/lottie/delivery-time.json" className="mt-1 h-14 w-14 rounded-xl bg-[#E9EDEF] p-1" label="Delivery on the way sticker" />
                   <p className="mt-1 flex items-center gap-1 text-[9px] font-medium text-brand">
                     <CheckCircle2 className="h-2.5 w-2.5" /> Replied automatically
                   </p>

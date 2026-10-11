@@ -8,7 +8,7 @@ const HUBS = [
     title: "Reply & Qualify Automatically",
     description: "No-code chat flows greet, answer FAQs, and qualify every WhatsApp conversation instantly.",
     href: "#features",
-    image: "/images/site/product/crm-qualify.svg",
+    image: "/images/site/3d/checklist.webp",
     alt: "Automated WhatsApp reply and qualification dashboard",
   },
   {
@@ -16,7 +16,7 @@ const HUBS = [
     title: "Reach Thousands in One Click",
     description: "Send approved template campaigns to your whole contact list, segmented and scheduled.",
     href: "#features",
-    image: "/images/site/product/broadcast.svg",
+    image: "/images/site/3d/marketing-mail.webp",
     alt: "Broadcasting WhatsApp messages to thousands of contacts in one click",
   },
   {
@@ -24,7 +24,7 @@ const HUBS = [
     title: "Never Miss a Message",
     description: "A shared team inbox for WhatsApp with assignment, read receipts, and internal notes.",
     href: "#features",
-    image: "/images/site/product/support.svg",
+    image: "/images/site/3d/notification-bell.webp",
     alt: "Shared WhatsApp support inbox",
   },
 ];
@@ -43,9 +43,14 @@ export default function ProductHubsSection() {
 
         <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {HUBS.map((hub) => (
-            <div key={hub.tag} className={`${MARKETING.card} ${MARKETING.cardHover} overflow-hidden flex flex-col`}>
-              <div className="h-44 w-full overflow-hidden bg-brand/15">
-                <img src={hub.image} alt={hub.alt} className="h-full w-full object-cover" loading="lazy" />
+            <div key={hub.tag} className={`group ${MARKETING.card} ${MARKETING.cardHover} overflow-hidden flex flex-col`}>
+              <div className="flex h-44 w-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_60%,rgba(0,196,143,0.22),transparent_65%)] p-5">
+                <img
+                  src={hub.image}
+                  alt={hub.alt}
+                  className="h-full w-full object-contain drop-shadow-[0_14px_22px_rgba(0,0,0,0.35)] transition-transform duration-300 group-hover:-translate-y-1"
+                  loading="lazy"
+                />
               </div>
               <div className="flex flex-1 flex-col p-6">
                 <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand">{hub.tag}</p>

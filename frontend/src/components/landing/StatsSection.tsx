@@ -12,6 +12,13 @@ export default function StatsSection() {
     <section id="why-us" className={MARKETING.section}>
       <div className={MARKETING.container}>
         <div className="mx-auto max-w-2xl text-center">
+          <img
+            src="/images/site/3d/finance-report.webp"
+            alt=""
+            aria-hidden="true"
+            className="mx-auto mb-4 h-28 w-auto object-contain drop-shadow-[0_14px_22px_rgba(0,0,0,0.35)] sm:h-32"
+            loading="lazy"
+          />
           <p className={MARKETING.overline}>What Sets Us Apart?</p>
           <h2 className={`${MARKETING.h2} mt-3`}>Businesses Using WhatsApp Automation Like This See Measurable Impact</h2>
         </div>

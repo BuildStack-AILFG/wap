@@ -20,7 +20,7 @@ const CAPABILITIES = [
     description: "Deploy an AI agent that answers queries, qualifies leads, and recommends products like a human would.",
     href: "#ai-suite",
     tagColor: "var(--brand-bright)",
-    image: "/images/site/product/ai-agent.svg",
+    image: "/images/site/3d/growth-graph.webp",
   },
   {
     tag: "Automation",
@@ -28,7 +28,7 @@ const CAPABILITIES = [
     description: "Automate up to 80% of queries with an easy, drag-and-drop, no-code chatbot builder.",
     href: "#features",
     tagColor: "var(--brand-bright)",
-    image: "/images/site/product/flow-builder.svg",
+    image: "/images/site/3d/smiling-robot.webp",
   },
   {
     tag: "Marketing",
@@ -36,7 +36,7 @@ const CAPABILITIES = [
     description: "Scale your business communication effortlessly and reach every contact in a single send.",
     href: "#features",
     tagColor: "var(--brand-bright)",
-    image: "/images/site/product/broadcast.svg",
+    image: "/images/site/3d/paper-plane.webp",
   },
   {
     tag: "Support",
@@ -44,7 +44,7 @@ const CAPABILITIES = [
     description: "Manage every WhatsApp query with a shared inbox — assignment, notes, and zero missed messages.",
     href: "#features",
     tagColor: "var(--brand-bright)",
-    image: "/images/site/product/team-inbox.svg",
+    image: "/images/site/3d/chat-bubbles.webp",
   },
   {
     tag: "Commerce",
@@ -52,7 +52,7 @@ const CAPABILITIES = [
     description: "Share catalogs, collect payments, and confirm orders — all without leaving the conversation.",
     href: "#features",
     tagColor: "var(--brand-bright)",
-    image: "/images/site/product/payments-catalog.svg",
+    image: "/images/site/3d/credit-card.webp",
   },
   {
     tag: "Analytics",
@@ -60,7 +60,7 @@ const CAPABILITIES = [
     description: "Track team performance, measure impact, and optimize campaigns with real-time insights.",
     href: "#features",
     tagColor: "var(--brand-bright)",
-    image: "/images/site/product/analytics.svg",
+    image: "/images/site/3d/dashboard-growth.webp",
   },
 ];
 
@@ -106,8 +106,14 @@ export default function CapabilitiesGridSection() {
                   <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                 </span>
               </div>
-              <div className="mt-4 flex h-44 w-full items-end justify-center overflow-hidden px-5 pb-5">
-                <img src={image} alt={title} className="max-h-full max-w-full rounded-xl object-contain" loading="lazy" />
+              <div className="mt-4 flex h-40 w-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_60%,rgba(0,196,143,0.16),transparent_62%)] px-8 pb-6 pt-2">
+                <img
+                  src={image}
+                  alt=""
+                  aria-hidden="true"
+                  className="max-h-full max-w-full object-contain drop-shadow-[0_14px_22px_rgba(0,0,0,0.35)] transition-transform duration-300 group-hover:-translate-y-1"
+                  loading="lazy"
+                />
               </div>
             </Link>
           ))}
