@@ -546,3 +546,57 @@ async def test_ai_agent_takes_over_mid_flow_questions_and_after_a_once_per_conta
     await wsa.inbound("do you integrate with Shopify?")
     assert texts(meta) == ["Our Growth plan is ₹1,299/month."]  # the AI answered; no welcome/menu again
     assert len((await wsa.get(f"/flows/{fid}/executions")).json()) == 1
+
+
+async def test_catch_all_flow_does_not_restart_right_after_another_flow(wsa, meta, monkeypatch):
+    n = lambda id_, type_, **data: {"id": id_, "type": type_, "position": {"x": 0, "y": 0}, "data": data}  # noqa: E731
+    e = lambda s, t: {"id": f"{s}-{t}", "source": s, "target": t}  # noqa: E731
+    await _publish(wsa, "Qualify", "keyword", {"nodes": [n("start", "start", trigger="keyword", keywords=["need more deals"]),
+                                                          n("bye", "send_message", text="Connecting you with sales"), n("end", "end")],
+                                               "edges": [e("start", "bye"), e("bye", "end")]})
+    catch_all = await _publish(wsa, "Welcome menu", "incoming_message", {"nodes": [n("start", "start", trigger="incoming_message"),
+                                                                                   n("hi", "send_message", text="Welcome! Pick an option"), n("end", "end")],
+                                                                         "edges": [e("start", "hi"), e("hi", "end")]})
+    await _enable_ai(wsa)
+    fake_llm(monkeypatch, reply="Sure, our team will call you today.")
+    await wsa.inbound("Need More Deals")
+    assert texts(meta) == ["Connecting you with sales"]
+    await wsa.inbound("okk connect with them")
+    assert texts(meta)[-1] == "Sure, our team will call you today."  # the AI carries on, not the welcome menu
+    assert (await wsa.get(f"/flows/{catch_all}/executions")).json() == []
+
+
+async def test_quiet_contact_gets_one_followup_before_the_24h_window_closes(wsa, meta):
+    fid = await _publish(wsa, "Book a demo", "keyword", _lead_flow())
+    await wsa.inbound("demo")
+    await wsa.inbound("priya@acme.io")
+    ex = (await wsa.get(f"/flows/{fid}/executions")).json()[0]
+    conv = (await wsa.get("/inbox/conversations")).json()["items"][0]
+    expected = datetime.fromisoformat(conv["window_expires_at"]) - timedelta(hours=2)
+    assert abs(datetime.fromisoformat(ex["wait_until"]) - expected) < timedelta(seconds=5)  # 22h after their last message
+
+    await _expire_wait(fid, wsa)
+    await scheduler.tick()
+    await scheduler.tick()
+    assert sum(t.startswith("[interactive] Just following up 👋\n\nWhich plan interests you?") for t in texts(meta)) == 1  # once, buttons re-sent
+    ex = (await wsa.get(f"/flows/{fid}/executions")).json()[0]
+    assert ex["status"] == "waiting" and ex["wait_until"] is None
+    await wsa.inbound("", msg_type="interactive", extra={"interactive": {"type": "button_reply", "button_reply": {"id": "basic", "title": "Basic"}}})
+    assert (await wsa.get(f"/flows/{fid}/executions")).json()[0]["status"] == "completed"
+
+
+async def test_no_followup_when_resolved_or_disabled(wsa, meta):
+    fid = await _publish(wsa, "Book a demo", "keyword", _lead_flow())
+    await wsa.inbound("demo")
+    await wsa.inbound("priya@acme.io")
+    cid = await _conv_id(wsa)
+    await wsa.patch(f"/inbox/conversations/{cid}", json={"status": "resolved"})
+    await _expire_wait(fid, wsa)
+    meta.sent.clear()
+    await scheduler.tick()
+    assert not meta.sent
+
+    await wsa.patch("/settings", json={"settings": {"flow_followup": {"enabled": False}}})
+    await wsa.inbound("demo", from_="919800000077")
+    await wsa.inbound("a@b.io", from_="919800000077")
+    assert (await wsa.get(f"/flows/{fid}/executions")).json()[0]["wait_until"] is None

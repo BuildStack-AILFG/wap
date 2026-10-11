@@ -130,6 +130,18 @@ def _pipeline(v) -> dict:
     return out
 
 
+def _flow_followup(v) -> dict:
+    if not isinstance(v, dict):
+        raise _bad("flow_followup must be an object.")
+    try:
+        hours = float(v.get("hours", 22))
+    except (TypeError, ValueError):
+        raise _bad("Follow-up hours must be a number.")
+    if not 1 <= hours <= 23.5:
+        raise _bad("Follow-up must be between 1 and 23.5 hours, inside WhatsApp's 24h window.")
+    return {"enabled": _bool(v.get("enabled", True), "flow_followup.enabled"), "hours": hours, "text": str(v.get("text") or "").strip()[:300]}
+
+
 def validate(patch: dict, current: dict) -> dict:
     out: dict = {}
     for key, value in patch.items():
@@ -151,6 +163,8 @@ def validate(patch: dict, current: dict) -> dict:
             out[key] = _ai_agents(value)
         elif key == "pipeline":
             out[key] = _pipeline(value)
+        elif key == "flow_followup":
+            out[key] = _flow_followup(value)
         else:
             raise _bad(f"Unknown setting '{key}'.")
     return out

@@ -199,17 +199,35 @@ def _business(tenant: Tenant | None) -> str:
     return str((((tenant.settings or {}).get("ai") or {}).get("business_name") or tenant.name) if tenant else "")
 
 
-def _wait_for_reply(ex: AutomationExecution, node: dict) -> None:
+def followup_config(tenant: Tenant | None) -> dict:
+    """Workspace default for a contact who goes quiet mid-flow: re-send the pending step once, `hours` after their last
+    message, so it lands inside WhatsApp's 24h window. On unless settings.flow_followup.enabled is false."""
+    cfg = ((tenant.settings if tenant else None) or {}).get("flow_followup") or {}
+    try:
+        hours = min(max(float(cfg.get("hours", 22)), 1), 23.5)
+    except (TypeError, ValueError):
+        hours = 22
+    return {"enabled": cfg.get("enabled", True) is not False, "hours": hours, "text": (cfg.get("text") or "Just following up 👋").strip()}
+
+
+def _wait_for_reply(ex: AutomationExecution, node: dict, tenant: Tenant | None = None, conv: Conversation | None = None) -> None:
     """Park the run until the contact replies. With `reminder_hours` set, the scheduler nudges them once if they go quiet
-    (keep it under 24h — after that WhatsApp only allows templates)."""
+    (keep it under 24h — after that WhatsApp only allows templates). Without one, the workspace follow-up applies."""
     d = node.get("data") or {}
     ex.status, ex.waiting_for, ex.wait_until = "waiting", "reply", None
+    if (ex.context or {}).get(f"_reminded:{node['id']}"):
+        return
     try:
         hours = float(d.get("reminder_hours") or 0)
     except (TypeError, ValueError):
         hours = 0
-    if hours > 0 and (d.get("reminder_text") or "").strip() and not (ex.context or {}).get(f"_reminded:{node['id']}"):
+    if hours > 0 and (d.get("reminder_text") or "").strip():
         ex.wait_until = utcnow() + timedelta(hours=hours)
+        return
+    fu = followup_config(tenant)
+    last_in = conv.last_inbound_at if conv is not None else None
+    if fu["enabled"] and last_in is not None and last_in + timedelta(hours=fu["hours"]) > utcnow():
+        ex.wait_until = last_in + timedelta(hours=fu["hours"])
 
 
 async def _stage_id(db: AsyncSession, tenant_id: uuid.UUID, d: dict) -> uuid.UUID | None:
@@ -339,7 +357,7 @@ async def _exec_node(db, ex, graph, node, tenant, contact, conv, account) -> tup
         if m is None or m.status == "failed":
             _log(ex, nid, "not_sent", "buttons message could not be sent")
             return "next", "default"
-        _wait_for_reply(ex, node)
+        _wait_for_reply(ex, node, tenant, conv)
         _log(ex, nid, "waiting_reply")
         return "wait", None
 
@@ -349,7 +367,7 @@ async def _exec_node(db, ex, graph, node, tenant, contact, conv, account) -> tup
         if m is None or m.status == "failed":
             _log(ex, nid, "not_sent", "list message could not be sent")
             return "next", "default"
-        _wait_for_reply(ex, node)
+        _wait_for_reply(ex, node, tenant, conv)
         _log(ex, nid, "waiting_reply")
         return "wait", None
 
@@ -378,7 +396,7 @@ async def _exec_node(db, ex, graph, node, tenant, contact, conv, account) -> tup
         m = await _send(db, ex, node, account, conv, contact, kind="text", text=prompt)
         if m is None or m.status == "failed":
             return "next", "failed"
-        _wait_for_reply(ex, node)
+        _wait_for_reply(ex, node, tenant, conv)
         _log(ex, nid, "waiting_reply", d.get("key", ""))
         return "wait", None
 
@@ -674,13 +692,24 @@ async def resume_timed(db: AsyncSession, ex: AutomationExecution) -> None:
         return
     if ex.waiting_for == "reply":  # the contact went quiet: nudge once, keep waiting for their answer
         node = _nodes(graph)[ex.current_node]
+        d = node.get("data") or {}
         ex.wait_until = None
         ex.context = {**(ex.context or {}), f"_reminded:{node['id']}": True}
         flag_modified(ex, "context")
         tenant, contact, conv, account = await _load_ctx(db, ex)
-        m = await _send(db, ex, node, account, conv, contact, kind="text",
-                        text=templating.render((node.get("data") or {}).get("reminder_text"), contact, ex.context, business=_business(tenant)))
-        _log(ex, node["id"], "reminder_sent" if m else "not_sent")
+        if conv is not None and (conv.status == "resolved" or conv.inbox_status == "intervened"):
+            _log(ex, node["id"], "reminder_skipped", "conversation resolved or handled by a person")
+        elif (d.get("reminder_text") or "").strip():
+            m = await _send(db, ex, node, account, conv, contact, kind="text",
+                            text=templating.render(d.get("reminder_text"), contact, ex.context, business=_business(tenant)))
+            _log(ex, node["id"], "reminder_sent" if m else "not_sent")
+        else:  # workspace follow-up: re-send the pending step (buttons stay tappable) with a short lead-in
+            lead = followup_config(tenant)["text"]
+            nudged = {**node, "data": {**d, **{k: f"{lead}\n\n{d[k]}" for k in ("body", "question") if d.get(k)}}}
+            await _exec_node(db, ex, graph, nudged, tenant, contact, conv, account)
+            if ex.status != "waiting":  # the step couldn't be re-sent: keep waiting for their answer anyway
+                ex.status, ex.waiting_for = "waiting", "reply"
+            _log(ex, node["id"], "followup_sent")
         await db.commit()
         return
     ex.status, ex.waiting_for, ex.wait_until = "running", None, None

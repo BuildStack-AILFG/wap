@@ -192,6 +192,8 @@ async def _try_flows(db: AsyncSession, flows: list[AutomationFlow], conv: Conver
             hit = False
         if not hit:
             continue
+        if f.trigger_type in {"incoming_message", "contact_created"} and await _other_flow_recently(db, f, contact):
+            continue  # the contact just went through another flow: the AI agent / team carries on, no catch-all restart
         if d.get("once_per_contact"):  # e.g. a welcome/qualification flow: after it, the AI agent and your team take over
             ran = (await db.execute(select(AutomationExecution.id).where(AutomationExecution.flow_id == f.id, AutomationExecution.contact_id == contact.id).limit(1))).first()
             if ran:
@@ -207,6 +209,13 @@ async def _try_flows(db: AsyncSession, flows: list[AutomationFlow], conv: Conver
         if started is not None:
             return True
     return False
+
+
+async def _other_flow_recently(db: AsyncSession, flow: AutomationFlow, contact: Contact, within: timedelta = timedelta(hours=24)) -> bool:
+    row = (await db.execute(select(AutomationExecution.id).where(
+        AutomationExecution.contact_id == contact.id, AutomationExecution.flow_id != flow.id,
+        AutomationExecution.created_at > datetime.now(timezone.utc) - within).limit(1))).first()
+    return row is not None
 
 
 async def _recently_broadcast(db: AsyncSession, contact: Contact) -> bool:
