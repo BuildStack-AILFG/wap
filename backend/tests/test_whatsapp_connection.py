@@ -104,9 +104,9 @@ async def test_send_reply_and_delivery_ticks(wsa, meta):
     out = next(m for m in msgs if m["direction"] == "out")
     assert out["status"] == "read" and out["read_at"] and out["delivered_at"]
 
-    # a human replied -> the bot is paused for this conversation, and the reply cleared the unread badge
+    # a human replied -> the bot stays on (only the Bot toggle pauses it), and the reply cleared the unread badge
     detail = (await wsa.get(f"/inbox/conversations/{conv['id']}")).json()
-    assert detail["inbox_status"] == "intervened" and detail["unread_count"] == 0 and detail["assigned_user"]["id"] == wsa.user_id
+    assert detail["inbox_status"] == "bot" and detail["unread_count"] == 0 and detail["assigned_user"]["id"] == wsa.user_id
 
 
 async def test_24h_window_blocks_free_text_but_allows_templates(wsa, meta):

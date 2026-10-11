@@ -176,7 +176,7 @@ class SendBody(BaseModel):
     media_mime: str | None = None
     template_id: uuid.UUID | None = None
     variables: dict | None = None  # {body:[..], header_text, header_media, buttons:{idx:value}}
-    keep_bot: bool = False  # by default an agent reply pauses automation for this conversation
+    keep_bot: bool = True  # kept for API compatibility: agent replies never pause automation (use the Bot toggle)
 
 
 @router.post("/conversations/{conv_id}/messages", status_code=201)
@@ -225,10 +225,7 @@ async def send(conv_id: uuid.UUID, body: SendBody, ctx: Ctx = Depends(require_wr
     except GraphError as exc:
         raise HTTPException(status_code=502, detail={"error": f"WhatsApp could not send this message: {exc}", "code": exc.code})
 
-    # A human replied: they own the conversation now. A template is an opener whose quick replies usually start a flow,
-    # so it leaves automation on.
-    if not body.keep_bot and body.type != "template":
-        conv.inbox_status = "intervened"
+    # Automation stays on after an agent replies: only the conversation's Bot toggle switches it off.
     if conv.assigned_user_id is None:
         conv.assigned_user_id = ctx.user_id
     conv.unread_count, conv.last_message_at = 0, now

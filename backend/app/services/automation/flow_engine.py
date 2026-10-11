@@ -500,8 +500,7 @@ async def _exec_node(db, ex, graph, node, tenant, contact, conv, account) -> tup
 
 
 async def _handoff(db, ex, node, tenant, conv, message, account=None, contact=None) -> tuple[str, str | None]:
-    if conv is not None:
-        conv.inbox_status = "intervened"
+    if conv is not None:  # flag it for the team; automation stays on until someone turns the Bot toggle off
         conv.labels = sorted({*(conv.labels or []), "needs-human"})
         await assignment.assign_new(db, tenant, conv)
         if message and account is not None and contact is not None:

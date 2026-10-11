@@ -61,8 +61,10 @@ async def overview(days: int = Query(30, ge=1, le=90), ctx: Ctx = Depends(get_ct
     resp = (await db.execute(select(func.avg(func.extract("epoch", first_out.c.t_out - first_in.c.t_in)), func.count()).select_from(first_in.join(first_out, first_in.c.cid == first_out.c.cid))
                              .where(first_out.c.t_out >= first_in.c.t_in))).one()
 
+    # "with a human": the bot was switched off, or a teammate has replied (agent replies no longer pause the bot)
+    agent_replied = select(Message.id).where(Message.conversation_id == Conversation.id, Message.sender_type == "agent", Message.is_internal.is_(False)).exists()
     conv = (await db.execute(select(
-        func.count().filter(Conversation.status == "open"), func.count().filter(Conversation.status == "resolved"), func.count().filter(Conversation.inbox_status == "intervened"),
+        func.count().filter(Conversation.status == "open"), func.count().filter(Conversation.status == "resolved"), func.count().filter((Conversation.inbox_status == "intervened") | agent_replied),
         func.count().filter(Conversation.assigned_user_id.is_(None) & (Conversation.status == "open")),
     ).where(Conversation.tenant_id == t))).one()
 

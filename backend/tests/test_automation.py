@@ -86,7 +86,11 @@ async def test_human_reply_pauses_the_bot_until_resumed(wsa, meta):
     await wsa.post(f"/inbox/conversations/{cid}/messages", json={"type": "text", "text": "Hi, this is Sam — how can I help?"})
     meta.sent.clear()
     await wsa.inbound("menu again")
-    assert not meta.sent  # an agent owns the conversation: automation never talks over them
+    assert texts(meta) == ["Here is the menu"]  # an agent reply never pauses automation on its own
+    await wsa.patch(f"/inbox/conversations/{cid}", json={"inbox_status": "intervened"})  # only the Bot toggle does
+    meta.sent.clear()
+    await wsa.inbound("menu again please")
+    assert not meta.sent
     await wsa.patch(f"/inbox/conversations/{cid}", json={"inbox_status": "bot"})
     await wsa.inbound("menu once more")
     assert texts(meta) == ["Here is the menu"]
@@ -213,7 +217,7 @@ async def test_flow_validation_failures_hand_over_to_a_human(wsa, meta):
     await wsa.inbound("nope")
     await wsa.inbound("still nope")  # max_retries=2 and no 'failed' branch -> hand off
     conv = (await wsa.get("/inbox/conversations")).json()["items"][0]
-    assert conv["inbox_status"] == "intervened" and "needs-human" in conv["labels"]
+    assert conv["inbox_status"] == "bot" and "needs-human" in conv["labels"]  # flagged for the team, bot stays on
     assert (await wsa.get(f"/flows/{fid}/executions")).json()[0]["status"] == "completed"
 
 
@@ -316,17 +320,18 @@ async def test_ai_handoff_on_keyword_and_on_low_confidence(wsa, meta, monkeypatc
     fake_llm(monkeypatch)
     await wsa.inbound("I want to talk to a human agent", from_="919800000011")
     assert texts(meta) == ["Connecting you to a human."]  # keyword handoff never even calls the model
-    assert next(c for c in (await wsa.get("/inbox/conversations")).json()["items"] if c["contact"]["phone"] == "919800000011")["inbox_status"] == "intervened"
+    assert next(c for c in (await wsa.get("/inbox/conversations")).json()["items"] if c["contact"]["phone"] == "919800000011")["labels"] == ["needs-human"]
 
     meta.sent.clear()
     fake_llm(monkeypatch, reply="Maybe?", confidence=0.2)
     await wsa.inbound("what's the warranty on tyres?", from_="919800000012")
     assert texts(meta) == ["Connecting you to a human."]
-    assert next(c for c in (await wsa.get("/inbox/conversations")).json()["items"] if c["contact"]["phone"] == "919800000012")["inbox_status"] == "intervened"
+    assert next(c for c in (await wsa.get("/inbox/conversations")).json()["items"] if c["contact"]["phone"] == "919800000012")["inbox_status"] == "bot"
 
     meta.sent.clear()
+    fake_llm(monkeypatch, reply="Yes, I'm here. The team will follow up on the warranty.")
     await wsa.inbound("still there?", from_="919800000012", wamid="wamid.AI3")
-    assert not meta.sent  # a human took over -> the AI stays quiet
+    assert texts(meta) == ["Yes, I'm here. The team will follow up on the warranty."]  # flagged needs-human, but the AI keeps replying
 
 
 async def test_ai_lead_qualification_saves_collected_fields(wsa, meta, monkeypatch):
@@ -600,3 +605,12 @@ async def test_no_followup_when_resolved_or_disabled(wsa, meta):
     await wsa.inbound("demo", from_="919800000077")
     await wsa.inbound("a@b.io", from_="919800000077")
     assert (await wsa.get(f"/flows/{fid}/executions")).json()[0]["wait_until"] is None
+
+
+def test_ai_prompt_asks_lettered_options_unless_turned_off():
+    from app.models.contact import Contact
+    from app.models.tenant import Tenant
+    cfg = ai_agent.get_config(Tenant(name="Acme", settings={"ai": {}}))
+    assert "'A) ...'" in ai_agent.build_system_prompt(cfg, Contact(name="Ravi"), ["Plans: Starter, Growth"])
+    cfg = ai_agent.get_config(Tenant(name="Acme", settings={"ai": {"option_replies": False}}))
+    assert "'A) ...'" not in ai_agent.build_system_prompt(cfg, Contact(name="Ravi"), [])

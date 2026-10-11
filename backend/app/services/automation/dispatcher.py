@@ -254,8 +254,7 @@ async def _ai_reply(db, tenant, account, conv, contact, text: str) -> str:
         return "ai_unavailable"
     await db.commit()  # persist usage counter + collected lead fields
     await _bot_text_ai(db, account, conv, contact, result.reply)
-    if result.handoff:
-        conv.inbox_status = "intervened"
+    if result.handoff:  # flag it for the team; the AI keeps replying until someone turns the Bot toggle off
         conv.labels = sorted({*(conv.labels or []), "needs-human"})
         await assignment.assign_new(db, tenant, conv)
         await db.commit()

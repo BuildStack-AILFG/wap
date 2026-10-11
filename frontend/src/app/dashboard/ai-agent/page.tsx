@@ -49,7 +49,7 @@ function Config({ cfg, onSaved }: { cfg: AiConfig; onSaved: (c: AiConfig) => voi
     try {
       const saved = await api.saveConfig({ enabled, agent_type: f.agent_type, business_name: f.business_name, persona_name: f.persona_name, tone: f.tone, language: f.language, instructions: f.instructions,
         handoff_keywords: f.keywords.split(",").map((k) => k.trim()).filter(Boolean), handoff_message: f.handoff_message, fallback_message: f.fallback_message, qualification_fields: f.fields.split(",").map((k) => k.trim()).filter(Boolean),
-        min_confidence: f.min_confidence, provider: f.provider, model: f.model.trim(), ...(f.api_key ? { api_key: f.api_key } : {}) });
+        min_confidence: f.min_confidence, option_replies: f.option_replies, provider: f.provider, model: f.model.trim(), ...(f.api_key ? { api_key: f.api_key } : {}) });
       onSaved(saved); setF((p) => ({ ...p, enabled: saved.enabled, api_key: "" })); toast(saved.enabled ? "AI agent is live" : "Settings saved");
     } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
   };
@@ -77,6 +77,7 @@ function Config({ cfg, onSaved }: { cfg: AiConfig; onSaved: (c: AiConfig) => voi
           <Field label="Language" hint="Leave as-is to reply in the customer's language"><Input value={f.language} onChange={(e) => set("language", e.target.value)} /></Field>
         </div>
         <Field label="Extra instructions" hint="Rules the assistant must follow, e.g. “Never quote prices; send people to the pricing page.”"><Textarea value={f.instructions} onChange={(e) => set("instructions", e.target.value)} maxLength={3000} /></Field>
+        <label className="flex items-center gap-3 text-[13px] text-white/70"><Toggle checked={f.option_replies} onChange={(v) => set("option_replies", v)} label="Reply with options" /> Answer, then ask one question with A / B / C / D options (a reply of “a” picks option A)</label>
         {f.agent_type === "leads" && <Field label="Details to collect" hint="Comma separated. Answers are saved on the contact."><Input value={f.fields} onChange={(e) => set("fields", e.target.value)} placeholder="budget, timeline, company_size" /></Field>}
       </Card>
 

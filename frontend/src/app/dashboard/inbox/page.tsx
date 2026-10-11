@@ -110,10 +110,11 @@ function Inbox() {
                   {c.unread_count > 0 && <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-bold text-white btn-accent" style={{ background: ACCENT }}>{c.unread_count}</span>}
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
+                  {c.labels.includes("needs-human") && <Badge tone="red"><AlertTriangle size={10} /> Needs human</Badge>}
                   {c.inbox_status === "intervened" && <Badge tone="blue"><UserRound size={10} /> Human</Badge>}
                   {c.assigned_user && <Badge>{c.assigned_user.id === user_id ? "You" : c.assigned_user.name.split(" ")[0]}</Badge>}
                   {!c.window_open && <Badge tone="yellow"><Clock size={10} /> Template only</Badge>}
-                  {c.labels.slice(0, 2).map((l) => <Badge key={l}>{l}</Badge>)}
+                  {c.labels.filter((l) => l !== "needs-human").slice(0, 2).map((l) => <Badge key={l}>{l}</Badge>)}
                 </div>
               </div>
             </button>

@@ -32,6 +32,14 @@ HISTORY_LIMIT = 12
 PROVIDERS = {"anthropic": "", "openai": "gpt-6-luna", "xai": "grok-4.7", "groq": "openai/gpt-oss-120b", "gateway": "anthropic/claude-sonnet-5.5"}
 
 
+OPTION_RULES = (
+    "- Answer first, then keep the conversation moving with ONE question offering 2-4 choices, each on its own line as "
+    "'A) ...', 'B) ...', 'C) ...', 'D) ...', taken from the knowledge below (e.g. which product, plan, or next step).\n"
+    "- If the customer replies with just a letter or number (a, B, 2) or an option's words, they picked that option from your "
+    "previous message: continue with it and don't ask the same question again.\n"
+)
+
+
 class AIUnavailable(Exception):
     """No usable API key / quota — automation should silently skip rather than error the webhook."""
 
@@ -59,6 +67,7 @@ def get_config(tenant: Tenant) -> dict:
         "fallback_message": cfg.get("fallback_message") or "",
         "qualification_fields": cfg.get("qualification_fields") or [],
         "min_confidence": float(cfg.get("min_confidence", 0.35)),
+        "option_replies": cfg.get("option_replies", True) is not False,
         "provider": cfg.get("provider") if cfg.get("provider") in PROVIDERS else "anthropic",
         "model": cfg.get("model") or "",
         "has_own_key": bool(cfg.get("api_key_enc")),
@@ -222,6 +231,7 @@ def build_system_prompt(cfg: dict, contact: Contact, chunks: list[str], extra: s
         "- If the knowledge doesn't cover the question, say you'll get a teammate to help and set handoff=true.\n"
         "- If the customer is upset, asks for a human, or needs an action you can't do (refunds, account changes), set handoff=true.\n"
         "- WhatsApp style: short, plain text, at most 3 short paragraphs, no markdown headings, no code blocks.\n"
+        f"{OPTION_RULES if cfg['option_replies'] else ''}"
         f"{('- Business instructions: ' + cfg['instructions']) if cfg['instructions'] else ''}{fields}{extra}\n\n"
         f"Customer name: {contact.name}\n{_known(contact)}\nKNOWLEDGE:\n{kb}\n\n"
         'Respond with ONLY a JSON object: {"reply": string, "handoff": boolean, "confidence": number between 0 and 1, '
