@@ -1,14 +1,15 @@
 """WhatsApp Commerce: commerce settings, product catalog and the order panel.
 
 Prices are handled in the currency's minor unit (paise for INR) end to end — the frontend converts to/from a decimal for display.
-Meta Catalog sync and live payment collection are deliberately left as marked stubs; the data model and API are complete so they can be
-wired to the Graph API / Razorpay later without a schema change.
+Meta Catalog sync pushes products via the Graph API `items_batch` endpoint. Live payment collection is still a stub; the data model
+and API are complete so it can be wired to Razorpay later without a schema change.
 """
 
 from __future__ import annotations
 
 import csv
 import io
+import re
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
@@ -19,6 +20,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import Ctx, get_ctx, get_db, require_writer
 from app.models.commerce import CommerceSettings, Order, Product
+from app.models.whatsapp_account import WhatsAppAccount
+from app.services.whatsapp.graph import GraphError
+from app.services.whatsapp.templates import client_for
 
 router = APIRouter(prefix="/commerce", tags=["commerce"])
 
@@ -232,7 +236,10 @@ async def delete_product(product_id: uuid.UUID, ctx: Ctx = Depends(require_write
 
 @router.post("/products/sync")
 async def sync_catalog(ctx: Ctx = Depends(require_writer), db: AsyncSession = Depends(get_db)) -> dict:
-    """Push the catalog to the linked Meta commerce catalog. Stub: requires META catalog wiring + a connected WABA."""
+    """Push the catalog to the linked Meta commerce catalog via the Graph API `items_batch` endpoint.
+
+    Visible products are upserted; hidden products that were previously synced are deleted from Meta. Meta processes the batch
+    asynchronously, so `synced` means "accepted for processing" — item-level errors appear in Commerce Manager diagnostics."""
     s = await _get_settings(db, ctx.tenant_id)
     await db.commit()
     if not s.meta_catalog_id:
@@ -240,10 +247,57 @@ async def sync_catalog(ctx: Ctx = Depends(require_writer), db: AsyncSession = De
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"error": "Link a Meta catalog id in Commerce Settings first, then connect it to your WhatsApp number in Meta Commerce Manager."},
         )
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail={"error": "Meta Catalog sync isn't wired yet. Products are stored here and ready to push once the Graph API catalog integration is enabled."},
-    )
+    account = (await db.execute(
+        select(WhatsAppAccount).where(WhatsAppAccount.tenant_id == ctx.tenant_id, WhatsAppAccount.status == "connected").order_by(WhatsAppAccount.created_at)
+    )).scalars().first()
+    if account is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail={"error": "Connect a WhatsApp number first — its access token is used to reach your Meta catalog."})
+
+    products = (await db.execute(select(Product).where(Product.tenant_id == ctx.tenant_id))).scalars().all()
+    digits = re.sub(r"\D", "", account.display_phone_number or "")
+    link = s.external_checkout_url or (f"https://wa.me/{digits}" if digits else "https://wa.me/")
+    brand = account.verified_name or "Store"
+
+    requests_: list[dict] = []
+    touched: list[tuple[Product, bool]] = []  # (product, is_delete)
+    for p in products:
+        if not p.retailer_id:
+            p.retailer_id = str(p.id)  # Meta needs a stable SKU
+        if p.is_visible:
+            data = {
+                "id": p.retailer_id, "title": p.name, "description": p.description or p.name,
+                "availability": "in stock" if p.availability == "in_stock" else "out of stock", "condition": "new",
+                "price": f"{p.price / 100:.2f} {p.currency}", "link": link, "brand": brand,
+            }
+            if p.image_url:
+                data["image_link"] = p.image_url
+            if p.category:
+                data["product_type"] = p.category
+            requests_.append({"method": "UPDATE", "data": data})
+            touched.append((p, False))
+        elif p.meta_product_id:
+            requests_.append({"method": "DELETE", "data": {"id": p.retailer_id}})
+            touched.append((p, True))
+
+    if not requests_:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail={"error": "No visible products to sync. Add a product first."})
+    if any(r["method"] == "UPDATE" and "image_link" not in r["data"] for r in requests_):
+        # Meta rejects items without an image; surface it up-front instead of failing silently in diagnostics.
+        missing = [r["data"]["title"] for r in requests_ if r["method"] == "UPDATE" and "image_link" not in r["data"]]
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail={"error": f"Meta requires an image for every product. Add one for: {', '.join(missing[:5])}{'…' if len(missing) > 5 else ''}."})
+
+    client = client_for(account)
+    try:
+        for i in range(0, len(requests_), 1000):
+            await client.catalog_items_batch(s.meta_catalog_id, requests_[i:i + 1000])
+    except GraphError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail={"error": f"Meta catalog sync failed: {exc}"})
+
+    for p, is_delete in touched:
+        p.meta_product_id = None if is_delete else p.retailer_id
+    await db.commit()
+    return {"synced": sum(1 for _, d in touched if not d), "removed": sum(1 for _, d in touched if d)}
 
 
 MAX_IMPORT_BYTES = 5 * 1024 * 1024

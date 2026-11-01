@@ -211,6 +211,13 @@ class GraphClient:
     async def delete_template(self, waba_id: str, name: str) -> None:
         await self._request("DELETE", f"{waba_id}/message_templates", params={"name": name}, retries=0)
 
+    # ---- commerce catalog -------------------------------------------------------------------------------------
+    async def catalog_items_batch(self, catalog_id: str, requests: list[dict]) -> list[str]:
+        """POST /{catalog_id}/items_batch — create/update/delete products (max 5000 per call). Meta processes it
+        asynchronously and returns batch handles; per-item problems show up in Commerce Manager diagnostics."""
+        data = await self._request("POST", f"{catalog_id}/items_batch", json={"item_type": "PRODUCT_ITEM", "requests": requests}, retries=0)
+        return data.get("handles", [])
+
     async def upload_sample_handle(self, app_id: str, content: bytes, mime: str) -> str:
         """Resumable Upload API: returns the `h:` handle Meta requires as a template media example."""
         session = await self._request("POST", f"{app_id}/uploads", params={"file_length": len(content), "file_type": mime}, retries=0)

@@ -113,6 +113,8 @@ class FakeMeta:
             return httpx.Response(200, json={"success": True})
         if request.method == "GET" and rest.endswith("/message_templates"):
             return httpx.Response(200, json={"data": self.templates})
+        if request.method == "POST" and rest.endswith("/items_batch"):
+            return httpx.Response(200, json={"handles": ["handle-1"]})
         if request.method == "POST" and rest.endswith("/message_templates"):
             self._n += 1
             return httpx.Response(200, json={"id": f"tpl{self._n}", "status": self.template_status, "category": body.get("category")})
