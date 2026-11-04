@@ -102,14 +102,26 @@ async def connect_manual(db: AsyncSession, tenant_id: uuid.UUID, *, waba_id: str
     return account, warnings
 
 
-async def connect_embedded(db: AsyncSession, tenant_id: uuid.UUID, *, code: str, waba_id: str, phone_number_id: str, base_url: str) -> tuple[WhatsAppAccount, list[str]]:
-    """Meta Embedded Signup finish: exchange the code, subscribe the app, register the number."""
-    await _ensure_unique(db, tenant_id, phone_number_id)
+async def connect_embedded(db: AsyncSession, tenant_id: uuid.UUID, *, code: str, waba_id: str, phone_number_id: str | None, base_url: str,
+                           coexistence: bool = False) -> tuple[WhatsAppAccount, list[str]]:
+    """Meta Embedded Signup finish: exchange the code, subscribe the app, register the number.
+
+    Coexistence (WhatsApp Business app onboarding): the number stays on the phone app too, so it is already registered and must not be
+    registered again; Meta only returns the WABA id, and the app's contacts + chat history must be requested within 24h."""
     try:
         token = await exchange_code_for_token(code)
     except GraphError as exc:
         raise AccountError(f"Could not complete WhatsApp signup: {exc}", 400) from exc
     client = GraphClient(token)
+    if not phone_number_id:
+        try:
+            numbers = await client.list_phone_numbers(waba_id)
+        except GraphError as exc:
+            raise AccountError(f"Signup finished but the WhatsApp account's numbers could not be read: {exc}", 502) from exc
+        if not numbers:
+            raise AccountError("Signup finished but no phone number was found on that WhatsApp account.", 400)
+        phone_number_id = str(numbers[0]["id"])
+    await _ensure_unique(db, tenant_id, phone_number_id)
     try:
         info = await client.get_phone_number(phone_number_id)
     except GraphError as exc:
@@ -118,8 +130,8 @@ async def connect_embedded(db: AsyncSession, tenant_id: uuid.UUID, *, code: str,
     pin = f"{secrets.randbelow(900000) + 100000}"
     account = WhatsAppAccount(
         tenant_id=tenant_id, waba_id=waba_id, phone_number_id=phone_number_id, access_token_enc=encrypt(token),
-        webhook_key=secrets.token_urlsafe(24), verify_token=secrets.token_urlsafe(24), connection_type="embedded", status="connected",
-        settings={"two_step_pin_enc": encrypt(pin)},
+        webhook_key=secrets.token_urlsafe(24), verify_token=secrets.token_urlsafe(24), connection_type="coexistence" if coexistence else "embedded",
+        status="connected", settings={} if coexistence else {"two_step_pin_enc": encrypt(pin)},
     )
     apply_phone_info(account, info)
     account.last_synced_at = datetime.now(timezone.utc)
@@ -131,11 +143,22 @@ async def connect_embedded(db: AsyncSession, tenant_id: uuid.UUID, *, code: str,
         await client.subscribe_app(waba_id)  # uses the platform app's own webhook config
     except GraphError as exc:
         warnings.append(f"Webhook subscription failed: {exc}")
-    try:
-        await client.register_phone(phone_number_id, pin)
-    except GraphError as exc:
-        if exc.code != 133016:  # already registered recently — fine
-            warnings.append(f"Number registration: {exc}")
+    if coexistence:
+        # Contacts first, then history (Meta's order). Each is one-shot: a failure here can't be retried without re-onboarding.
+        sync: dict[str, str | None] = {}
+        for sync_type, label in (("smb_app_state_sync", "Contacts"), ("history", "Chat history")):
+            try:
+                sync[sync_type] = await client.sync_business_app_data(phone_number_id, sync_type)
+            except GraphError as exc:
+                warnings.append(f"{label} import from the WhatsApp Business app failed: {exc}")
+        account.settings = {**account.settings, "coexistence_sync": {"requested_at": datetime.now(timezone.utc).isoformat(), "request_ids": sync}}
+        flag_modified(account, "settings")
+    else:
+        try:
+            await client.register_phone(phone_number_id, pin)
+        except GraphError as exc:
+            if exc.code != 133016:  # already registered recently — fine
+                warnings.append(f"Number registration: {exc}")
     await db.commit()
     return account, warnings
 

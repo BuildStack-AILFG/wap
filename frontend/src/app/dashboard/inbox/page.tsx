@@ -343,7 +343,7 @@ function Bubble({ m, prev, members }: { m: ChatMessage; prev?: ChatMessage; memb
   const out = m.direction === "out";
   const day = new Date(m.created_at).toDateString();
   const newDay = !prev || new Date(prev.created_at).toDateString() !== day;
-  const sender = m.sender_type === "agent" ? members.find((x) => x.user_id === m.sender_user_id)?.full_name?.split(" ")[0] : { bot: "Auto-reply", ai: "AI agent", flow: "Flow", broadcast: "Campaign", api: "API" }[m.sender_type];
+  const sender = m.sender_type === "agent" ? members.find((x) => x.user_id === m.sender_user_id)?.full_name?.split(" ")[0] : { bot: "Auto-reply", ai: "AI agent", flow: "Flow", broadcast: "Campaign", api: "API", business_app: "From phone" }[m.sender_type];
   return (
     <>
       {newDay && <div className="my-3 text-center text-[11px] text-white/30">{new Date(m.created_at).toLocaleDateString([], { weekday: "long", day: "numeric", month: "short" })}</div>}

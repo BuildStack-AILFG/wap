@@ -187,6 +187,12 @@ class GraphClient:
     async def register_phone(self, phone_number_id: str, pin: str) -> None:
         await self._request("POST", f"{phone_number_id}/register", json={"messaging_product": "whatsapp", "pin": pin}, retries=0)
 
+    async def sync_business_app_data(self, phone_number_id: str, sync_type: str) -> str | None:
+        """Coexistence: ask Meta to replay the Business app's contacts ("smb_app_state_sync") or chat history ("history") as webhooks.
+        Each can be requested once, within 24h of onboarding. Returns Meta's request_id."""
+        data = await self._request("POST", f"{phone_number_id}/smb_app_data", json={"messaging_product": "whatsapp", "sync_type": sync_type}, retries=0)
+        return data.get("request_id")
+
     # ---- templates --------------------------------------------------------------------------------------------
     async def list_templates(self, waba_id: str) -> list[dict]:
         fields = "id,name,status,category,language,components,rejected_reason,quality_score"

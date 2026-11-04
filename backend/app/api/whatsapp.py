@@ -34,7 +34,8 @@ class ConnectManual(BaseModel):
 class ConnectEmbedded(BaseModel):
     code: str = Field(min_length=5)
     waba_id: str = Field(pattern=r"^\d+$")
-    phone_number_id: str = Field(pattern=r"^\d+$")
+    phone_number_id: str | None = Field(default=None, pattern=r"^\d+$")  # not returned by Meta for coexistence onboarding
+    coexistence: bool = False
 
 
 class UpdateCredentials(BaseModel):
@@ -119,7 +120,8 @@ async def connect_embedded(body: ConnectEmbedded, request: Request, ctx: Ctx = D
     count = (await db.execute(select(func.count()).select_from(WhatsAppAccount).where(WhatsAppAccount.tenant_id == ctx.tenant_id, WhatsAppAccount.status != "disconnected"))).scalar_one()
     await quotas.enforce(db, ctx.tenant_id, "max_whatsapp_numbers", count, label="WhatsApp numbers")
     try:
-        account, warnings = await svc.connect_embedded(db, ctx.tenant_id, code=body.code, waba_id=body.waba_id, phone_number_id=body.phone_number_id, base_url=_base(request))
+        account, warnings = await svc.connect_embedded(db, ctx.tenant_id, code=body.code, waba_id=body.waba_id, phone_number_id=body.phone_number_id, base_url=_base(request),
+                                                     coexistence=body.coexistence)
     except svc.AccountError as exc:
         raise HTTPException(status_code=exc.status, detail={"error": exc.message})
     try:

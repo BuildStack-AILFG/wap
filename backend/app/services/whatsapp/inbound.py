@@ -107,12 +107,16 @@ def parse_message(m: dict) -> tuple[str, str | None, dict]:
         return "reaction", r.get("emoji"), extras
     if t == "contacts":
         return "text", "Shared a contact", {"payload": {"contacts": m.get("contacts")}}
+    if t == "media_placeholder":  # coexistence history: the media itself only arrives later (and only for the last 14 days)
+        return "text", "Media (from WhatsApp Business app history)", {"payload": {"raw_type": t}}
     return "text", f"[{t} message — not supported yet]", {"payload": {"raw_type": t}}
 
 
 async def ingest(db: AsyncSession, payload: dict, *, account: WhatsAppAccount | None = None) -> IngestResult:
     """Process a webhook payload. `account` is given for per-account URLs; the shared platform URL resolves it from the payload."""
     result = IngestResult()
+    if "entry" not in payload and "history" in payload:  # Meta sends the "history sharing declined" notice without the usual envelope
+        payload = {"entry": [{"changes": [{"field": "history", "value": payload}]}]}
     for entry in payload.get("entry", []):
         waba_id = str(entry.get("id", ""))
         for change in entry.get("changes", []):
@@ -126,6 +130,12 @@ async def ingest(db: AsyncSession, payload: dict, *, account: WhatsAppAccount | 
                     await _handle_quality(db, value, waba_id, account, result)
                 elif field_name in {"account_update", "account_review_update", "template_category_update"}:
                     await _handle_notice(db, field_name, value, waba_id, account, result)
+                elif field_name == "smb_message_echoes":
+                    await _handle_app_echoes(db, value, account, result)
+                elif field_name == "history":
+                    await _handle_app_history(db, value, account, result)
+                elif field_name == "smb_app_state_sync":
+                    await _handle_app_contacts(db, value, account, result)
                 else:
                     result.other += 1
             except Exception:  # noqa: BLE001 — one bad change must not drop the rest of the batch
@@ -358,6 +368,103 @@ async def _handle_quality(db: AsyncSession, value: dict, waba_id: str, hint: Wha
         log.warning("quality refresh failed: %s", exc)
     await db.commit()
     result.other += 1
+
+
+# ---- coexistence (number shared with the WhatsApp Business app) -----------------------------------------------------
+
+_HISTORY_STATUS = {"pending": "queued", "sent": "sent", "delivered": "delivered", "read": "read", "played": "read", "error": "failed"}
+
+
+async def _account_for_metadata(db: AsyncSession, value: dict, hint: WhatsAppAccount | None) -> WhatsAppAccount | None:
+    phone_number_id = str((value.get("metadata") or {}).get("phone_number_id", ""))
+    account = hint or await _account_for_phone(db, phone_number_id)
+    if account is None or account.phone_number_id != phone_number_id:
+        log.warning("coexistence webhook for unknown/mismatched phone_number_id=%s", phone_number_id)
+        return None
+    account.last_webhook_at = datetime.now(timezone.utc)
+    return account
+
+
+async def _store_app_message(db: AsyncSession, account: WhatsAppAccount, m: dict, *, wa_id: str, outbound: bool, status: str) -> bool:
+    """Persist a message the inbox didn't send itself (typed in the Business app, or replayed history). No automation, no unread bump."""
+    wamid = m.get("id")
+    if not wamid or not wa_id or not await _claim(db, account.tenant_id, f"msg:{wamid}", m):
+        return False
+    sent_at = _ts(m.get("timestamp"))
+    mtype, body, extras = parse_message(m)
+    contact, _ = await messaging.upsert_contact(db, account.tenant_id, wa_id, source="whatsapp")
+    conv, _ = await messaging.get_or_create_conversation(db, account, contact)
+    db.add(Message(
+        tenant_id=account.tenant_id, conversation_id=conv.id, direction="out" if outbound else "in", type=mtype, body=body, wamid=wamid,
+        status=status, sender_type="business_app" if outbound else "contact", payload=dict(extras.pop("payload", {}) or {}),
+        created_at=sent_at, sent_at=sent_at, **extras,
+    ))
+    if not outbound:
+        conv.last_inbound_at = max(sent_at, conv.last_inbound_at or sent_at)
+    if conv.last_message_at is None or sent_at >= conv.last_message_at:
+        conv.last_message_at, conv.last_message_preview = sent_at, messaging.preview_for(mtype, body)
+    return True
+
+
+async def _handle_app_echoes(db: AsyncSession, value: dict, hint: WhatsAppAccount | None, result: IngestResult) -> None:
+    """A reply the business typed in the WhatsApp Business app on their phone — mirror it into the inbox."""
+    account = await _account_for_metadata(db, value, hint)
+    if account is None:
+        return
+    for m in value.get("message_echoes", []):
+        if m.get("type") in {"edit", "revoke"}:
+            result.other += 1
+            continue
+        if await _store_app_message(db, account, m, wa_id=re_digits(m.get("to", "")), outbound=True, status="sent"):
+            result.messages += 1
+        else:
+            result.duplicates += 1
+    await db.commit()
+
+
+async def _handle_app_history(db: AsyncSession, value: dict, hint: WhatsAppAccount | None, result: IngestResult) -> None:
+    """Up to 180 days of Business app chats, replayed in chunks after onboarding. Chunks can arrive out of order; dedupe by wamid."""
+    account = await _account_for_metadata(db, value, hint)
+    if account is None:
+        return
+    state = dict((account.settings or {}).get("coexistence_sync") or {})
+    for chunk in value.get("history", []):
+        if chunk.get("errors"):
+            e = chunk["errors"][0]
+            state["history_error"] = f"{e.get('message') or e.get('title') or 'History sync failed'} (code {e.get('code')})"
+            continue
+        meta = chunk.get("metadata") or {}
+        if meta.get("progress") is not None:
+            state["history_progress"] = max(int(meta["progress"]), int(state.get("history_progress") or 0))
+        for thread in chunk.get("threads", []):
+            wa_id = re_digits(str(thread.get("id", "")))
+            for m in thread.get("messages", []):
+                outbound = bool(m.get("to"))  # Meta only sets "to" on messages the business sent
+                hist = ((m.get("history_context") or {}).get("status") or "").lower()
+                status = _HISTORY_STATUS.get(hist, "sent") if outbound else "received"
+                if await _store_app_message(db, account, m, wa_id=wa_id, outbound=outbound, status=status):
+                    result.messages += 1
+                else:
+                    result.duplicates += 1
+            await db.commit()
+    account.settings = {**(account.settings or {}), "coexistence_sync": state}
+    flag_modified(account, "settings")
+    await db.commit()
+
+
+async def _handle_app_contacts(db: AsyncSession, value: dict, hint: WhatsAppAccount | None, result: IngestResult) -> None:
+    """Business app address book. Removals are ignored: deleting a phone contact shouldn't wipe CRM history."""
+    account = await _account_for_metadata(db, value, hint)
+    if account is None:
+        return
+    for item in value.get("state_sync", []):
+        c = item.get("contact") or {}
+        phone = re_digits(c.get("phone_number", ""))
+        if item.get("type") != "contact" or item.get("action") != "add" or not phone:
+            continue
+        await messaging.upsert_contact(db, account.tenant_id, phone, name=c.get("full_name") or c.get("first_name"), source="whatsapp")
+        result.other += 1
+    await db.commit()
 
 
 async def _handle_notice(db: AsyncSession, kind: str, value: dict, waba_id: str, hint: WhatsAppAccount | None, result: IngestResult) -> None:

@@ -56,7 +56,8 @@ async def _receive(request: Request, background: BackgroundTasks, db: AsyncSessi
         payload = json.loads(raw)
     except ValueError:
         raise HTTPException(status_code=400, detail={"error": "Invalid JSON."})
-    if payload.get("object") != "whatsapp_business_account":
+    # The coexistence "history sharing declined" notice arrives without the object/entry envelope; inbound.ingest unwraps it.
+    if payload.get("object") != "whatsapp_business_account" and not (payload.get("messaging_product") == "whatsapp" and "history" in payload):
         return {"ok": True, "ignored": True}
 
     result = await inbound.ingest(db, payload, account=account)

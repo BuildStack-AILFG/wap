@@ -57,7 +57,7 @@ export default function EmbeddedSignupPreview({ onClose, onManual }: { onClose: 
                 <h4 className="mt-3 text-[17px] font-semibold text-neutral-900">{step.title}</h4>
                 <p className="mt-1 text-[13px] text-neutral-500">{step.body}</p>
                 <div className="mt-4 space-y-2">
-                  {step.id === "login" && <><input disabled placeholder="Email or phone number" className="w-full rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2 text-[13px]" /><input disabled placeholder="Password" className="w-full rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2 text-[13px]" /></>}
+                  {step.id === "login" && <div className="rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2.5 text-[13px] text-neutral-600">Facebook opens its own secure window for this. TalkForGrow never sees your password.</div>}
                   {step.id === "business" && ["Your business portfolio", "Create a new portfolio"].map((b) => <div key={b} className="rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2.5 text-[13px] text-neutral-600">{b}</div>)}
                   {step.id === "waba" && ["Your WhatsApp Business account", "Create a new WhatsApp Business account"].map((b) => <div key={b} className="rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2.5 text-[13px] text-neutral-600">{b}</div>)}
                   {step.id === "phone" && <div className="flex gap-2"><span className="rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2 text-[13px] text-neutral-500">+91</span><input disabled placeholder="Phone number" className="flex-1 rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2 text-[13px]" /></div>}
