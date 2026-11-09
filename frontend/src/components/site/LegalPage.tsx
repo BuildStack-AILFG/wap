@@ -4,7 +4,7 @@ import Prose, { tocOf } from "@/components/site/Prose";
 import { MARKETING as M } from "@/lib/marketing/designTokens";
 import { formatDate, SITE } from "@/lib/site/config";
 import { LEGAL, legalBySlug } from "@/lib/site/legal";
-import { pageMetadata } from "@/lib/site/seo";
+import { pageMetadata, type Block } from "@/lib/site/seo";
 
 export function legalMetadata(slug: string) {
   const d = legalBySlug(slug)!;
@@ -12,7 +12,7 @@ export function legalMetadata(slug: string) {
 }
 
 /** Shared layout for policy pages: readable column, table of contents, last-updated date and links to the sibling policies. */
-export default function LegalPage({ slug }: { slug: string }) {
+export default function LegalPage({ slug, lead }: { slug: string; lead?: Block[] }) {
   const d = legalBySlug(slug)!;
   const toc = tocOf(d.body);
   return (
@@ -23,7 +23,7 @@ export default function LegalPage({ slug }: { slug: string }) {
           <h1 className="font-[family-name:var(--font-plus-jakarta)] text-[2.1rem] font-bold tracking-tight text-white sm:text-[2.6rem]">{d.title}</h1>
           <p className="mt-3 text-[16px] text-white/60">{d.summary}</p>
           <p className="mt-2 text-[13px] text-white/40">Last updated <time dateTime={SITE.legalUpdated}>{formatDate(SITE.legalUpdated)}</time> · {SITE.legalName}</p>
-          <div className="mt-8"><Prose blocks={d.body} /></div>
+          <div className="mt-8"><Prose blocks={lead ? [...lead, ...d.body] : d.body} /></div>
         </article>
         <aside className="lg:sticky lg:top-28 lg:self-start">
           {toc.length > 2 && (

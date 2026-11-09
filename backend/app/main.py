@@ -22,6 +22,7 @@ from app.api.followups import router as followups_router
 from app.api.inbox import router as inbox_router
 from app.api.integrations import hooks as hooks_router
 from app.api.integrations import router as integrations_router
+from app.api.meta_callbacks import router as meta_callbacks_router
 from app.api.pipeline import router as pipeline_router
 from app.api.public import router as public_router
 from app.api.public_api import router as public_api_router
@@ -76,7 +77,7 @@ for r in (auth_router, contacts_router, followups_router, templates_router, broa
           inbox_router, segments_router, ai_router, widgets_router, developer_router, integrations_router, team_router, analytics_router, pipeline_router, billing_router, payments_router, commerce_router, admin_router):
     app.include_router(r, prefix="/api")
 # Public surfaces (no login): Meta webhooks, provider hooks, widget script/beacons, and the API-key REST API.
-for r in (webhooks_router, hooks_router, public_router, public_api_router, site_router):
+for r in (webhooks_router, meta_callbacks_router, hooks_router, public_router, public_api_router, site_router):
     app.include_router(r, prefix="/api")
 
 
