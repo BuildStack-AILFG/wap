@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Package, Plus, Search, Trash2, RefreshCw, Upload, ExternalLink, Store } from "lucide-react";
+import { Package, Plus, Search, Trash2, RefreshCw, Upload, ExternalLink, Store, Download } from "lucide-react";
 import { Alert, Badge, Button, Card, Field, Input, Modal, Page, PageHeader, Select, Spinner, Textarea, Toggle, useUi } from "@/components/ui/kit";
 import { commerce as api, errorMessage, type Product } from "@/lib/api";
 
@@ -16,6 +16,7 @@ export default function CatalogPage() {
   const [avail, setAvail] = useState("");
   const [editing, setEditing] = useState<Product | "new" | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [pulling, setPulling] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -37,9 +38,27 @@ export default function CatalogPage() {
 
   async function sync() {
     setSyncing(true);
-    try { const r = await api.syncCatalog(); toast(`Synced ${r.synced} products to Meta`); }
+    try {
+      const r = await api.syncCatalog();
+      const parts = [`Synced ${r.synced} product${r.synced === 1 ? "" : "s"} to Meta`];
+      if (r.removed) parts.push(`removed ${r.removed}`);
+      toast(parts.join(", "));
+      if (r.errors.length) setError(`Meta rejected ${r.errors.length} product${r.errors.length === 1 ? "" : "s"}: ${r.errors.slice(0, 5).map((x) => `${x.name} (${x.error})`).join("; ")}`);
+      await load();
+    }
     catch (e) { toast(errorMessage(e), "error"); }
     finally { setSyncing(false); }
+  }
+
+  async function pull() {
+    setPulling(true);
+    try {
+      const r = await api.pullCatalog();
+      toast(r.total ? `Imported from Meta: ${r.added} new, ${r.updated} updated${r.skipped ? `, ${r.skipped} skipped` : ""}` : "Your Meta catalog has no products yet");
+      await load();
+    }
+    catch (e) { setError(errorMessage(e)); }
+    finally { setPulling(false); }
   }
 
   const empty = list && list.length === 0 && !search && !avail;
@@ -50,6 +69,7 @@ export default function CatalogPage() {
       <PageHeader icon={<Package size={20} />} title="Catalog" subtitle="View & manage catalog products"
         actions={!empty && list ? <div className="flex gap-2">
           <Button variant="ghost" loading={uploading} onClick={() => fileRef.current?.click()}><Upload size={15} /> Upload CSV</Button>
+          <Button variant="ghost" loading={pulling} onClick={pull}><Download size={15} /> Import from Meta</Button>
           <Button variant="ghost" loading={syncing} onClick={sync}><RefreshCw size={15} /> Sync to Meta</Button>
           <Button onClick={() => setEditing("new")}><Plus size={15} /> Add product</Button>
         </div> : undefined} />
@@ -61,6 +81,7 @@ export default function CatalogPage() {
           <div className="text-[17px] font-semibold text-white">No catalog found</div>
           <Button loading={uploading} onClick={() => fileRef.current?.click()}><Upload size={15} /> Upload CSV</Button>
           <div className="text-[12px] uppercase tracking-wide text-white/30">or</div>
+          <Button variant="ghost" loading={pulling} onClick={pull}><Download size={15} /> Import from my Meta catalog</Button>
           <Link href="/dashboard/commerce-settings"><Button variant="ghost">Set up a FB catalog <ExternalLink size={13} /></Button></Link>
           <button onClick={() => setEditing("new")} className="text-[12.5px] text-white/40 hover:text-white/70">or add a product manually</button>
         </Card>

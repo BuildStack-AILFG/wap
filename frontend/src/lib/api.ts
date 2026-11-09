@@ -671,7 +671,8 @@ export const commerce = {
   createProduct: (body: Partial<Product>) => request<Product>("/commerce/products", { method: "POST", body }),
   updateProduct: (id: string, body: Partial<Product>) => request<Product>(`/commerce/products/${id}`, { method: "PATCH", body }),
   deleteProduct: (id: string) => request<void>(`/commerce/products/${id}`, { method: "DELETE" }),
-  syncCatalog: () => request<{ synced: number }>("/commerce/products/sync", { method: "POST" }),
+  syncCatalog: () => request<{ synced: number; removed: number; errors: { retailer_id: string; name: string; error: string }[] }>("/commerce/products/sync", { method: "POST" }),
+  pullCatalog: () => request<{ added: number; updated: number; skipped: number; total: number }>("/commerce/products/pull", { method: "POST" }),
   importProducts: (file: File) => { const fd = new FormData(); fd.append("file", file); return request<{ added: number; skipped: number }>("/commerce/products/import", { method: "POST", form: fd }); },
   // orders
   orders: (p?: { status?: string }) => request<Order[]>(`/commerce/orders${qs(p)}`),

@@ -26,7 +26,13 @@ export default function CommerceSettingsPage() {
 
   async function connectCatalog() {
     setConnecting(true);
-    try { const v = await api.updateSettings({ meta_catalog_id: catalogId.trim(), catalog_enabled: true }); setS(v); toast("Catalog connected"); }
+    try {
+      const v = await api.updateSettings({ meta_catalog_id: catalogId.trim(), catalog_enabled: true }); setS(v);
+      try {
+        const r = await api.pullCatalog();
+        toast(`Catalog connected — imported ${r.added + r.updated} product${r.added + r.updated === 1 ? "" : "s"} from Meta`);
+      } catch (e) { toast(`Catalog saved, but products couldn't be imported: ${errorMessage(e)}`, "error"); }
+    }
     catch (e) { toast(errorMessage(e), "error"); }
     finally { setConnecting(false); }
   }

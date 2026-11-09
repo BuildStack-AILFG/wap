@@ -230,8 +230,32 @@ async def update_product(product_id: uuid.UUID, body: ProductPatch, ctx: Ctx = D
 @router.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_product(product_id: uuid.UUID, ctx: Ctx = Depends(require_writer), db: AsyncSession = Depends(get_db)) -> None:
     p = await _owned_product(db, ctx, product_id)
+    if p.meta_product_id and p.retailer_id:
+        # It's live in the Meta catalog: remove it there too, or it would stay on WhatsApp after being deleted here.
+        s = await _get_settings(db, ctx.tenant_id)
+        account = await _catalog_account(db, ctx.tenant_id)
+        if s.meta_catalog_id and account is not None:
+            try:
+                await client_for(account).catalog_items_batch(s.meta_catalog_id, [{"method": "DELETE", "data": {"id": p.retailer_id}}])
+            except GraphError as exc:
+                raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY,
+                                    detail={"error": f"Couldn't remove it from your Meta catalog, so it was not deleted: {exc}. Hide it instead, or try again."})
     await db.delete(p)
     await db.commit()
+
+
+async def _catalog_account(db: AsyncSession, tenant_id: uuid.UUID) -> WhatsAppAccount | None:
+    """The connected WhatsApp number whose token is used to reach the Meta catalog (oldest first)."""
+    return (await db.execute(
+        select(WhatsAppAccount).where(WhatsAppAccount.tenant_id == tenant_id, WhatsAppAccount.status == "connected").order_by(WhatsAppAccount.created_at)
+    )).scalars().first()
+
+
+def _catalog_error(exc: GraphError, catalog_id: str) -> str:
+    if (exc.code == 100 and exc.subcode == 33) or exc.code in (10, 200):
+        return (f"Meta won't let your WhatsApp connection open catalog {catalog_id}. Check the catalog id, and in Meta Commerce Manager "
+                "give this business access to the catalog and connect it to your WhatsApp account.")
+    return f"Meta catalog error: {exc}"
 
 
 @router.post("/products/sync")
@@ -247,9 +271,7 @@ async def sync_catalog(ctx: Ctx = Depends(require_writer), db: AsyncSession = De
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"error": "Link a Meta catalog id in Commerce Settings first, then connect it to your WhatsApp number in Meta Commerce Manager."},
         )
-    account = (await db.execute(
-        select(WhatsAppAccount).where(WhatsAppAccount.tenant_id == ctx.tenant_id, WhatsAppAccount.status == "connected").order_by(WhatsAppAccount.created_at)
-    )).scalars().first()
+    account = await _catalog_account(db, ctx.tenant_id)
     if account is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail={"error": "Connect a WhatsApp number first — its access token is used to reach your Meta catalog."})
 
@@ -287,17 +309,84 @@ async def sync_catalog(ctx: Ctx = Depends(require_writer), db: AsyncSession = De
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail={"error": f"Meta requires an image for every product. Add one for: {', '.join(missing[:5])}{'…' if len(missing) > 5 else ''}."})
 
     client = client_for(account)
+    rejected: dict[str, str] = {}  # retailer_id -> first error Meta reported for it
     try:
         for i in range(0, len(requests_), 1000):
-            await client.catalog_items_batch(s.meta_catalog_id, requests_[i:i + 1000])
+            data = await client.catalog_items_batch(s.meta_catalog_id, requests_[i:i + 1000])
+            for v in data.get("validation_status") or []:
+                errs = [e.get("message", "") for e in (v.get("errors") or []) if e.get("message")]
+                if errs and v.get("retailer_id"):
+                    rejected[str(v["retailer_id"])] = errs[0]
     except GraphError as exc:
         await db.rollback()
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail={"error": f"Meta catalog sync failed: {exc}"})
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail={"error": _catalog_error(exc, s.meta_catalog_id)})
 
+    synced = removed = 0
+    errors: list[dict] = []
     for p, is_delete in touched:
+        if p.retailer_id in rejected:
+            errors.append({"retailer_id": p.retailer_id, "name": p.name, "error": rejected[p.retailer_id]})
+            continue
         p.meta_product_id = None if is_delete else p.retailer_id
+        removed += is_delete
+        synced += not is_delete
     await db.commit()
-    return {"synced": sum(1 for _, d in touched if not d), "removed": sum(1 for _, d in touched if d)}
+    return {"synced": synced, "removed": removed, "errors": errors}
+
+
+_AVAILABILITY_FROM_META = {"in stock": "in_stock", "available for order": "in_stock", "preorder": "in_stock"}
+
+
+def _minor_units(price: object) -> int | None:
+    """Meta returns price as a display string (e.g. "₹2,499.00" or "2499.00 INR"); keep the digits and decimal point."""
+    if isinstance(price, (int, float)):
+        return round(float(price) * 100)
+    m = re.search(r"\d[\d,]*(?:\.\d+)?", str(price or ""))
+    return round(float(m.group(0).replace(",", "")) * 100) if m else None
+
+
+@router.post("/products/pull")
+async def pull_catalog(ctx: Ctx = Depends(require_writer), db: AsyncSession = Depends(get_db)) -> dict:
+    """Import the products that already exist in the linked Meta catalog. Matches on SKU (retailer id): existing products are
+    updated, new ones are added, and every imported product is marked as synced. Products only in TalkForGrow are left alone."""
+    s = await _get_settings(db, ctx.tenant_id)
+    await db.commit()
+    if not s.meta_catalog_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail={"error": "Link a Meta catalog id in Commerce Settings first."})
+    account = await _catalog_account(db, ctx.tenant_id)
+    if account is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail={"error": "Connect a WhatsApp number first — its access token is used to reach your Meta catalog."})
+    try:
+        items = await client_for(account).catalog_products(s.meta_catalog_id)
+    except GraphError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail={"error": _catalog_error(exc, s.meta_catalog_id)})
+
+    existing = {p.retailer_id: p for p in (await db.execute(select(Product).where(Product.tenant_id == ctx.tenant_id))).scalars().all() if p.retailer_id}
+    added = updated = skipped = 0
+    for it in items:
+        sku = str(it.get("retailer_id") or "").strip()[:80]
+        name = str(it.get("name") or "").strip()[:200]
+        price = _minor_units(it.get("price"))
+        if not sku or not name or price is None:
+            skipped += 1
+            continue
+        fields = {
+            "name": name, "description": it.get("description") or None, "price": price,
+            "currency": str(it.get("currency") or s.currency or "INR").upper()[:3], "image_url": it.get("image_url") or None,
+            "category": (str(it.get("product_type") or it.get("category") or "")[:120] or None),
+            "availability": _AVAILABILITY_FROM_META.get(str(it.get("availability") or "").lower(), "out_of_stock"),
+            "is_visible": it.get("visibility", "published") != "staging", "meta_product_id": str(it.get("id") or sku)[:64],
+        }
+        p = existing.get(sku)
+        if p is None:
+            db.add(Product(tenant_id=ctx.tenant_id, retailer_id=sku, **fields))
+            added += 1
+        else:
+            for k, v in fields.items():
+                setattr(p, k, v)
+            updated += 1
+    await db.commit()
+    return {"added": added, "updated": updated, "skipped": skipped, "total": len(items)}
 
 
 MAX_IMPORT_BYTES = 5 * 1024 * 1024

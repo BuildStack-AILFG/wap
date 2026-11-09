@@ -218,11 +218,27 @@ class GraphClient:
         await self._request("DELETE", f"{waba_id}/message_templates", params={"name": name}, retries=0)
 
     # ---- commerce catalog -------------------------------------------------------------------------------------
-    async def catalog_items_batch(self, catalog_id: str, requests: list[dict]) -> list[str]:
+    async def catalog_items_batch(self, catalog_id: str, requests: list[dict]) -> dict:
         """POST /{catalog_id}/items_batch — create/update/delete products (max 5000 per call). Meta processes it
-        asynchronously and returns batch handles; per-item problems show up in Commerce Manager diagnostics."""
-        data = await self._request("POST", f"{catalog_id}/items_batch", json={"item_type": "PRODUCT_ITEM", "requests": requests}, retries=0)
-        return data.get("handles", [])
+        asynchronously and returns `handles` plus `validation_status` ([{retailer_id, errors: [{message}], warnings}])
+        for items it rejected up front; later problems show up in Commerce Manager diagnostics."""
+        return await self._request("POST", f"{catalog_id}/items_batch", json={"item_type": "PRODUCT_ITEM", "requests": requests}, retries=0)
+
+    async def catalog_info(self, catalog_id: str) -> dict:
+        """GET /{catalog_id} — confirms the token can reach the catalog (Meta answers #100/33 when it can't)."""
+        return await self._request("GET", catalog_id, params={"fields": "id,name,product_count"})
+
+    async def catalog_products(self, catalog_id: str, max_items: int = 5000) -> list[dict]:
+        """GET /{catalog_id}/products, following `paging.next` until done (capped at `max_items`)."""
+        fields = "id,retailer_id,name,description,price,currency,image_url,availability,product_type,category,visibility"
+        out: list[dict] = []
+        data = await self._request("GET", f"{catalog_id}/products", params={"fields": fields, "limit": 100})
+        while True:
+            out.extend(data.get("data") or [])
+            nxt = (data.get("paging") or {}).get("next")
+            if not nxt or len(out) >= max_items:
+                return out[:max_items]
+            data = await self._request("GET", nxt)
 
     async def upload_sample_handle(self, app_id: str, content: bytes, mime: str) -> str:
         """Resumable Upload API: returns the `h:` handle Meta requires as a template media example."""
