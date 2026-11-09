@@ -25,7 +25,7 @@ Category = Literal["MARKETING", "UTILITY", "AUTHENTICATION"]
 
 
 class ButtonIn(BaseModel):
-    type: Literal["quick_reply", "url", "phone", "copy_code"]
+    type: Literal["quick_reply", "url", "phone", "copy_code", "catalog"]
     text: str = Field(default="", max_length=25)
     url: str | None = Field(default=None, max_length=2000)
     phone: str | None = Field(default=None, max_length=20)
@@ -100,7 +100,7 @@ def _apply(t: WhatsAppTemplate, body: TemplateIn) -> None:
     t.name, t.language, t.category, t.body = body.name, body.language, body.category, body.body
     t.header_type, t.header_text, t.header_example = body.header_type, body.header_text, body.header_example
     t.footer = body.footer or None
-    t.buttons = [b.model_dump(exclude_none=True) for b in body.buttons]
+    t.buttons = [{**b.model_dump(exclude_none=True), **({"text": "View catalog"} if b.type == "catalog" else {})} for b in body.buttons]
     t.body_examples = body.body_examples
     if body.category == "AUTHENTICATION":  # fixed Meta layout: the code is the only variable
         t.body, t.body_examples, t.buttons, t.header_type, t.header_text, t.footer = "{{1}} is your verification code. For your security, do not share this code.", ["123456"], [{"type": "otp", "text": "Copy code"}], "none", None, None

@@ -32,7 +32,7 @@ from app.models.conversation import Conversation, Message
 from app.models.custom_reply import CustomReply
 from app.models.tenant import Tenant
 from app.models.whatsapp_account import WhatsAppAccount
-from app.services import assignment, followups, templating
+from app.services import assignment, commerce, followups, templating
 from app.services.ai import agent as ai_agent
 from app.services.automation import flow_engine
 from app.services.whatsapp import messaging
@@ -126,6 +126,14 @@ async def run(db: AsyncSession, tenant: Tenant, account: WhatsAppAccount, conv: 
     if (msg.payload or {}).get("opt_in"):
         await _bot_text(db, account, conv, contact, "Welcome back! You're subscribed again.", "optin")
         return "opt_in"
+
+    # 1b — WhatsApp Commerce: a cart sent from the catalog becomes an order; replies move the Checkout Bot along
+    if msg.type == "order":
+        await commerce.handle_order_message(db, account, conv, contact, msg)
+        return "order"
+    checkout = await commerce.active_checkout(db, contact.id)
+    if checkout is not None and await commerce.advance_checkout(db, account, conv, contact, checkout, msg):
+        return "checkout"
 
     # 2 — resume a waiting flow. A question typed where a button tap was expected isn't an answer: the flow keeps waiting
     # and the message falls through to custom replies / the AI agent below (but never starts a second flow).
@@ -246,6 +254,11 @@ async def _intent_match(db, tenant, replies: list[CustomReply], text: str) -> Cu
 async def _apply_reply(db, tenant, account, conv, contact, reply: CustomReply) -> None:
     if reply.reply_text.strip():
         await _bot_text(db, account, conv, contact, reply.reply_text, "custom_reply")
+    if reply.attachment:
+        try:
+            await commerce.send_attachment(db, account, conv, contact, reply.attachment, sender_type="bot", marker="custom_reply", strict=False)
+        except (commerce.CommerceError, messaging.SendBlocked) as exc:
+            log.info("custom reply catalog not sent: %s", getattr(exc, "message", exc))
     reply.conversations_sent = (reply.conversations_sent or 0) + 1
     if reply.flow_id:
         flow = await db.get(AutomationFlow, reply.flow_id)

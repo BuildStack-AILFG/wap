@@ -56,7 +56,7 @@ def preview_for(msg_type: str, body: str | None) -> str:
     if body:
         return body[:280]
     return {"image": "📷 Photo", "video": "🎥 Video", "audio": "🎵 Audio", "document": "📄 Document", "sticker": "Sticker",
-            "location": "📍 Location", "template": "Template message", "interactive": "Interactive message"}.get(msg_type, msg_type.title())
+            "location": "📍 Location", "template": "Template message", "interactive": "Interactive message", "order": "🛒 Order"}.get(msg_type, msg_type.title())
 
 
 # ---- contacts & conversations ------------------------------------------------------------------------------------

@@ -105,6 +105,11 @@ def parse_message(m: dict) -> tuple[str, str | None, dict]:
         r = m.get("reaction", {})
         extras = {"payload": {"emoji": r.get("emoji"), "reacted_to": r.get("message_id")}}
         return "reaction", r.get("emoji"), extras
+    if t == "order":  # a cart sent from the WhatsApp catalog
+        o = m.get("order") or {}
+        items = o.get("product_items") or []
+        count = sum(int(i.get("quantity") or 1) for i in items)
+        return "order", f"🛒 Order: {count} item{'s' if count != 1 else ''}", {"payload": {"order": o}}
     if t == "contacts":
         return "text", "Shared a contact", {"payload": {"contacts": m.get("contacts")}}
     if t == "media_placeholder":  # coexistence history: the media itself only arrives later (and only for the last 14 days)

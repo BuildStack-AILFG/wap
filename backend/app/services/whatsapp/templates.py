@@ -78,10 +78,21 @@ def validate_template(*, name: str, category: str, body: str, header_type: str, 
     url = [b for b in buttons if b.get("type") == "url"]
     phone = [b for b in buttons if b.get("type") == "phone"]
     copy = [b for b in buttons if b.get("type") == "copy_code"]
+    catalog = [b for b in buttons if b.get("type") == "catalog"]
     if len(buttons) > 10 or len(qr) > 10 or len(url) > 2 or len(phone) > 1 or len(copy) > 1:
         raise TemplateValidationError("Too many buttons (max: 10 total, 2 URL, 1 phone, 1 copy-code).")
+    if catalog:
+        # Meta: a catalog template is MARKETING with exactly one "View catalog" button.
+        if category != "MARKETING":
+            raise TemplateValidationError("A “View catalog” button is only allowed on Marketing templates.")
+        if len(buttons) != 1:
+            raise TemplateValidationError("A catalog template has exactly one button: “View catalog”.")
+        if header_type != "none":
+            raise TemplateValidationError("Catalog templates can't have a header — WhatsApp shows a product image there.")
+        for b in catalog:
+            b["text"] = "View catalog"
     for b in buttons:
-        if b.get("type") not in {"quick_reply", "url", "phone", "copy_code"}:
+        if b.get("type") not in {"quick_reply", "url", "phone", "copy_code", "catalog"}:
             raise TemplateValidationError(f"Unsupported button type '{b.get('type')}'.")
         if not (b.get("text") or "").strip() or len(b["text"]) > 25:
             raise TemplateValidationError("Every button needs text of 25 characters or fewer.")
@@ -131,6 +142,8 @@ def build_meta_components(tpl: WhatsAppTemplate, header_handle: str | None = Non
                 buttons.append({"type": "PHONE_NUMBER", "text": b["text"], "phone_number": b["phone"]})
             elif b["type"] == "copy_code":
                 buttons.append({"type": "COPY_CODE", "example": b.get("example") or "CODE123"})
+            elif b["type"] == "catalog":
+                buttons.append({"type": "CATALOG", "text": "View catalog"})
         comps.append({"type": "BUTTONS", "buttons": buttons})
     return comps
 
@@ -165,6 +178,8 @@ def parse_meta_components(components: list[dict]) -> dict[str, Any]:
                     out["buttons"].append({"type": "phone", "text": b.get("text", ""), "phone": b.get("phone_number", "")})
                 elif bt == "OTP":
                     out["buttons"].append({"type": "otp", "text": b.get("text", "Copy code")})
+                elif bt == "CATALOG":
+                    out["buttons"].append({"type": "catalog", "text": b.get("text") or "View catalog"})
                 elif bt == "COPY_CODE":
                     out["buttons"].append({"type": "copy_code", "text": "Copy code", "example": (b.get("example") or [None])[0] if isinstance(b.get("example"), list) else b.get("example")})
                 else:
@@ -185,7 +200,8 @@ def required_variables(tpl: WhatsAppTemplate) -> dict[str, Any]:
 
 
 def build_send_components(tpl: WhatsAppTemplate, *, body: list[str] | None = None, header_text: str | None = None,
-                          header_media: str | None = None, buttons: dict[str, str] | None = None) -> list[dict]:
+                          header_media: str | None = None, buttons: dict[str, str] | None = None,
+                          catalog_thumbnail: str | None = None) -> list[dict]:
     """Assemble the `components` array for a template message. Raises TemplateValidationError if required values are missing."""
     need = required_variables(tpl)
     comps: list[dict[str, Any]] = []
@@ -214,6 +230,10 @@ def build_send_components(tpl: WhatsAppTemplate, *, body: list[str] | None = Non
         if val is None:
             raise TemplateValidationError(f"Button {idx + 1} needs a URL value.")
         comps.append({"type": "button", "sub_type": "url", "index": str(idx), "parameters": [{"type": "text", "text": val}]})
+    for idx, b in enumerate(tpl.buttons or []):
+        if b.get("type") == "catalog":  # Meta uses the first catalog item as the thumbnail when none is given
+            action = {"thumbnail_product_retailer_id": catalog_thumbnail} if catalog_thumbnail else {}
+            comps.append({"type": "button", "sub_type": "CATALOG", "index": idx, "parameters": [{"type": "action", "action": action}]})
     return comps
 
 

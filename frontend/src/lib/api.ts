@@ -245,7 +245,7 @@ export const contacts = {
 
 // ---- templates --------------------------------------------------------------------------------------------------------------------------------
 
-export type TemplateButton = { type: "quick_reply" | "url" | "phone" | "copy_code" | "otp"; text: string; url?: string; phone?: string; example?: string };
+export type TemplateButton = { type: "quick_reply" | "url" | "phone" | "copy_code" | "otp" | "catalog"; text: string; url?: string; phone?: string; example?: string };
 export type Template = {
   id: string; name: string; language: string; category: "MARKETING" | "UTILITY" | "AUTHENTICATION"; body: string;
   status: "draft" | "pending" | "approved" | "rejected" | "paused" | "disabled"; header_type: "none" | "text" | "image" | "video" | "document"; header_text: string | null;
@@ -360,11 +360,11 @@ export const flows = {
 
 // ---- replies & settings ---------------------------------------------------------------------------------------------------------------------------------------
 
-export type CustomReply = { id: string; trigger: string; match_type: "exact" | "contains" | "any"; reply_text: string; flow_id: string | null; priority: number; enabled: boolean; conversations_sent: number };
+export type CustomReply = { id: string; trigger: string; match_type: "exact" | "contains" | "any"; reply_text: string; flow_id: string | null; priority: number; enabled: boolean; conversations_sent: number; attachment: CatalogAttachment | null };
 export const customReplies = {
   list: () => request<CustomReply[]>("/custom-replies"),
-  create: (b: { trigger: string; match_type: string; reply_text: string; flow_id?: string | null; priority?: number }) => request<CustomReply>("/custom-replies", { method: "POST", body: b }),
-  update: (id: string, b: Partial<{ trigger: string; match_type: string; reply_text: string; flow_id: string | null; priority: number; enabled: boolean }>) => request<CustomReply>(`/custom-replies/${id}`, { method: "PATCH", body: b }),
+  create: (b: { trigger: string; match_type: string; reply_text: string; flow_id?: string | null; priority?: number; attachment?: CatalogAttachment | null }) => request<CustomReply>("/custom-replies", { method: "POST", body: b }),
+  update: (id: string, b: Partial<{ trigger: string; match_type: string; reply_text: string; flow_id: string | null; priority: number; enabled: boolean; attachment: CatalogAttachment | null }>) => request<CustomReply>(`/custom-replies/${id}`, { method: "PATCH", body: b }),
   remove: (id: string) => request<void>(`/custom-replies/${id}`, { method: "DELETE" }),
 };
 export const getSettings = () => request<{ settings: Record<string, unknown> }>("/settings");
@@ -642,7 +642,10 @@ export type CommerceConfig = {
   welcome_message: string; collect_address: boolean; collect_email: boolean; confirmation_message: string; payment_instructions: string;
   checkout_live: boolean; payment_mode: "cod" | "online" | "both"; free_shipping: boolean;
   proceed_message: string; address_message: string; payment_message: string; order_placed_message: string;
+  catalog_message_body: string; catalog_message_footer: string; catalog_thumbnail_sku: string; collections: Collection[];
 };
+export type Collection = { id: string; title: string; header?: string; body?: string; skus: string[] };
+export type CatalogAttachment = { type: "catalog" } | { type: "collection"; collection_id: string };
 export type CommerceSettings = {
   catalog_enabled: boolean; cart_enabled: boolean; meta_catalog_id: string | null; currency: string;
   checkout_mode: CheckoutMode; external_checkout_url: string | null; config: CommerceConfig;
@@ -658,6 +661,7 @@ export type Order = {
   id: string; order_number: string; customer_name: string | null; customer_phone: string | null; items: OrderItem[];
   subtotal: number; total: number; currency: string; status: OrderStatus; payment_status: PaymentStatus;
   payment_method: string | null; shipping_address: Record<string, string> | null; note: string | null; source: string; created_at: string | null;
+  checkout_step: "proceed" | "name" | "address" | "payment" | null; conversation_id: string | null;
 };
 export type CommerceStats = { products: number; orders: number; paid_revenue: number; pending_orders: number };
 
@@ -673,6 +677,8 @@ export const commerce = {
   deleteProduct: (id: string) => request<void>(`/commerce/products/${id}`, { method: "DELETE" }),
   syncCatalog: () => request<{ synced: number; removed: number; errors: { retailer_id: string; name: string; error: string }[] }>("/commerce/products/sync", { method: "POST" }),
   pullCatalog: () => request<{ added: number; updated: number; skipped: number; total: number }>("/commerce/products/pull", { method: "POST" }),
+  send: (body: { conversation_id: string; type: "catalog" | "collection"; collection_id?: string }) =>
+    request<{ ok: boolean; message_id: string }>("/commerce/send", { method: "POST", body }),
   importProducts: (file: File) => { const fd = new FormData(); fd.append("file", file); return request<{ added: number; skipped: number }>("/commerce/products/import", { method: "POST", form: fd }); },
   // orders
   orders: (p?: { status?: string }) => request<Order[]>(`/commerce/orders${qs(p)}`),

@@ -10,6 +10,7 @@ import { commerce as api, errorMessage, type CommerceConfig, type CommerceSettin
 const CFG_DEFAULTS: CommerceConfig = {
   welcome_message: "", collect_address: true, collect_email: false, confirmation_message: "", payment_instructions: "",
   checkout_live: false, payment_mode: "cod", free_shipping: true,
+  catalog_message_body: "", catalog_message_footer: "", catalog_thumbnail_sku: "", collections: [],
   proceed_message: "Thanks for your cart! We currently deliver for free all over India.\nYour total order value = {total_order_value}. Would you like to proceed?",
   address_message: "Great! We'll need a few details to ship your order. Please share your full name.",
   payment_message: "We only offer Cash on Delivery right now. Would you like to confirm the order?",

@@ -132,6 +132,8 @@ async def mark_paid(db: AsyncSession, link: PaymentLink) -> bool:
     if link.status == "paid":
         return False
     link.status, link.paid_at = "paid", utcnow()
+    from app.services import commerce  # local: commerce imports this module
+    await commerce.mark_order_paid_for_link(db, link.id, link.tenant_id, link.short_url)
     if link.deal_id:
         deal = await db.get(Deal, link.deal_id)
         if deal is not None:

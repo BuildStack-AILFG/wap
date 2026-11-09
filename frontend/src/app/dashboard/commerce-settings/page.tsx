@@ -2,9 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronUp, Play, ExternalLink, Upload, Check } from "lucide-react";
-import { Alert, Button, Card, Input, Page, PageHeader, Spinner, useUi } from "@/components/ui/kit";
-import { commerce as api, errorMessage, type CommerceSettings } from "@/lib/api";
+import { ChevronDown, ChevronUp, Play, ExternalLink, Upload, Check, Plus, Trash2 } from "lucide-react";
+import { Alert, Button, Card, Field, Input, Page, PageHeader, Spinner, Textarea, useUi } from "@/components/ui/kit";
+import { commerce as api, errorMessage, type Collection, type CommerceSettings, type Product } from "@/lib/api";
+
+const FB = {
+  commerce: "https://business.facebook.com/commerce/",
+  catalogs: "https://business.facebook.com/latest/settings/product_catalogs",
+  waManager: "https://business.facebook.com/wa/manage/home/",
+};
 
 export default function CommerceSettingsPage() {
   const { toast } = useUi();
@@ -67,13 +73,13 @@ export default function CommerceSettingsPage() {
             </SubRow>
             <div className="flex items-center gap-3 text-[12px] uppercase tracking-wide text-white/30"><span className="h-px flex-1 bg-white/10" />OR<span className="h-px flex-1 bg-white/10" /></div>
             <SubRow title="A. Set up FB Catalog & Collections" hint="Import via Google Sheets or Shopify.">
-              <Button variant="ghost">Go to FB <ExternalLink size={13} /></Button>
+              <a href={FB.commerce} target="_blank" rel="noreferrer"><Button variant="ghost">Go to FB <ExternalLink size={13} /></Button></a>
             </SubRow>
-            <SubRow title="B. Give catalog access to the platform" hint="Add the platform as a Catalog Partner in Meta Commerce Manager.">
-              <Button variant="ghost">Go to FB <ExternalLink size={13} /></Button>
+            <SubRow title="B. Give catalog access to the platform" hint="In Business Settings → Catalogues, assign the system user / business that connects your WhatsApp number with full control.">
+              <a href={FB.catalogs} target="_blank" rel="noreferrer"><Button variant="ghost">Go to FB <ExternalLink size={13} /></Button></a>
             </SubRow>
             <SubRow title="C. Connect your catalog to your WhatsApp account" hint="Follow the steps shown in Meta Commerce Manager.">
-              <Button variant="ghost">Go to FB <ExternalLink size={13} /></Button>
+              <a href={FB.waManager} target="_blank" rel="noreferrer"><Button variant="ghost">Go to FB <ExternalLink size={13} /></Button></a>
             </SubRow>
             <SubRow title="D. Enter Facebook Catalog ID" hint="We'll fetch products from this catalog.">
               <div className="flex gap-2">
@@ -91,18 +97,21 @@ export default function CommerceSettingsPage() {
         </Step>
 
         <Step n={2} title="Set up messages for product collections & catalogs" open={openStep === 2} onToggle={() => setOpenStep(openStep === 2 ? 0 : 2)}>
-          <p className="text-[13.5px] text-white/60">Create catalog and collection message templates customers receive when they browse your store.</p>
-          <Link href="/dashboard/checkout-bot" className="mt-3 inline-block"><Button variant="ghost">Set up messages</Button></Link>
+          <CatalogMessages s={s} onSaved={setS} />
         </Step>
 
         <Step n={3} title="Send out catalogs in campaigns" open={openStep === 3} onToggle={() => setOpenStep(openStep === 3 ? 0 : 3)}>
-          <p className="text-[13.5px] text-white/60">Attach a catalog to a broadcast so customers can shop straight from the campaign message.</p>
-          <Link href="/dashboard/broadcasts" className="mt-3 inline-block"><Button variant="ghost">Go to Broadcasts</Button></Link>
+          <ol className="list-decimal space-y-1.5 pl-5 text-[13.5px] text-white/65">
+            <li>Create a <b className="text-white/85">Marketing</b> template and add the <b className="text-white/85">View catalog</b> button. Submit it for approval.</li>
+            <li>Once Meta approves it, pick it in a broadcast. The catalog button opens your WhatsApp catalog. The thumbnail is the product SKU set in step 2.</li>
+          </ol>
+          <div className="mt-3 flex gap-2"><Link href="/dashboard/templates"><Button variant="ghost">Create catalog template</Button></Link><Link href="/dashboard/broadcasts"><Button variant="ghost">Go to Broadcasts</Button></Link></div>
         </Step>
 
         <Step n={4} title="Send out catalogs in auto-replies" open={openStep === 4} onToggle={() => setOpenStep(openStep === 4 ? 0 : 4)}>
-          <p className="text-[13.5px] text-white/60">Reply to keywords with your catalog automatically.</p>
-          <Link href="/dashboard/auto-replies" className="mt-3 inline-block"><Button variant="ghost">Go to Auto-Replies</Button></Link>
+          <p className="text-[13.5px] text-white/60">Create a custom reply for keywords like “menu”, “catalog” or “price” and choose <b className="text-white/85">Also send products → Full catalog</b> or one of your collections.
+            Agents can also send the catalog from any chat in the Inbox.</p>
+          <Link href="/dashboard/custom-replies" className="mt-3 inline-block"><Button variant="ghost">Go to Custom replies</Button></Link>
         </Step>
 
         <Step n={5} title="Help customers place orders with the Autocheckout workflow" open={openStep === 5} onToggle={() => setOpenStep(openStep === 5 ? 0 : 5)}>
@@ -110,8 +119,8 @@ export default function CommerceSettingsPage() {
           <Link href="/dashboard/checkout-bot" className="mt-3 inline-block"><Button>Set up Checkout Bot</Button></Link>
         </Step>
 
-        <Step n={6} title="See all enquiries & orders you get from customers" badge="soon" open={openStep === 6} onToggle={() => setOpenStep(openStep === 6 ? 0 : 6)}>
-          <p className="text-[13.5px] text-white/60">Track every order and enquiry from one place.</p>
+        <Step n={6} title="See all enquiries & orders you get from customers" open={openStep === 6} onToggle={() => setOpenStep(openStep === 6 ? 0 : 6)}>
+          <p className="text-[13.5px] text-white/60">Every cart a customer sends from your WhatsApp catalog becomes an order here automatically, with its checkout progress.</p>
           <Link href="/dashboard/order-panel" className="mt-3 inline-block"><Button variant="ghost">Open Order Panel</Button></Link>
         </Step>
       </div>
@@ -241,6 +250,66 @@ function CatalogPreview() {
           <rect x="16" y="20" width="20" height="5" rx="2.5" fill="#9fd8c6" />
         </g>
       </svg>
+    </div>
+  );
+}
+
+
+/** Step 2 — the catalog message and product collections (multi-product messages, max 30 products each). */
+function CatalogMessages({ s, onSaved }: { s: CommerceSettings; onSaved: (v: CommerceSettings) => void }) {
+  const { toast } = useUi();
+  const [body, setBody] = useState(s.config.catalog_message_body ?? "");
+  const [footer, setFooter] = useState(s.config.catalog_message_footer ?? "");
+  const [thumb, setThumb] = useState(s.config.catalog_thumbnail_sku ?? "");
+  const [cols, setCols] = useState<Collection[]>(s.config.collections ?? []);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { api.products().then(setProducts).catch(() => {}); }, []);
+  const skus = products.filter((p) => p.retailer_id).map((p) => ({ sku: p.retailer_id as string, name: p.name }));
+
+  async function save() {
+    setBusy(true);
+    try {
+      const v = await api.updateSettings({ config: { catalog_message_body: body, catalog_message_footer: footer, catalog_thumbnail_sku: thumb, collections: cols } });
+      onSaved(v); setCols(v.config.collections ?? []); toast("Catalog messages saved");
+    } catch (e) { toast(errorMessage(e), "error"); } finally { setBusy(false); }
+  }
+  const setCol = (i: number, patch: Partial<Collection>) => setCols(cols.map((c, j) => (j === i ? { ...c, ...patch } : c)));
+
+  return (
+    <div className="space-y-5">
+      {!s.meta_catalog_id && <Alert tone="yellow">Connect your Meta catalog in step 1 first — these messages open products from it.</Alert>}
+      <div>
+        <div className="mb-2 text-[14px] font-medium text-white/90">Catalog message</div>
+        <p className="mb-3 text-[12.5px] text-white/45">Sent by auto-replies and from the Inbox. Shows a product image and a “View catalog” button.</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Message text" className="sm:col-span-2"><Textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={1024} rows={2} placeholder="Browse our catalog and add what you like to your cart 🛒" /></Field>
+          <Field label="Footer (optional)"><Input value={footer} onChange={(e) => setFooter(e.target.value)} maxLength={60} placeholder="Free delivery across India" /></Field>
+          <Field label="Thumbnail product" hint="Leave empty to use the first product in your catalog.">
+            <select value={thumb} onChange={(e) => setThumb(e.target.value)} className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 text-[13.5px] text-white">
+              <option value="">First product</option>{skus.map((p) => <option key={p.sku} value={p.sku}>{p.name} ({p.sku})</option>)}
+            </select></Field>
+        </div>
+      </div>
+      <div>
+        <div className="mb-2 flex items-center justify-between"><div><div className="text-[14px] font-medium text-white/90">Collections</div>
+          <p className="text-[12.5px] text-white/45">A named set of up to 30 products, sent as one message customers can shop from.</p></div>
+          <Button size="sm" variant="ghost" disabled={!skus.length} onClick={() => setCols([...cols, { id: "", title: "", skus: [] }])}><Plus size={13} /> Add collection</Button></div>
+        {!skus.length && <p className="text-[12.5px] text-white/40">Import or add products with a SKU in the Catalog first.</p>}
+        <div className="space-y-3">{cols.map((c, i) => (
+          <div key={i} className="rounded-xl border border-white/10 p-3">
+            <div className="flex gap-2"><Input value={c.title} maxLength={24} onChange={(e) => setCol(i, { title: e.target.value })} placeholder="Collection name, e.g. Summer tees" />
+              <Button size="sm" variant="danger" aria-label="Remove collection" onClick={() => setCols(cols.filter((_, j) => j !== i))}><Trash2 size={13} /></Button></div>
+            <Input className="mt-2" value={c.body ?? ""} maxLength={1024} onChange={(e) => setCol(i, { body: e.target.value })} placeholder="Message text (optional)" />
+            <div className="mt-2 flex flex-wrap gap-1.5">{skus.map((p) => {
+              const on = c.skus.includes(p.sku);
+              return <button key={p.sku} type="button" disabled={!on && c.skus.length >= 30} onClick={() => setCol(i, { skus: on ? c.skus.filter((x) => x !== p.sku) : [...c.skus, p.sku] })}
+                className={`rounded-lg border px-2.5 py-1 text-[12px] ${on ? "border-emerald-400/60 bg-emerald-400/10 text-emerald-200" : "border-white/10 text-white/55 hover:text-white"}`}>{on && <Check size={11} className="mr-1 inline" />}{p.name}</button>;
+            })}</div>
+            <div className="mt-1 text-[11.5px] text-white/35">{c.skus.length}/30 products</div>
+          </div>))}</div>
+      </div>
+      <Button loading={busy} onClick={save}>Save catalog messages</Button>
     </div>
   );
 }

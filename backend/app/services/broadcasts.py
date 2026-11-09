@@ -244,7 +244,12 @@ async def _send_one(db: AsyncSession, b: Broadcast, tpl: WhatsAppTemplate, accou
         return "skipped"
     try:
         v = rec.variables or {}
-        comps = build_send_components(tpl, body=v.get("body"), header_text=v.get("header_text"), header_media=v.get("header_media"), buttons=v.get("buttons"))
+        thumb = None
+        if any(x.get("type") == "catalog" for x in tpl.buttons or []):
+            from app.services import commerce
+            thumb = (commerce.cfg(await commerce.settings_for(db, account.tenant_id)).get("catalog_thumbnail_sku") or "").strip() or None
+        comps = build_send_components(tpl, body=v.get("body"), header_text=v.get("header_text"), header_media=v.get("header_media"), buttons=v.get("buttons"),
+                                      catalog_thumbnail=thumb)
         conv, _ = await messaging.get_or_create_conversation(db, account, contact)
         msg = await messaging.send_message(
             db, account, conv, contact, kind="template", template_name=tpl.name, template_language=tpl.language, template_components=comps,

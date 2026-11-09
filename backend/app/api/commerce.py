@@ -22,6 +22,10 @@ from app.api.deps import Ctx, get_ctx, get_db, require_writer
 from app.models.commerce import CommerceSettings, Order, Product
 from app.models.whatsapp_account import WhatsAppAccount
 from app.services.whatsapp.graph import GraphError
+from app.models.contact import Contact
+from app.models.conversation import Conversation
+from app.services import commerce as commerce_rt
+from app.services.whatsapp import messaging
 from app.services.whatsapp.templates import client_for
 
 router = APIRouter(prefix="/commerce", tags=["commerce"])
@@ -51,6 +55,23 @@ DEFAULT_CONFIG = {
 
 # ---- serializers ---------------------------------------------------------------------------------------------------
 
+def _clean_collections(raw) -> list[dict]:
+    """Collections are named product sets sent as a multi-product message (max 30 SKUs each)."""
+    out = []
+    for c in raw or []:
+        if not isinstance(c, dict):
+            continue
+        title = str(c.get("title") or "").strip()[:24]
+        skus = [str(x).strip()[:80] for x in c.get("skus") or [] if str(x).strip()]
+        if not title:
+            raise HTTPException(status_code=422, detail={"error": "Every collection needs a title (24 characters max)."})
+        if not skus or len(skus) > commerce_rt.MAX_LIST_PRODUCTS:
+            raise HTTPException(status_code=422, detail={"error": f"Collection “{title}” needs 1–{commerce_rt.MAX_LIST_PRODUCTS} products."})
+        out.append({"id": str(c.get("id") or uuid.uuid4().hex[:12])[:64], "title": title, "header": str(c.get("header") or "")[:60],
+                    "body": str(c.get("body") or "")[:1024], "skus": list(dict.fromkeys(skus))})
+    return out
+
+
 def _settings_out(s: CommerceSettings) -> dict:
     return {
         "catalog_enabled": s.catalog_enabled,
@@ -59,7 +80,7 @@ def _settings_out(s: CommerceSettings) -> dict:
         "currency": s.currency,
         "checkout_mode": s.checkout_mode,
         "external_checkout_url": s.external_checkout_url,
-        "config": {**DEFAULT_CONFIG, **(s.config or {})},
+        "config": commerce_rt.cfg(s),
     }
 
 
@@ -78,6 +99,7 @@ def _order_out(o: Order) -> dict:
         "items": o.items or [], "subtotal": o.subtotal, "total": o.total, "currency": o.currency,
         "status": o.status, "payment_status": o.payment_status, "payment_method": o.payment_method,
         "shipping_address": o.shipping_address, "note": o.note, "source": o.source,
+        "checkout_step": (o.checkout_state or {}).get("step"), "conversation_id": str(o.conversation_id) if o.conversation_id else None,
         "created_at": o.created_at.isoformat() if o.created_at else None,
     }
 
@@ -128,7 +150,12 @@ async def update_settings(body: SettingsIn, ctx: Ctx = Depends(require_writer), 
     if body.external_checkout_url is not None:
         s.external_checkout_url = body.external_checkout_url.strip() or None
     if body.config is not None:
-        s.config = {**DEFAULT_CONFIG, **(s.config or {}), **body.config}
+        merged = {**DEFAULT_CONFIG, **(s.config or {}), **body.config}
+        merged["collections"] = _clean_collections(merged.get("collections"))
+        for key, limit in (("catalog_message_body", 1024), ("catalog_message_footer", 60), ("catalog_thumbnail_sku", 80)):
+            if key in merged:
+                merged[key] = str(merged[key] or "")[:limit]
+        s.config = merged
     await db.commit()
     return _settings_out(s)
 
@@ -510,6 +537,34 @@ async def list_orders(
     stmt = stmt.order_by(Order.created_at.desc())
     rows = (await db.execute(stmt)).scalars().all()
     return [_order_out(o) for o in rows]
+
+
+class SendCatalogIn(BaseModel):
+    conversation_id: uuid.UUID
+    type: str = Field(pattern="^(catalog|collection)$")
+    collection_id: str | None = Field(None, max_length=64)
+
+
+@router.post("/send")
+async def send_catalog(body: SendCatalogIn, ctx: Ctx = Depends(require_writer), db: AsyncSession = Depends(get_db)) -> dict:
+    """Send the catalog (or one collection as a multi-product message) into a conversation — within the 24-hour window."""
+    conv = await db.get(Conversation, body.conversation_id)
+    if conv is None or conv.tenant_id != ctx.tenant_id:
+        raise HTTPException(status_code=404, detail={"error": "Conversation not found."})
+    account = await db.get(WhatsAppAccount, conv.account_id)
+    contact = await db.get(Contact, conv.contact_id)
+    if account is None or contact is None:
+        raise HTTPException(status_code=404, detail={"error": "Conversation not found."})
+    try:
+        msg = await commerce_rt.send_attachment(db, account, conv, contact, {"type": body.type, "collection_id": body.collection_id},
+                                                sender_user_id=ctx.user_id)
+    except commerce_rt.CommerceError as exc:
+        raise HTTPException(status_code=exc.status, detail={"error": exc.message})
+    except messaging.SendBlocked as exc:
+        raise HTTPException(status_code=409, detail={"error": exc.message})
+    except GraphError as exc:
+        raise HTTPException(status_code=502, detail={"error": f"WhatsApp rejected the catalog message: {exc}"})
+    return {"ok": True, "message_id": str(msg.id), "wamid": msg.wamid}
 
 
 @router.post("/orders", status_code=status.HTTP_201_CREATED)

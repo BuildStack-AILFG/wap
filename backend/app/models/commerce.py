@@ -74,3 +74,6 @@ class Order(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     shipping_address: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     source: Mapped[str] = mapped_column(String(16), nullable=False, default="whatsapp")  # whatsapp|manual
+    conversation_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    # Checkout Bot progress for an order placed from a WhatsApp cart: {"step": "proceed|name|address|payment", ...}; None when done.
+    checkout_state: Mapped[dict | None] = mapped_column(JSON, nullable=True)

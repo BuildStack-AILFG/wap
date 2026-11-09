@@ -3,11 +3,11 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { AlertTriangle, Bot, Check, CheckCheck, Clock, FileText, IndianRupee, Inbox as InboxIcon, Paperclip, Search, Send, StickyNote, UserRound, X, Zap } from "lucide-react";
+import { AlertTriangle, Bot, Check, CheckCheck, Clock, FileText, IndianRupee, Inbox as InboxIcon, Paperclip, Search, Send, ShoppingBag, StickyNote, UserRound, X, Zap } from "lucide-react";
 import { ACCENT, accentTint, Alert, Badge, Button, cx, EmptyState, Field, fmtDateTime, Input, Modal, Select, Spinner, timeAgo, Toggle, useDebounced, usePoll, useUi } from "@/components/ui/kit";
 import {
-  contacts as contactsApi, errorMessage, getSettings, inbox, templates as templatesApi, whatsapp, team,
-  type ChatMessage, type ConversationDetail, type ConversationSummary, type Member, type Template,
+  commerce, contacts as contactsApi, errorMessage, getSettings, inbox, templates as templatesApi, whatsapp, team,
+  type ChatMessage, type Collection, type ConversationDetail, type ConversationSummary, type Member, type Template,
 } from "@/lib/api";
 import PaymentLinkModal from "@/components/sales/PaymentLinkModal";
 import ContactDeals from "@/components/sales/ContactDeals";
@@ -155,6 +155,7 @@ function Thread({ id, members, userId, onBack, onChanged }: { id: string; member
   const [err, setErr] = useState<string | null>(null);
   const [showTpl, setShowTpl] = useState(false);
   const [showPay, setShowPay] = useState(false);
+  const [showShop, setShowShop] = useState(false);
   const [quick, setQuick] = useState<{ id: string; shortcut: string; text: string }[]>([]);
   const [panel, setPanel] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -296,6 +297,7 @@ function Thread({ id, members, userId, onBack, onChanged }: { id: string; member
                 <input ref={fileRef} type="file" hidden onChange={(e) => void onFile(e.target.files?.[0])} accept="image/jpeg,image/png,image/webp,video/mp4,audio/mpeg,audio/ogg,audio/aac,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" />
                 <button onClick={() => fileRef.current?.click()} disabled={blocked || sending || mode === "note"} className="rounded-md p-2 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-30" aria-label="Attach file"><Paperclip size={17} /></button>
                 <button onClick={() => setShowTpl(true)} disabled={sending || mode === "note"} className="rounded-md p-2 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-30" aria-label="Send template"><FileText size={17} /></button>
+                <button onClick={() => setShowShop(true)} disabled={blocked || sending || mode === "note"} className="rounded-md p-2 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-30" aria-label="Send catalog" title="Send catalog"><ShoppingBag size={17} /></button>
                 <button onClick={() => setShowPay(true)} disabled={sending || mode === "note"} className="rounded-md p-2 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-30" aria-label="Request payment" title="Request payment"><IndianRupee size={17} /></button>
                 <Button onClick={submit} loading={sending} disabled={!text.trim() || blocked}><Send size={15} /></Button>
               </div>
@@ -305,6 +307,7 @@ function Thread({ id, members, userId, onBack, onChanged }: { id: string; member
       </section>
 
       {panel && <ContactPanel conv={conv} onChanged={async () => { await loadConv(); onChanged(); }} canWrite={canWrite} />}
+      {showShop && <SendCatalogModal conversationId={id} onClose={() => setShowShop(false)} onSent={() => { setShowShop(false); void loadMsgs(); }} />}
       <PaymentLinkModal open={showPay} onClose={() => setShowPay(false)} contact={{ id: c.id, name: c.name }} onInsert={(t) => { setMode("reply"); setText((prev) => (prev ? `${prev}
 ${t}` : t)); }} />
       <TemplateModal open={showTpl} onClose={() => setShowTpl(false)} contact={c} onSend={async (b) => { await send(b); setShowTpl(false); toast("Template sent"); }} />
@@ -474,3 +477,31 @@ function Chips({ items, onRemove }: { items: string[]; onRemove?: (v: string) =>
   return <div className="flex flex-wrap gap-1.5">{items.map((i) => <span key={i} className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-0.5 text-[12px] text-white/80">{i}{onRemove && <button onClick={() => onRemove(i)} aria-label={`Remove ${i}`} className="text-white/40 hover:text-white"><X size={11} /></button>}</span>)}</div>;
 }
 
+
+
+/** Send the WhatsApp catalog, or one collection as a multi-product message, into the open chat. */
+function SendCatalogModal({ conversationId, onClose, onSent }: { conversationId: string; onClose: () => void; onSent: () => void }) {
+  const { toast } = useUi();
+  const [cols, setCols] = useState<Collection[] | null>(null);
+  const [catalogId, setCatalogId] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  useEffect(() => { commerce.settings().then((s) => { setCols(s.config.collections ?? []); setCatalogId(s.meta_catalog_id); }).catch(() => setCols([])); }, []);
+  async function send(type: "catalog" | "collection", collection_id?: string) {
+    setBusy(collection_id ?? type);
+    try { await commerce.send({ conversation_id: conversationId, type, collection_id }); toast("Sent"); onSent(); }
+    catch (e) { toast(errorMessage(e), "error"); } finally { setBusy(null); }
+  }
+  return (
+    <Modal open onClose={onClose} title="Send products" width={460}>
+      {cols === null ? <Spinner /> : !catalogId ? (
+        <p className="text-[13.5px] text-white/60">Connect your Meta catalog in <Link href="/dashboard/commerce-settings" className="text-sky-300 hover:underline">Commerce Settings</Link> first.</p>
+      ) : (
+        <div className="space-y-2">
+          <Button className="w-full justify-center" loading={busy === "catalog"} onClick={() => send("catalog")}><ShoppingBag size={15} /> Full catalog</Button>
+          {cols.map((c) => <Button key={c.id} variant="ghost" className="w-full justify-center" loading={busy === c.id} onClick={() => send("collection", c.id)}>{c.title} · {c.skus.length} products</Button>)}
+          {!cols.length && <p className="pt-1 text-center text-[12.5px] text-white/40">Create collections in Commerce Settings → step 2.</p>}
+        </div>
+      )}
+    </Modal>
+  );
+}

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -25,3 +25,5 @@ class CustomReply(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     priority: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     conversations_sent: Mapped[int] = mapped_column(Integer, default=0)
+    # Optional commerce attachment sent after the text: {"type": "catalog"} or {"type": "collection", "collection_id": "..."}.
+    attachment: Mapped[dict | None] = mapped_column(JSON, nullable=True)

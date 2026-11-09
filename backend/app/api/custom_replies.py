@@ -11,10 +11,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import Ctx, get_ctx, get_db, require_writer
 from app.models.automation_flow import AutomationFlow
 from app.models.custom_reply import CustomReply
+from app.services import commerce
 
 router = APIRouter(prefix="/custom-replies", tags=["custom-replies"])
 
 MatchType = Literal["exact", "contains", "any"]
+
+
+class Attachment(BaseModel):
+    type: Literal["catalog", "collection"]
+    collection_id: str | None = Field(default=None, max_length=64)
 
 
 class CustomReplyCreate(BaseModel):
@@ -23,6 +29,7 @@ class CustomReplyCreate(BaseModel):
     reply_text: str = Field(default="", max_length=4096)
     flow_id: uuid.UUID | None = None
     priority: int = Field(default=0, ge=-100, le=100)
+    attachment: Attachment | None = None
 
 
 class CustomReplyUpdate(BaseModel):
@@ -32,6 +39,7 @@ class CustomReplyUpdate(BaseModel):
     flow_id: uuid.UUID | None = None
     priority: int | None = Field(default=None, ge=-100, le=100)
     enabled: bool | None = None
+    attachment: Attachment | None = None
 
 
 class CustomReplyOut(BaseModel):
@@ -45,13 +53,20 @@ class CustomReplyOut(BaseModel):
     priority: int
     enabled: bool
     conversations_sent: int
+    attachment: dict | None = None
 
 
-async def _check(db: AsyncSession, ctx: Ctx, trigger: str, match_type: str, reply_text: str, flow_id: uuid.UUID | None) -> None:
+async def _check(db: AsyncSession, ctx: Ctx, trigger: str, match_type: str, reply_text: str, flow_id: uuid.UUID | None,
+                 attachment: dict | None = None) -> None:
     if match_type != "any" and not trigger.strip():
         raise HTTPException(status_code=422, detail={"error": "Add at least one trigger keyword."})
-    if not reply_text.strip() and not flow_id:
-        raise HTTPException(status_code=422, detail={"error": "Add a reply message or choose a flow to run."})
+    if not reply_text.strip() and not flow_id and not attachment:
+        raise HTTPException(status_code=422, detail={"error": "Add a reply message, a catalog or a flow to run."})
+    if attachment:
+        try:
+            await commerce.build_attachment(db, ctx.tenant_id, attachment)
+        except commerce.CommerceError as exc:
+            raise HTTPException(status_code=422, detail={"error": exc.message})
     if flow_id:
         flow = await db.get(AutomationFlow, flow_id)
         if flow is None or flow.tenant_id != ctx.tenant_id:
@@ -66,8 +81,10 @@ async def list_custom_replies(ctx: Ctx = Depends(get_ctx), db: AsyncSession = De
 
 @router.post("", response_model=CustomReplyOut, status_code=status.HTTP_201_CREATED)
 async def create_custom_reply(body: CustomReplyCreate, ctx: Ctx = Depends(require_writer), db: AsyncSession = Depends(get_db)) -> CustomReply:
-    await _check(db, ctx, body.trigger, body.match_type, body.reply_text, body.flow_id)
-    reply = CustomReply(tenant_id=ctx.tenant_id, trigger=body.trigger.strip() or "*", match_type=body.match_type, reply_text=body.reply_text, flow_id=body.flow_id, priority=body.priority)
+    attachment = body.attachment.model_dump(exclude_none=True) if body.attachment else None
+    await _check(db, ctx, body.trigger, body.match_type, body.reply_text, body.flow_id, attachment)
+    reply = CustomReply(tenant_id=ctx.tenant_id, trigger=body.trigger.strip() or "*", match_type=body.match_type, reply_text=body.reply_text, flow_id=body.flow_id,
+                        priority=body.priority, attachment=attachment)
     db.add(reply)
     await db.commit()
     await db.refresh(reply)
@@ -85,9 +102,11 @@ async def _get_owned_reply(reply_id: uuid.UUID, ctx: Ctx, db: AsyncSession) -> C
 async def update_custom_reply(reply_id: uuid.UUID, body: CustomReplyUpdate, ctx: Ctx = Depends(require_writer), db: AsyncSession = Depends(get_db)) -> CustomReply:
     reply = await _get_owned_reply(reply_id, ctx, db)
     data = body.model_dump(exclude_unset=True)
+    if "attachment" in data:
+        data["attachment"] = body.attachment.model_dump(exclude_none=True) if body.attachment else None
     for field, value in data.items():
         setattr(reply, field, value)
-    await _check(db, ctx, reply.trigger, reply.match_type, reply.reply_text, reply.flow_id)
+    await _check(db, ctx, reply.trigger, reply.match_type, reply.reply_text, reply.flow_id, reply.attachment)
     await db.commit()
     await db.refresh(reply)
     return reply

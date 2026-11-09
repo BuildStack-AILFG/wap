@@ -11,6 +11,7 @@ const ORDER_STATUSES: OrderStatus[] = ["pending", "confirmed", "shipped", "deliv
 const PAYMENT_STATUSES: PaymentStatus[] = ["unpaid", "paid", "refunded"];
 const fmtDate = (s: string | null) => (s ? new Date(s).toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
 const fulfillment = (o: Order) => (o.status === "delivered" ? "Delivered" : o.status === "shipped" ? "Shipped" : o.status === "cancelled" ? "Cancelled" : "Unfulfilled");
+const STEP_LABEL = { proceed: "awaiting confirmation", name: "asking name", address: "asking address", payment: "choosing payment" } as const;
 const addr = (o: Order) => (o.shipping_address ? Object.values(o.shipping_address).filter(Boolean).join(", ") : "—");
 
 export default function OrderPanelPage() {
@@ -89,7 +90,9 @@ export default function OrderPanelPage() {
                   <tr key={o.id} className="cursor-pointer border-b border-white/5 hover:bg-white/[0.03]" onClick={() => setOpen(o)}>
                     <td className="px-5 py-3 text-white/85">{o.customer_name || "—"}<div className="text-[11px] text-white/35">{o.customer_phone}</div></td>
                     <td className="px-2 py-3 text-white/50">{fmtDate(o.created_at)}</td>
-                    <td className="px-2 py-3 font-medium text-white">{o.order_number}</td>
+                    <td className="px-2 py-3 font-medium text-white">{o.order_number}
+                      {o.checkout_step && <div className="text-[11px] font-normal text-amber-300/80">In checkout · {STEP_LABEL[o.checkout_step]}</div>}
+                      {o.conversation_id && <Link href={`/dashboard/inbox?c=${o.conversation_id}`} className="block text-[11px] font-normal text-sky-300 hover:underline">Open chat</Link>}</td>
                     <td className="px-2 py-3 text-white/70">{o.items.reduce((n, i) => n + i.quantity, 0)} items · {money(o.total, o.currency)}</td>
                     <td className="px-2 py-3"><Badge tone={statusTone(o.status)}>{o.status}</Badge></td>
                     <td className="px-2 py-3"><Badge tone={o.payment_status === "paid" ? "green" : o.payment_status === "refunded" ? "blue" : "yellow"}>{o.payment_status}</Badge></td>

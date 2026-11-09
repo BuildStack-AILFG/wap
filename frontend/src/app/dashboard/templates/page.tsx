@@ -169,11 +169,13 @@ function Builder({ initial, id, canSubmit, onClose, onSaved }: { initial: Templa
               <Field label="Footer (optional)"><Input value={t.footer} onChange={(e) => set("footer", e.target.value)} maxLength={60} placeholder={t.category === "MARKETING" ? "Reply STOP to opt out" : "Thanks for choosing us"} /></Field>
               <div>
                 <div className="mb-2 flex items-center justify-between"><span className="text-[12.5px] font-medium text-white/70">Buttons (optional)</span>
-                  <div className="flex gap-1">{([["quick_reply", "Quick reply"], ["url", "Link"], ["phone", "Call"]] as const).map(([k, l]) => <Button key={k} size="sm" variant="ghost" disabled={t.buttons.length >= 10} onClick={() => set("buttons", [...t.buttons, { type: k, text: "" }])}><Plus size={12} /> {l}</Button>)}</div></div>
+                  <div className="flex gap-1">{([["quick_reply", "Quick reply"], ["url", "Link"], ["phone", "Call"]] as const).map(([k, l]) => <Button key={k} size="sm" variant="ghost" disabled={t.buttons.length >= 10 || t.buttons.some((x) => x.type === "catalog")} onClick={() => set("buttons", [...t.buttons, { type: k, text: "" }])}><Plus size={12} /> {l}</Button>)}
+                    {t.category === "MARKETING" && <Button size="sm" variant="ghost" disabled={t.buttons.some((x) => x.type === "catalog")} onClick={() => { set("buttons", [{ type: "catalog", text: "View catalog" }]); set("header_type", "none"); }}><Plus size={12} /> View catalog</Button>}</div></div>
                 {t.buttons.map((b, i) => (
                   <div key={i} className="mb-2 flex flex-wrap gap-2 rounded-xl border border-white/10 p-2.5">
-                    <Badge tone="gray" className="self-center">{b.type === "quick_reply" ? "Reply" : b.type === "url" ? "Link" : "Call"}</Badge>
-                    <Input className="!w-40" value={b.text} maxLength={25} onChange={(e) => setBtn(i, { text: e.target.value })} placeholder="Button text" />
+                    <Badge tone="gray" className="self-center">{b.type === "quick_reply" ? "Reply" : b.type === "url" ? "Link" : b.type === "catalog" ? "Catalog" : "Call"}</Badge>
+                    {b.type === "catalog" ? <span className="self-center text-[13px] text-white/70">View catalog — opens your WhatsApp catalog</span>
+                      : <Input className="!w-40" value={b.text} maxLength={25} onChange={(e) => setBtn(i, { text: e.target.value })} placeholder="Button text" />}
                     {b.type === "url" && <><Input className="min-w-[180px] flex-1" value={b.url ?? ""} onChange={(e) => setBtn(i, { url: e.target.value })} placeholder="https://example.com/track/{{1}}" />
                       {(b.url ?? "").includes("{{1}}") && <Input className="min-w-[180px] flex-1" value={b.example ?? ""} onChange={(e) => setBtn(i, { example: e.target.value })} placeholder="Example full URL" />}</>}
                     {b.type === "phone" && <Input className="!w-44" value={b.phone ?? ""} onChange={(e) => setBtn(i, { phone: e.target.value })} placeholder="+919876543210" />}
