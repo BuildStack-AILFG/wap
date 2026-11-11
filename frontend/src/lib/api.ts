@@ -77,6 +77,14 @@ export function getAccessToken(): string | null {
 export function getRefreshToken(): string | null {
   return typeof window === "undefined" ? null : window.localStorage.getItem(REFRESH_TOKEN_KEY);
 }
+/** True when this browser holds a session (it may still need a refresh); used to skip the login screen for signed-in users. */
+export function hasSession(): boolean {
+  try {
+    return Boolean(getAccessToken() || getRefreshToken());
+  } catch {
+    return false; // storage blocked
+  }
+}
 
 // ---- transport -------------------------------------------------------------------------------------------------------------------------
 
@@ -114,7 +122,8 @@ async function refreshSession(): Promise<boolean> {
   refreshing ??= (async () => {
     try {
       const res = await fetch(`${API_URL}/auth/refresh`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ refresh_token: rt }) });
-      if (!res.ok) return false;
+      // another tab may have rotated the refresh token a moment earlier: its new session is already in storage, so keep it
+      if (!res.ok) return getRefreshToken() !== null && getRefreshToken() !== rt;
       storeSession(await res.json());
       return true;
     } catch {

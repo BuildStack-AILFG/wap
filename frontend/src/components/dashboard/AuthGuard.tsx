@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getAccessToken, clearSession, getMe, ApiError, type MeResponse } from "@/lib/api";
+import { hasSession, clearSession, getMe, ApiError, type MeResponse } from "@/lib/api";
 import { WorkspaceContext } from "./WorkspaceContext";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -16,7 +16,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   const load = useCallback(() => {
     setFailed(null);
-    if (!getAccessToken()) {
+    if (!hasSession()) {
       router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
       return;
     }

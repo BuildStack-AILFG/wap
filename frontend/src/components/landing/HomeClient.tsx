@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { hasSession } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import SmoothScroll from "@/components/landing/SmoothScroll";
 import LandingNavbar from "@/components/landing/LandingNavbar";
@@ -29,7 +30,7 @@ export default function HomeClient({ pricing, startPrice = 799, trialDays = 14 }
   const [demoOpen, setDemoOpen] = useState(false);
 
   const handleGetStarted = () => {
-    router.push("/login");
+    router.push(hasSession() ? "/dashboard" : "/login");
   };
 
   const handleBookDemo = () => setDemoOpen(true);

@@ -99,7 +99,7 @@ export default function GoogleSignInButton({ mode, companyName }: { mode: "login
           type="button"
           tabIndex={-1}
           aria-hidden
-          className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/15 bg-white px-4 py-3 text-[14.5px] font-semibold text-neutral-900 transition-colors group-hover:bg-neutral-100"
+          className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/15 bg-field px-4 py-3 text-[14.5px] font-semibold text-white transition-colors group-hover:border-white/30 group-hover:bg-white/[0.06]"
         >
           <GoogleLogo />
           {busy ? "Signing in…" : mode === "signup" ? "Sign up with Google" : "Continue with Google"}

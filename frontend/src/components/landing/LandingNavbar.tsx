@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, Menu, X } from "lucide-react";
+import { useSignedIn } from "@/components/auth/useSignedIn";
 
 function NavDropdownTrigger({ children, isOpen }: { children: React.ReactNode; isOpen: boolean }) {
   return (
@@ -62,6 +63,7 @@ function DropdownMenu({ items, isOpen }: { items: { label: string; href: string 
 export default function LandingNavbar() {
   const [openDropdown, setOpenDropdown] = useState<"product" | "solutions" | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const signedIn = useSignedIn();
 
   const NavLink = ({ href, children }: { href: string; children: React.ReactNode }) => (
     <a
@@ -106,10 +108,10 @@ export default function LandingNavbar() {
 
         <div className="hidden lg:flex items-center gap-2 shrink-0">
           <a
-            href="/login"
+            href={signedIn ? "/dashboard" : "/login"}
             className="inline-flex items-center justify-center rounded-lg bg-white/[0.06] px-5 py-2 text-[14px] font-medium text-white border border-white/15 hover:bg-white/10 transition-colors"
           >
-            Log in
+            {signedIn ? "Dashboard" : "Log in"}
           </a>
           <a
             href="/signup"
@@ -157,8 +159,8 @@ export default function LandingNavbar() {
               Contact
             </a>
             <div className="mt-3 flex gap-2 pt-3 border-t border-white/15">
-              <a href="/login" className="flex-1 text-center rounded-xl bg-white/[0.06] border border-white/15 px-4 py-2.5 text-sm font-medium" onClick={() => setIsMenuOpen(false)}>
-                Log in
+              <a href={signedIn ? "/dashboard" : "/login"} className="flex-1 text-center rounded-xl bg-white/[0.06] border border-white/15 px-4 py-2.5 text-sm font-medium" onClick={() => setIsMenuOpen(false)}>
+                {signedIn ? "Dashboard" : "Log in"}
               </a>
               <a href="/signup" className="flex-1 text-center rounded-xl bg-brand text-white px-4 py-2.5 text-sm font-semibold" onClick={() => setIsMenuOpen(false)}>
                 Start trial

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Menu, X } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import { useSignedIn } from "@/components/auth/useSignedIn";
 import type { NavLink } from "@/lib/site/nav";
 
 type Group = { id: string; label: string; links: NavLink[]; wide?: boolean };
@@ -14,6 +15,7 @@ export default function SiteHeader({ groups }: { groups: Group[] }) {
   const pathname = usePathname();
   const [open, setOpen] = useState<string | null>(null);
   const [mobile, setMobile] = useState(false);
+  const signedIn = useSignedIn();
   const bar = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setOpen(null); setMobile(false); }, [pathname]);
@@ -60,7 +62,7 @@ export default function SiteHeader({ groups }: { groups: Group[] }) {
 
         <div className="hidden shrink-0 items-center gap-2 lg:flex">
           <ThemeToggle />
-          <Link href="/login" className="inline-flex items-center rounded-lg border border-white/15 bg-white/[0.06] px-5 py-2 text-[14px] font-medium text-white transition-colors hover:bg-white/10">Log in</Link>
+          <Link href={signedIn ? "/dashboard" : "/login"} className="inline-flex items-center rounded-lg border border-white/15 bg-white/[0.06] px-5 py-2 text-[14px] font-medium text-white transition-colors hover:bg-white/10">{signedIn ? "Dashboard" : "Log in"}</Link>
           <Link href="/signup" className="btn-accent inline-flex items-center rounded-lg bg-brand px-5 py-2 text-[14px] font-semibold text-white transition-colors hover:bg-brand-hover">Start free trial</Link>
         </div>
 
@@ -82,7 +84,7 @@ export default function SiteHeader({ groups }: { groups: Group[] }) {
           ))}
           <Link href="/pricing" className="block border-b border-white/10 px-2 py-4 text-[15px] font-semibold text-white">Pricing</Link>
           <div className="mt-4 flex gap-3">
-            <Link href="/login" className="flex-1 rounded-xl border border-white/15 bg-white/[0.06] px-4 py-2.5 text-center text-[14px] font-medium text-white">Log in</Link>
+            <Link href={signedIn ? "/dashboard" : "/login"} className="flex-1 rounded-xl border border-white/15 bg-white/[0.06] px-4 py-2.5 text-center text-[14px] font-medium text-white">{signedIn ? "Dashboard" : "Log in"}</Link>
             <Link href="/signup" className="btn-accent flex-1 rounded-xl bg-brand px-4 py-2.5 text-center text-[14px] font-semibold text-white">Start free trial</Link>
           </div>
         </div>
