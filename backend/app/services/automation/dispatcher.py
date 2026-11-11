@@ -32,7 +32,7 @@ from app.models.conversation import Conversation, Message
 from app.models.custom_reply import CustomReply
 from app.models.tenant import Tenant
 from app.models.whatsapp_account import WhatsAppAccount
-from app.services import assignment, commerce, followups, templating
+from app.services import assignment, commerce, followups, team_hub, templating
 from app.services.ai import agent as ai_agent
 from app.services.automation import flow_engine
 from app.services.whatsapp import messaging
@@ -126,6 +126,10 @@ async def run(db: AsyncSession, tenant: Tenant, account: WhatsAppAccount, conv: 
     if (msg.payload or {}).get("opt_in"):
         await _bot_text(db, account, conv, contact, "Welcome back! You're subscribed again.", "optin")
         return "opt_in"
+
+    # 1a — a team member writing to the business number: their Team Hub assistant answers, not the customer bot
+    if await team_hub.handle_inbound(db, tenant, account, conv, contact, msg):
+        return "team_hub"
 
     # 1b — WhatsApp Commerce: a cart sent from the catalog becomes an order; replies move the Checkout Bot along
     if msg.type == "order":

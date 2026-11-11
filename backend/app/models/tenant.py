@@ -63,6 +63,10 @@ class TenantMembership(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     role: Mapped[str] = mapped_column(String(32), default="owner")  # owner|admin|agent|viewer
+    # Team Hub: the member's own WhatsApp number; messages from it to the business number go to the team assistant, not the bot
+    whatsapp_phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    assistant_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    assistant_state: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)  # e.g. {"await_note": task_id, "summary_date": "2026-11-11"}
 
     tenant: Mapped[Tenant] = relationship(back_populates="memberships")
     user: Mapped[User] = relationship(back_populates="memberships")

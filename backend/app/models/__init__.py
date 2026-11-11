@@ -15,6 +15,7 @@ from app.models.plan import Plan
 from app.models.platform import PlatformSetting
 from app.models.public_forms import ContactMessage, NewsletterSubscriber
 from app.models.refresh_token import RefreshToken
+from app.models.sales_task import SalesTask
 from app.models.segment import Segment
 from app.models.team_invite import TeamInvite
 from app.models.template import WhatsAppTemplate
@@ -53,6 +54,7 @@ __all__ = [
     "Product",
     "PlatformSetting",
     "RefreshToken",
+    "SalesTask",
     "Segment",
     "TeamInvite",
     "WebhookIngress",

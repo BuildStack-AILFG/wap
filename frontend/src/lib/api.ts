@@ -475,6 +475,34 @@ export const followups = {
 
 export type Member = { user_id: string; email: string; full_name: string | null; role: string; is_you: boolean; active: boolean; last_login_at: string | null };
 export type Invite = { id: string; email: string; role: string; expires_at: string; expired: boolean; email_sent?: boolean; invite_link?: string | null };
+export type TaskKind = "call" | "follow_up" | "meeting" | "other";
+export type SalesTask = {
+  id: string; title: string; kind: TaskKind; status: "open" | "done"; notes: string | null; source: string;
+  due_at: string | null; done_at: string | null; created_at: string | null; user_id: string | null; user_name: string | null; deal_id: string | null;
+  contact: { id: string; name: string; phone: string; lead_score: LeadScore | null } | null;
+};
+export type HubStats = { today: number; overdue: number; done_today: number; open_deals: number; hot_leads: number };
+export type HubMember = {
+  user_id: string; name: string; email: string; role: string; is_you: boolean; active: boolean;
+  whatsapp_phone: string | null; assistant_enabled: boolean; stats: HubStats;
+};
+export type HubOverview = {
+  members: HubMember[]; business_numbers: { phone: string; name: string | null }[]; settings: { daily_summary: boolean; summary_hour: number };
+  ai_enabled: boolean; timezone: string; can_manage: boolean;
+};
+export type TaskInput = { title: string; kind: TaskKind; user_id?: string | null; contact_id?: string | null; due_at?: string | null; notes?: string | null };
+export const teamHub = {
+  overview: () => request<HubOverview>("/team-hub/overview"),
+  setMember: (userId: string, b: { whatsapp_phone?: string | null; assistant_enabled?: boolean }) =>
+    request<{ whatsapp_phone: string | null; assistant_enabled: boolean }>(`/team-hub/members/${userId}`, { method: "PATCH", body: b }),
+  setSettings: (b: { daily_summary: boolean; summary_hour: number }) => request<{ daily_summary: boolean; summary_hour: number }>("/team-hub/settings", { method: "PUT", body: b }),
+  tasks: (p: { user_id?: string; status?: "open" | "done" | "all"; scope?: "all" | "today" | "overdue" | "upcoming"; q?: string }) =>
+    request<{ items: SalesTask[] }>(`/team-hub/tasks${qs(p)}`),
+  createTask: (b: TaskInput) => request<SalesTask>("/team-hub/tasks", { method: "POST", body: b }),
+  updateTask: (id: string, b: Partial<TaskInput> & { status?: "open" | "done" }) => request<SalesTask>(`/team-hub/tasks/${id}`, { method: "PATCH", body: b }),
+  removeTask: (id: string) => request<void>(`/team-hub/tasks/${id}`, { method: "DELETE" }),
+};
+
 export const team = {
   members: () => request<Member[]>("/team/members"),
   setRole: (id: string, role: string) => request<{ role: string }>(`/team/members/${id}`, { method: "PATCH", body: { role } }),

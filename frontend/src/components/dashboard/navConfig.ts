@@ -24,6 +24,8 @@ import {
   Package,
   ScrollText,
   BellRing,
+  UsersRound,
+  ListTodo,
 } from "lucide-react";
 
 export type NavItem = {
@@ -95,6 +97,20 @@ export const NAV_GROUPS: NavGroup[] = [
         items: [
           { id: "pipeline", label: "Pipeline", href: "/dashboard/pipeline", icon: Handshake },
           { id: "sales-reports", label: "Sales Reports", href: "/dashboard/sales-reports", icon: TrendingUp },
+        ],
+      },
+    ],
+  },
+  {
+    id: "team",
+    label: "Team",
+    icon: UsersRound,
+    badge: "new",
+    sections: [
+      {
+        items: [
+          { id: "team-hub", label: "Sales Team", href: "/dashboard/team", icon: UsersRound },
+          { id: "team-tasks", label: "Tasks", href: "/dashboard/team/tasks", icon: ListTodo },
         ],
       },
     ],
