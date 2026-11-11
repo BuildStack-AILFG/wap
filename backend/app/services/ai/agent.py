@@ -33,10 +33,24 @@ PROVIDERS = {"anthropic": "", "openai": "gpt-6-luna", "xai": "grok-4.7", "groq":
 
 
 OPTION_RULES = (
-    "- Answer first, then keep the conversation moving with ONE question offering 2-4 choices, each on its own line as "
-    "'A) ...', 'B) ...', 'C) ...', 'D) ...', taken from the knowledge below (e.g. which product, plan, or next step).\n"
-    "- If the customer replies with just a letter or number (a, B, 2) or an option's words, they picked that option from your "
-    "previous message: continue with it and don't ask the same question again.\n"
+    "- Almost every reply should end with ONE short question and give the customer tap buttons for it in \"options\": "
+    "2-3 options (up to 6 only when they must pick from a longer list, e.g. products or services), each 1-3 words and at most 20 characters, "
+    "plain words, no emoji, no letters or numbering, taken from the knowledge below (e.g. which product, plan, or next step like \"Book a demo\"). "
+    "Do NOT write the options inside \"reply\" - they are shown as WhatsApp buttons under your message.\n"
+    "- Leave \"options\" empty only when a button makes no sense (e.g. you asked for their name, email or a time).\n"
+    "- If the customer's message is one of your earlier options (or a letter/number for it), they picked it: continue from it "
+    "and don't ask the same question again.\n"
+)
+OPTIONS_MAX = 6
+STYLE_RULES = (
+    "- Sound like a friendly, real person from the team texting on WhatsApp, not a bot: simple everyday words, warm and direct.\n"
+    "- Keep it SHORT: usually 1-3 short sentences (under 300 characters). Never more than 2 short paragraphs. One idea per message.\n"
+    "- No bullet lists, headings, bold, markdown or long explanations unless the customer asks for details. Give the one fact they "
+    "need, then move the chat forward.\n"
+    "- Never say you are an AI, a bot or an assistant, and avoid robotic phrases like \"Great question\", \"I understand your concern\", "
+    "\"As per\", \"Kindly\", \"I hope this helps\" or \"Feel free to\". Don't repeat the customer's question back.\n"
+    "- At most one emoji, and only when it fits. Use the customer's first name now and then, not in every message.\n"
+    "- If the customer writes in Hindi or Hinglish, reply the same way in simple words.\n"
 )
 
 
@@ -56,6 +70,29 @@ class AIResult:
     handoff: bool = False
     confidence: float = 0.0
     collected: dict = field(default_factory=dict)
+    options: list[str] = field(default_factory=list)  # tap buttons to show under the reply
+
+
+def clean_options(raw) -> list[str]:
+    """The model's suggested buttons: unique, non-empty, short enough for WhatsApp (20 chars for buttons, 24 for list rows)."""
+    out: list[str] = []
+    for o in raw if isinstance(raw, list) else []:
+        t = re.sub(r"^\s*(?:[A-Da-d1-9][\).:-]\s*)", "", str(o or "")).strip().strip("*_\"'")
+        if t and t.lower() not in {x.lower() for x in out}:
+            out.append(t[:24].rstrip())
+    return out[:OPTIONS_MAX]
+
+
+def reply_message(reply: str, options: list[str]) -> dict:
+    """send_message kwargs for an AI reply: reply buttons for 1-3 short options, a list for more, plain text otherwise."""
+    from app.services.whatsapp import messaging  # local: messaging is heavier and not needed for prompt building
+    if not options or len(reply) > 1024:
+        return {"kind": "text", "text": reply}
+    if len(options) <= 3 and all(len(o) <= 20 for o in options):
+        inter = messaging.buttons_interactive(reply, [{"id": f"ai_opt_{i}", "title": o} for i, o in enumerate(options)])
+    else:
+        inter = messaging.list_interactive(reply, "Choose", [{"title": "Options", "rows": [{"id": f"ai_opt_{i}", "title": o} for i, o in enumerate(options)]}])
+    return {"kind": "interactive", "interactive": inter, "text": reply}
 
 
 def get_config(tenant: Tenant) -> dict:
@@ -237,12 +274,13 @@ def build_system_prompt(cfg: dict, contact: Contact, chunks: list[str], extra: s
         "- Ground every factual claim in the knowledge below or the conversation. Never invent prices, policies, or availability.\n"
         "- If the knowledge doesn't cover the question, say you'll get a teammate to help and set handoff=true.\n"
         "- If the customer is upset, asks for a human, or needs an action you can't do (refunds, account changes), set handoff=true.\n"
-        "- WhatsApp style: short, plain text, at most 3 short paragraphs, no markdown headings, no code blocks.\n"
+        f"{STYLE_RULES}"
         f"{OPTION_RULES if cfg['option_replies'] else ''}"
         f"{('- Business instructions: ' + cfg['instructions']) if cfg['instructions'] else ''}{fields}{extra}\n\n"
         f"Customer name: {contact.name}\n{_known(contact)}\nKNOWLEDGE:\n{kb}\n\n"
         f"Also rate the lead from the whole conversation: {LEAD_GUIDE}\n"
-        'Respond with ONLY a JSON object: {"reply": string, "handoff": boolean, "confidence": number between 0 and 1, '
+        'Respond with ONLY a JSON object: {"reply": string, "options": array of short button labels (empty array if none), '
+        '"handoff": boolean, "confidence": number between 0 and 1, '
         '"collected": object of qualification field -> value the customer just gave (empty object if none), '
         '"lead_score": "hot" | "warm" | "cold", "score_reason": one short sentence}.'
     )
@@ -268,16 +306,17 @@ async def answer(db: AsyncSession, tenant: Tenant, conv: Conversation, contact: 
     result = AIResult(
         reply=str(data.get("reply", "")).strip()[:3000], handoff=bool(data.get("handoff", False)),
         confidence=max(0.0, min(1.0, float(data.get("confidence", 0.6) or 0))), collected=data.get("collected") if isinstance(data.get("collected"), dict) else {},
+        options=clean_options(data.get("options")) if cfg["option_replies"] else [],
     )
     from app.services import lead_scoring  # local import: lead_scoring imports this module
     await lead_scoring.apply(db, tenant, contact, data.get("lead_score"), data.get("score_reason"))
     if cfg["agent_type"] == "leads" and result.collected and cfg["qualification_fields"]:
         contact.custom_fields = {**(contact.custom_fields or {}), **{k: str(v) for k, v in result.collected.items() if k in cfg["qualification_fields"] and v}}
     if not result.handoff and result.confidence < cfg["min_confidence"]:
-        result.handoff = True
+        result.handoff, result.options = True, []
         result.reply = cfg["fallback_message"] or cfg["handoff_message"]
     if not result.reply:
-        result.handoff, result.reply = True, cfg["handoff_message"]
+        result.handoff, result.reply, result.options = True, cfg["handoff_message"], []
     return result
 
 

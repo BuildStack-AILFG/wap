@@ -77,7 +77,7 @@ function Config({ cfg, onSaved }: { cfg: AiConfig; onSaved: (c: AiConfig) => voi
           <Field label="Language" hint="Leave as-is to reply in the customer's language"><Input value={f.language} onChange={(e) => set("language", e.target.value)} /></Field>
         </div>
         <Field label="Extra instructions" hint="Rules the assistant must follow, e.g. “Never quote prices; send people to the pricing page.”"><Textarea value={f.instructions} onChange={(e) => set("instructions", e.target.value)} maxLength={3000} /></Field>
-        <label className="flex items-center gap-3 text-[13px] text-white/70"><Toggle checked={f.option_replies} onChange={(v) => set("option_replies", v)} label="Reply with options" /> Answer, then ask one question with A / B / C / D options (a reply of “a” picks option A)</label>
+        <label className="flex items-center gap-3 text-[13px] text-white/70"><Toggle checked={f.option_replies} onChange={(v) => set("option_replies", v)} label="Reply with options" /> Answer, then ask one question with tap buttons the customer can pick</label>
         <Field label="Reply after (seconds)" hint="The customer sees “typing…” meanwhile, like a person replying. 0–20."><Input type="number" min={0} max={20} value={String(f.reply_delay_seconds)} onChange={(e) => set("reply_delay_seconds", Math.max(0, Math.min(20, Number(e.target.value) || 0)))} className="!w-28" /></Field>
         {f.agent_type === "leads" && <Field label="Details to collect" hint="Comma separated. Answers are saved on the contact."><Input value={f.fields} onChange={(e) => set("fields", e.target.value)} placeholder="budget, timeline, company_size" /></Field>}
       </Card>

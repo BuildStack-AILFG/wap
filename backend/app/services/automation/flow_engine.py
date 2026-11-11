@@ -489,7 +489,9 @@ async def _exec_node(db, ex, graph, node, tenant, contact, conv, account) -> tup
         except ai_agent.AIUnavailable as exc:
             _log(ex, nid, "skipped", str(exc))
             return "next", None
-        await _send(db, ex, node, account, conv, contact, kind="text", text=res.reply)
+        m = await _send(db, ex, node, account, conv, contact, **ai_agent.reply_message(res.reply, res.options))
+        if m is not None and m.type == "interactive" and m.status == "failed":  # buttons rejected: fall back to plain text
+            await _send(db, ex, node, account, conv, contact, kind="text", text=res.reply)
         if res.handoff:
             return await _handoff(db, ex, node, tenant, conv, None)
         _log(ex, nid, "ai_reply")

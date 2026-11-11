@@ -272,11 +272,11 @@ async def test_flows_are_tenant_scoped(wsa, other):
 
 # ---- AI agent ------------------------------------------------------------------------------------------------------------------------------
 
-def fake_llm(monkeypatch, reply="Delivery takes 2-3 days.", handoff=False, confidence=0.9, collected=None, capture=None):
+def fake_llm(monkeypatch, reply="Delivery takes 2-3 days.", handoff=False, confidence=0.9, collected=None, capture=None, options=None):
     async def complete(api_key, *, system, messages, model=None, max_tokens=700, provider="anthropic"):
         if capture is not None:
             capture.update(system=system, messages=messages, key=api_key)
-        return json.dumps({"reply": reply, "handoff": handoff, "confidence": confidence, "collected": collected or {}})
+        return json.dumps({"reply": reply, "handoff": handoff, "confidence": confidence, "collected": collected or {}, "options": options or []})
     monkeypatch.setattr(ai_agent, "complete", complete)
 
 
@@ -607,13 +607,35 @@ async def test_no_followup_when_resolved_or_disabled(wsa, meta):
     assert (await wsa.get(f"/flows/{fid}/executions")).json()[0]["wait_until"] is None
 
 
-def test_ai_prompt_asks_lettered_options_unless_turned_off():
+def test_ai_prompt_asks_for_button_options_unless_turned_off():
     from app.models.contact import Contact
     from app.models.tenant import Tenant
     cfg = ai_agent.get_config(Tenant(name="Acme", settings={"ai": {}}))
-    assert "'A) ...'" in ai_agent.build_system_prompt(cfg, Contact(name="Ravi"), ["Plans: Starter, Growth"])
+    prompt = ai_agent.build_system_prompt(cfg, Contact(name="Ravi"), ["Plans: Starter, Growth"])
+    assert "tap buttons" in prompt and '"options"' in prompt and "real person" in prompt
     cfg = ai_agent.get_config(Tenant(name="Acme", settings={"ai": {"option_replies": False}}))
-    assert "'A) ...'" not in ai_agent.build_system_prompt(cfg, Contact(name="Ravi"), [])
+    assert "tap buttons" not in ai_agent.build_system_prompt(cfg, Contact(name="Ravi"), [])
+
+
+def test_ai_options_are_cleaned_for_whatsapp():
+    assert ai_agent.clean_options(["A) Starter", "b. Growth", "starter", "", None, "Book a demo"]) == ["Starter", "Growth", "Book a demo"]
+    assert ai_agent.clean_options("nope") == []
+    assert ai_agent.reply_message("Hi", [])["kind"] == "text"
+    btn = ai_agent.reply_message("Which plan?", ["Starter", "Growth"])
+    assert btn["kind"] == "interactive" and btn["interactive"]["type"] == "button"
+    assert [b["reply"]["title"] for b in btn["interactive"]["action"]["buttons"]] == ["Starter", "Growth"]
+    lst = ai_agent.reply_message("Pick one", ["Real estate", "Clinic", "Coaching", "Retail shop"])
+    assert lst["interactive"]["type"] == "list" and len(lst["interactive"]["action"]["sections"][0]["rows"]) == 4
+    assert ai_agent.reply_message("x" * 1100, ["A", "B"])["kind"] == "text"
+
+
+async def test_ai_reply_is_sent_with_tap_buttons(wsa, meta, monkeypatch, _no_ai_typing_delay):
+    await _enable_ai(wsa)
+    fake_llm(monkeypatch, reply="We start at ₹799/month. Where do most of your enquiries come from?", options=["WhatsApp", "Instagram", "Many channels"])
+    await wsa.inbound("price?")
+    sent = [m for m in meta.sent if m["type"] == "interactive"]
+    assert len(sent) == 1 and sent[0]["interactive"]["body"]["text"].startswith("We start at")
+    assert [b["reply"]["title"] for b in sent[0]["interactive"]["action"]["buttons"]] == ["WhatsApp", "Instagram", "Many channels"]
 
 
 async def test_ai_shows_typing_then_replies_after_the_delay(wsa, meta, monkeypatch, _no_ai_typing_delay):

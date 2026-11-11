@@ -288,7 +288,7 @@ async def _ai_reply(db, tenant, account, conv, contact, text: str, msg: Message 
     await db.commit()  # persist usage counter + collected lead fields
     # reply like a person typing: at least `reply_delay_seconds` after the message (the model's time counts toward it)
     await _pause(max(0.0, ai_agent.get_config(tenant)["reply_delay_seconds"] - (time.monotonic() - started)))
-    await _bot_text_ai(db, account, conv, contact, result.reply)
+    await _bot_text_ai(db, account, conv, contact, result.reply, result.options)
     if result.handoff:  # flag it for the team; the AI keeps replying until someone turns the Bot toggle off
         conv.labels = sorted({*(conv.labels or []), "needs-human"})
         await assignment.assign_new(db, tenant, conv)
@@ -297,8 +297,12 @@ async def _ai_reply(db, tenant, account, conv, contact, text: str, msg: Message 
     return "ai"
 
 
-async def _bot_text_ai(db, account, conv, contact, text: str) -> None:
+async def _bot_text_ai(db, account, conv, contact, text: str, options: list[str] | None = None) -> None:
+    """Send the AI reply, with its suggested options as tap buttons; if WhatsApp rejects the buttons, send plain text instead."""
     try:
-        await messaging.send_message(db, account, conv, contact, kind="text", text=text, sender_type="ai", extra_payload={"auto": "ai"}, strict=False)
+        msg = await messaging.send_message(db, account, conv, contact, sender_type="ai", extra_payload={"auto": "ai"}, strict=False,
+                                           **ai_agent.reply_message(text, options or []))
+        if msg.type == "interactive" and msg.status == "failed":
+            await messaging.send_message(db, account, conv, contact, kind="text", text=text, sender_type="ai", extra_payload={"auto": "ai"}, strict=False)
     except messaging.SendBlocked as exc:
         log.info("AI reply blocked: %s", exc.message)
